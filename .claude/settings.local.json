@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --yes)",
+      "Bash(mv .claude /tmp/.claude-backup)",
+      "Bash(\"g:/workspace/external/cuentas-personales/references/.gitkeep\")",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d --css-variables --style default)",
+      "Bash(npx shadcn@latest init -d)"
+    ]
+  }
+}

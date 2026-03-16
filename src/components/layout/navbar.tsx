@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/expenses", label: "Gastos", icon: List },
   { href: "/summary", label: "Resumen", icon: BarChart3 },
+  { href: "/import", label: "Importar", icon: Upload },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 

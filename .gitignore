@@ -37,9 +37,14 @@ yarn-error.log*
 # references (sensitive docs, screenshots, etc.)
 /references/
 
+# docs locales (guía de setup con info sensible)
+/docs/
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/.claude

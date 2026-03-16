@@ -8,7 +8,9 @@
       "Bash(\"g:/workspace/external/cuentas-personales/references/.gitkeep\")",
       "Bash(npm install:*)",
       "Bash(npx shadcn@latest init -d --css-variables --style default)",
-      "Bash(npx shadcn@latest init -d)"
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add card input label select table dialog badge separator tabs textarea dropdown-menu popover calendar -y)",
+      "Bash(npm run:*)"
     ]
   }
 }

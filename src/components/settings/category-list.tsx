@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
@@ -52,12 +51,10 @@ export function CategoryList({ categories }: Props) {
         <p className="text-sm text-muted-foreground">
           Categorías para clasificar tus gastos
         </p>
+        <Button size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Añadir
+        </Button>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Añadir
-            </Button>
-          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Nueva categoría</DialogTitle>

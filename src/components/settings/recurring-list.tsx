@@ -9,18 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,12 +54,10 @@ export function RecurringList({ recurring, categories }: Props) {
         <p className="text-sm text-muted-foreground">
           Gastos que se repiten cada mes (hipoteca, seguros, etc.)
         </p>
+        <Button size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Añadir
+        </Button>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Añadir
-            </Button>
-          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Nuevo gasto fijo</DialogTitle>
@@ -109,18 +99,21 @@ export function RecurringList({ recurring, categories }: Props) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category_id">Categoría</Label>
-                <Select name="category_id" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  id="category_id"
+                  name="category_id"
+                  required
+                  className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="" disabled selected>
+                    Selecciona categoría
+                  </option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               {error && (
                 <p className="text-sm text-red-600 bg-red-50 p-2 rounded">

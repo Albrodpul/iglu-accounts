@@ -232,7 +232,6 @@ export async function importMensualesOds(formData: FormData) {
   const bytes = await file.arrayBuffer();
   const workbook = XLSX.read(Buffer.from(bytes), {
     type: "buffer",
-    cellComments: true,
   });
 
   const entries = parseDailyEntriesFromWorkbook(workbook, parsed.data.year);

@@ -27,7 +27,7 @@ import type { Category } from "@/types";
 
 const navItemsLeft = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
-  { href: "/expenses", label: "Gastos", icon: List },
+  { href: "/expenses", label: "Diario", icon: List },
 ];
 
 const navItemsRight = [
@@ -128,35 +128,41 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         </div>
       </nav>
 
+      {/* Mobile top header */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 backdrop-blur-sm px-4 py-2.5 md:hidden">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/12">
+            <Image src="/iglu.svg" alt="Iglú" width={22} height={22} className="block" />
+          </div>
+          <span className="text-sm font-bold tracking-tight leading-none mt-1">Iglú</span>
+        </Link>
+        <div className="flex items-center gap-3">
+          {showAccountSwitcher && (
+            <Link
+              href="/select-account"
+              className="flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/40"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
+            </Link>
+          )}
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        </div>
+      </header>
+
       {/* Mobile bottom nav */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center justify-between border-b border-border/30 px-4 py-1.5">
-          {showAccountSwitcher ? (
-            <Link
-              href="/select-account"
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
-            >
-              <ArrowLeftRight className="h-3 w-3" />
-              {accountName || "Seleccionar cuenta"}
-            </Link>
-          ) : (
-            <span />
-          )}
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground cursor-pointer"
-            >
-              <LogOut className="h-3 w-3" />
-              Salir
-            </button>
-          </form>
-        </div>
         <div className="grid grid-cols-5 px-2">
-          {/* Left items */}
           {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}
@@ -165,13 +171,12 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           <div className="flex items-center justify-center">
             <button
               onClick={() => setAddOpen(true)}
-              className="relative -mt-4 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-card bg-primary text-primary-foreground shadow-md cursor-pointer"
+              className="relative -mt-7 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-card bg-primary text-primary-foreground shadow-md cursor-pointer"
             >
               <Plus className="h-5 w-5 stroke-[2.5]" />
             </button>
           </div>
 
-          {/* Right items */}
           {navItemsRight.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}

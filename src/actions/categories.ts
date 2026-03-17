@@ -59,6 +59,42 @@ export async function createCategory(formData: FormData) {
   return { success: true };
 }
 
+export async function updateCategory(id: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const parsed = categorySchema.safeParse({
+    name: formData.get("name"),
+    icon: (formData.get("icon") as string) || null,
+    color: (formData.get("color") as string) || "#64748b",
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update(parsed.data)
+    .eq("id", id)
+    .eq("account_id", accountId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  revalidatePath("/expenses");
+  revalidatePath("/summary");
+  return { success: true };
+}
+
 export async function deleteCategory(id: string) {
   const supabase = await createClient();
 

@@ -16,7 +16,7 @@ export function ExpenseListFiltered({ expenses, categories }: Props) {
 
   const filtered = expenses.filter((e) => {
     if (categoryFilter && e.category_id !== categoryFilter) return false;
-    if (conceptFilter && !e.concept.toLowerCase().includes(conceptFilter.toLowerCase())) return false;
+    if (conceptFilter && !e.concept?.toLowerCase().includes(conceptFilter.toLowerCase())) return false;
     return true;
   });
 

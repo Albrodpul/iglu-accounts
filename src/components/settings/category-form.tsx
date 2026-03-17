@@ -1,32 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { createCategory } from "@/actions/categories";
+import { createCategory, updateCategory } from "@/actions/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { toast } from "sonner";
+import type { Category } from "@/types";
 
 type Props = {
+  category?: Category;
   onSuccess?: () => void;
 };
 
-export function CategoryForm({ onSuccess }: Props) {
+export function CategoryForm({ category, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedIcon, setSelectedIcon] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState(category?.icon || "");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
     if (selectedIcon) formData.set("icon", selectedIcon);
-    const result = await createCategory(formData);
+
+    const result = category
+      ? await updateCategory(category.id, formData)
+      : await createCategory(formData);
+
     if (result?.error) {
       setError(result.error);
       toast.error(result.error);
     } else {
-      toast.success("Categoría creada");
+      toast.success(category ? "Categoría actualizada" : "Categoría creada");
       setSelectedIcon("");
       onSuccess?.();
     }
@@ -40,6 +46,7 @@ export function CategoryForm({ onSuccess }: Props) {
         <Input
           id="cat-name"
           name="name"
+          defaultValue={category?.name || ""}
           placeholder="Ej: Mascotas"
           required
         />
@@ -56,18 +63,18 @@ export function CategoryForm({ onSuccess }: Props) {
             id="cat-color"
             name="color"
             type="color"
-            defaultValue="#64748b"
+            defaultValue={category?.color || "#64748b"}
           />
         </div>
       </div>
-      <input type="hidden" name="sort_order" value="99" />
+      <input type="hidden" name="sort_order" value={category?.sort_order ?? 99} />
       {error && (
         <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
           {error}
         </p>
       )}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Guardando..." : "Guardar"}
+        {loading ? "Guardando..." : category ? "Actualizar" : "Guardar"}
       </Button>
     </form>
   );

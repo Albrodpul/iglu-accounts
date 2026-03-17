@@ -65,12 +65,12 @@ export default async function DashboardPage() {
           {allTime.years.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
               {allTime.years.map((y) => (
-                <div key={y.year} className="kpi-chip flex-1 min-w-[80px]">
+                <Link key={y.year} href={`/summary?year=${y.year}`} className="kpi-chip flex-1 min-w-[80px] transition-colors hover:bg-white/25">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{y.year}</p>
                   <p className={`mt-0.5 text-base font-semibold tabular-nums ${y.neto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
                     {formatCurrency(y.neto)}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           )}

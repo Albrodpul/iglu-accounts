@@ -40,6 +40,8 @@ export type ExpenseWithCategory = Expense & {
   category: Category;
 };
 
+export type ScheduleType = "monthly" | "last_day" | "last_weekday" | "bimonthly";
+
 export type RecurringExpense = {
   id: string;
   user_id: string;
@@ -48,6 +50,7 @@ export type RecurringExpense = {
   amount: number;
   concept: string;
   day_of_month: number | null;
+  schedule_type: ScheduleType;
   is_active: boolean;
   created_at: string;
   updated_at: string;

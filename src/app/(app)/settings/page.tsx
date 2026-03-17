@@ -11,7 +11,12 @@ export default async function SettingsPage() {
     getRecurringExpenses(),
   ]);
 
-  const totalRecurring = recurring.reduce((s, r) => s + r.amount, 0);
+  const totalExpenses = recurring
+    .filter((r) => r.amount < 0)
+    .reduce((s, r) => s + r.amount, 0);
+  const totalIncome = recurring
+    .filter((r) => r.amount > 0)
+    .reduce((s, r) => s + r.amount, 0);
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -19,18 +24,28 @@ export default async function SettingsPage() {
 
       <Tabs defaultValue="recurring">
         <TabsList className="grid w-full grid-cols-2 md:w-[360px]">
-          <TabsTrigger value="recurring">Gastos fijos</TabsTrigger>
+          <TabsTrigger value="recurring">Movimientos fijos</TabsTrigger>
           <TabsTrigger value="categories">Categorías</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recurring" className="mt-5 space-y-4">
-          <div className="glass-panel p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">
-              Total gastos fijos mensuales
-            </p>
-            <p className="mt-2 text-3xl font-bold text-amber-600 tabular-nums">
-              {formatCurrency(totalRecurring)}
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="glass-panel p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-500">
+                Gastos fijos/mes
+              </p>
+              <p className="mt-2 text-2xl font-bold text-rose-600 tabular-nums md:text-3xl">
+                {formatCurrency(totalExpenses)}
+              </p>
+            </div>
+            <div className="glass-panel p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                Ingresos fijos/mes
+              </p>
+              <p className="mt-2 text-2xl font-bold text-emerald-600 tabular-nums md:text-3xl">
+                {formatCurrency(totalIncome)}
+              </p>
+            </div>
           </div>
           <div className="glass-panel p-5 md:p-6">
             <RecurringList recurring={recurring} categories={categories} />

@@ -42,8 +42,8 @@ export default async function DashboardPage() {
   const monthsElapsed = month;
   const avgMonthlySpend = yearGastos / monthsElapsed;
 
-  // Fixed expenses
-  const totalFixedMonthly = recurring.reduce((s, r) => s + r.amount, 0);
+  // Fixed monthly totals
+  const fixedExpenses = recurring.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
 
   // Recent expenses (last 5)
   const recentExpenses = [...monthExpenses]
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
             <div className="kpi-chip">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Fijos/mes</p>
               <p className="mt-1 text-lg font-semibold text-sky-200 tabular-nums md:text-xl">
-                {formatCurrency(totalFixedMonthly)}
+                {formatCurrency(fixedExpenses)}
               </p>
             </div>
           </div>

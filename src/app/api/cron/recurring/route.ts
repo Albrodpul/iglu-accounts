@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
+function getLastWeekdayOfMonth(year: number, month: number, weekday: number): number {
+  // weekday: 0=Monday ... 6=Sunday (our convention)
+  // JS Date: 0=Sunday, 1=Monday ... 6=Saturday
+  const jsWeekday = weekday === 6 ? 0 : weekday + 1;
+  const lastDay = new Date(year, month, 0).getDate();
+
+  for (let d = lastDay; d >= 1; d--) {
+    if (new Date(year, month - 1, d).getDay() === jsWeekday) {
+      return d;
+    }
+  }
+  return lastDay;
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -12,8 +26,9 @@ export async function GET(request: Request) {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
 
-  // Get all active recurring expenses
+  // Get all active recurring items
   const { data: recurring, error: fetchError } = await supabase
     .from("recurring_expenses")
     .select("*")
@@ -24,12 +39,10 @@ export async function GET(request: Request) {
   }
 
   if (!recurring || recurring.length === 0) {
-    return NextResponse.json({ message: "No recurring expenses to process", inserted: 0 });
+    return NextResponse.json({ message: "No recurring items to process", inserted: 0 });
   }
 
-  // Check which recurring expenses have already been inserted this month
-  // We use a convention: recurring expenses get a note "auto:recurring:{recurring_id}"
-  const recurringIds = recurring.map((r) => r.id);
+  // Check which have already been inserted this month
   const { data: existing } = await supabase
     .from("expenses")
     .select("notes")
@@ -43,27 +56,52 @@ export async function GET(request: Request) {
       .filter(Boolean)
   );
 
-  // Insert missing ones
+  // Filter and compute dates
   const toInsert = recurring
-    .filter((r) => !alreadyInserted.has(r.id))
+    .filter((r) => {
+      if (alreadyInserted.has(r.id)) return false;
+
+      // Bimonthly: only insert on odd or even months (based on creation month)
+      if (r.schedule_type === "bimonthly") {
+        const createdMonth = new Date(r.created_at).getMonth() + 1;
+        // Insert if same parity as creation month
+        return (month % 2) === (createdMonth % 2);
+      }
+
+      return true;
+    })
     .map((r) => {
-      const day = r.day_of_month || 1;
-      const lastDay = new Date(year, month, 0).getDate();
-      const safeDay = Math.min(day, lastDay);
+      let day: number;
+      const scheduleType = r.schedule_type || "monthly";
+
+      switch (scheduleType) {
+        case "last_day":
+          day = lastDayOfMonth;
+          break;
+        case "last_weekday":
+          day = getLastWeekdayOfMonth(year, month, r.day_of_month ?? 4); // default Friday
+          break;
+        case "bimonthly":
+        case "monthly":
+        default:
+          day = r.day_of_month || 1;
+          day = Math.min(day, lastDayOfMonth);
+          break;
+      }
 
       return {
         user_id: r.user_id,
         account_id: r.account_id,
         category_id: r.category_id,
         amount: r.amount,
-        concept: r.concept || "Gasto fijo",
-        expense_date: `${monthStr}-${String(safeDay).padStart(2, "0")}`,
+        concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
+        expense_date: `${monthStr}-${String(day).padStart(2, "0")}`,
         notes: `auto:recurring:${r.id}`,
       };
     });
 
   if (toInsert.length === 0) {
-    return NextResponse.json({ message: "All recurring expenses already inserted", inserted: 0 });
+    return NextResponse.json({ message: "All recurring items already inserted", inserted: 0 });
   }
 
   const { error: insertError } = await supabase.from("expenses").insert(toInsert);
@@ -73,7 +111,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    message: `Inserted ${toInsert.length} recurring expenses for ${monthStr}`,
+    message: `Inserted ${toInsert.length} recurring items for ${monthStr}`,
     inserted: toInsert.length,
   });
 }

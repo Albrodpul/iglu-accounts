@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { createCategory, deleteCategory } from "@/actions/categories";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +25,7 @@ export function CategoryList({ categories }: Props) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -37,10 +40,18 @@ export function CategoryList({ categories }: Props) {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("¿Eliminar esta categoría? No se podrá si tiene gastos asociados.")) {
+    const ok = await confirm({
+      title: "Eliminar categoría",
+      description: "¿Eliminar esta categoría? No se podrá si tiene gastos asociados.",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (ok) {
       const result = await deleteCategory(id);
       if (result?.error) {
-        alert("No se puede eliminar: " + result.error);
+        toast.error("No se puede eliminar: " + result.error);
+      } else {
+        toast.success("Categoría eliminada");
       }
     }
   }
@@ -123,6 +134,7 @@ export function CategoryList({ categories }: Props) {
           </Card>
         ))}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

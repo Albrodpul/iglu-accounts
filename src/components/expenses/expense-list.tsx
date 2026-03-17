@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ExpenseForm } from "./expense-form";
 import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
@@ -23,6 +24,7 @@ type Props = {
 export function ExpenseList({ expenses, categories, sortable = true }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   if (expenses.length === 0) {
     return (
@@ -48,7 +50,13 @@ export function ExpenseList({ expenses, categories, sortable = true }: Props) {
   );
 
   async function handleDelete(id: string) {
-    if (confirm("¿Eliminar este movimiento?")) {
+    const ok = await confirm({
+      title: "Eliminar movimiento",
+      description: "¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (ok) {
       const result = await deleteExpense(id);
       if (result?.error) {
         toast.error(result.error);
@@ -161,6 +169,8 @@ export function ExpenseList({ expenses, categories, sortable = true }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {ConfirmDialog}
     </>
   );
 }

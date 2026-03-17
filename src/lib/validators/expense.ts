@@ -16,7 +16,8 @@ export const recurringExpenseSchema = z.object({
     .refine((v) => v !== 0, "El importe no puede ser 0"),
   concept: z.string().optional().nullable(),
   category_id: z.string().uuid("Selecciona una categoría"),
-  day_of_month: z.number().min(1).max(31).optional().nullable(),
+  day_of_month: z.number().min(0).max(31).optional().nullable(),
+  schedule_type: z.enum(["monthly", "last_day", "last_weekday", "bimonthly"]).default("monthly"),
 });
 
 export const categorySchema = z.object({

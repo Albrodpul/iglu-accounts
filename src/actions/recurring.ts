@@ -33,13 +33,19 @@ export async function createRecurringExpense(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
+  const rawAmount = parseFloat(formData.get("amount") as string);
+  const isIncome = formData.get("is_income") === "true";
+  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
+
+  const scheduleType = (formData.get("schedule_type") as string) || "monthly";
+  const dayValue = formData.get("day_of_month") as string;
+
   const parsed = recurringExpenseSchema.safeParse({
-    amount: -Math.abs(parseFloat(formData.get("amount") as string)),
+    amount,
     concept: formData.get("concept"),
     category_id: formData.get("category_id"),
-    day_of_month: formData.get("day_of_month")
-      ? parseInt(formData.get("day_of_month") as string)
-      : null,
+    day_of_month: dayValue ? parseInt(dayValue) : null,
+    schedule_type: scheduleType,
   });
 
   if (!parsed.success) {
@@ -58,6 +64,7 @@ export async function createRecurringExpense(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/summary");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -69,13 +76,19 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
+  const rawAmount = parseFloat(formData.get("amount") as string);
+  const isIncome = formData.get("is_income") === "true";
+  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
+
+  const scheduleType = (formData.get("schedule_type") as string) || "monthly";
+  const dayValue = formData.get("day_of_month") as string;
+
   const parsed = recurringExpenseSchema.safeParse({
-    amount: -Math.abs(parseFloat(formData.get("amount") as string)),
+    amount,
     concept: formData.get("concept"),
     category_id: formData.get("category_id"),
-    day_of_month: formData.get("day_of_month")
-      ? parseInt(formData.get("day_of_month") as string)
-      : null,
+    day_of_month: dayValue ? parseInt(dayValue) : null,
+    schedule_type: scheduleType,
   });
 
   if (!parsed.success) {
@@ -92,6 +105,7 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/summary");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -113,5 +127,6 @@ export async function deleteRecurringExpense(id: string) {
 
   revalidatePath("/settings");
   revalidatePath("/summary");
+  revalidatePath("/dashboard");
   return { success: true };
 }

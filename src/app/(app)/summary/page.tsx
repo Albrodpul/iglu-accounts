@@ -1,11 +1,10 @@
 import { getExpensesByYear } from "@/actions/expenses";
-import { getRecurringExpenses } from "@/actions/recurring";
 import { getCategories } from "@/actions/categories";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, MONTHS } from "@/lib/format";
 import { YearSelector } from "@/components/summary/year-selector";
 import { MonthlyChart } from "@/components/summary/monthly-chart";
 import { CategoryBreakdown } from "@/components/summary/category-breakdown";
+import { AnnualGrid } from "@/components/summary/annual-grid";
 
 type Props = {
   searchParams: Promise<{ year?: string }>;
@@ -15,9 +14,8 @@ export default async function SummaryPage({ searchParams }: Props) {
   const params = await searchParams;
   const year = params.year ? parseInt(params.year) : new Date().getFullYear();
 
-  const [expenses, recurring, categories] = await Promise.all([
+  const [expenses, categories] = await Promise.all([
     getExpensesByYear(year),
-    getRecurringExpenses(),
     getCategories(),
   ]);
 
@@ -43,7 +41,7 @@ export default async function SummaryPage({ searchParams }: Props) {
     };
   });
 
-  // Category breakdown for the year
+  // Category breakdown
   const categoryTotals = categories
     .map((cat) => {
       const total = expenses
@@ -60,89 +58,59 @@ export default async function SummaryPage({ searchParams }: Props) {
   const totalIncome = expenses
     .filter((e) => e.amount > 0)
     .reduce((s, e) => s + e.amount, 0);
-  const totalRecurring = recurring.reduce((s, r) => s + r.amount, 0) * 12;
+  const neto = totalExpenses + totalIncome;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Resumen anual</h2>
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold md:text-3xl">Resumen anual</h1>
         <YearSelector year={year} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground font-medium">
-              Total gastos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-red-600">
-              {formatCurrency(totalExpenses)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground font-medium">
-              Total ingresos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-green-600">
+      <section className="hero-surface p-6 md:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+          Balance {year}
+        </p>
+        <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${neto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+          {formatCurrency(neto)}
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums md:text-2xl">
               {formatCurrency(totalIncome)}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground font-medium">
-              Gastos fijos (anual)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-orange-600">
-              {formatCurrency(totalRecurring)}
+          </div>
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
+            <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums md:text-2xl">
+              {formatCurrency(totalExpenses)}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground font-medium">
-              Neto año
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-lg font-bold ${
-                totalExpenses + totalIncome >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {formatCurrency(totalExpenses + totalIncome)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gastos vs Ingresos por mes</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section>
+        <h2 className="mb-4 text-lg font-semibold md:text-xl">Gastos vs Ingresos por mes</h2>
+        <div className="glass-panel p-5 md:p-6">
           <MonthlyChart data={monthlyData} />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Desglose por categoría</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section>
+        <h2 className="mb-4 text-lg font-semibold md:text-xl">Vista anual por categoría</h2>
+        <div className="glass-panel p-5 md:p-6">
+          <AnnualGrid expenses={expenses} categories={categories} year={year} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold md:text-xl">Desglose por categoría</h2>
+        <div className="glass-panel p-5 md:p-6">
           <CategoryBreakdown data={categoryTotals} />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

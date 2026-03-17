@@ -1,24 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createExpense, updateExpense } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Account, Category, Expense } from "@/types";
+import { toast } from "sonner";
+import type { Category, Expense } from "@/types";
 
 type Props = {
   categories: Category[];
-  accounts?: Account[];
   expense?: Expense;
   onSuccess?: () => void;
 };
 
-export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props) {
+export function ExpenseForm({ categories, expense, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isIncome, setIsIncome] = useState(expense ? expense.amount > 0 : false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -33,16 +34,19 @@ export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props)
 
     if (result?.error) {
       setError(result.error);
+      toast.error(result.error);
       setLoading(false);
     } else {
+      toast.success(expense ? "Movimiento actualizado" : isIncome ? "Ingreso añadido" : "Gasto añadido");
       setLoading(false);
+      if (!expense) formRef.current?.reset();
       onSuccess?.();
     }
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4">
-      <div className="flex gap-2">
+    <form ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+      <div className="flex gap-2 md:col-span-2">
         <Button
           type="button"
           variant={!isIncome ? "default" : "outline"}
@@ -63,7 +67,7 @@ export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props)
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:col-span-2">
         <div className="space-y-2">
           <Label htmlFor="amount">Importe (EUR)</Label>
           <Input
@@ -89,35 +93,15 @@ export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props)
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-span-2">
         <Label htmlFor="concept">Concepto</Label>
         <Input
           id="concept"
           name="concept"
           defaultValue={expense?.concept || ""}
           placeholder="Ej: Compra supermercado"
-          required
         />
       </div>
-
-      {accounts && accounts.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="account_id">Cuenta</Label>
-          <select
-            id="account_id"
-            name="account_id"
-            defaultValue={expense?.account_id || accounts.find((a) => a.is_default)?.id || ""}
-            required
-            className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.icon} {acc.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="category_id">Categoría</Label>
@@ -139,7 +123,7 @@ export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props)
         </select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-span-2">
         <Label htmlFor="notes">Notas (opcional)</Label>
         <Textarea
           id="notes"
@@ -151,10 +135,10 @@ export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props)
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>
+        <p className="rounded bg-red-50 p-2 text-sm text-red-600 md:col-span-2">{error}</p>
       )}
 
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full md:col-span-2" disabled={loading}>
         {loading
           ? "Guardando..."
           : expense

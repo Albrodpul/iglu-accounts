@@ -28,14 +28,14 @@ export function MonthSelector({ month, year, basePath = "/expenses" }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+    <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
+      <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => navigate(-1)}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium min-w-[120px] text-center">
+      <span className="min-w-[124px] text-center text-sm font-semibold">
         {MONTHS[month - 1]} {year}
       </span>
-      <Button variant="outline" size="icon" onClick={() => navigate(1)}>
+      <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => navigate(1)}>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>

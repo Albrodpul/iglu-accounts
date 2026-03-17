@@ -1,12 +1,9 @@
 import { getExpenses } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
-import { getAccounts } from "@/actions/accounts";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, MONTHS } from "@/lib/format";
-import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 
 type Props = {
   searchParams: Promise<{ month?: string; year?: string }>;
@@ -18,10 +15,9 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
   const year = params.year ? parseInt(params.year) : now.getFullYear();
 
-  const [expenses, categories, accounts] = await Promise.all([
+  const [expenses, categories] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
-    getAccounts(),
   ]);
 
   const totalExpenses = expenses
@@ -33,66 +29,45 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const neto = totalExpenses + totalIncome;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Gastos</h2>
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
         <MonthSelector month={month} year={year} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="pb-1 pt-3 px-4">
-            <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
-              <TrendingDown className="h-3.5 w-3.5 text-red-500" />
-              Gastos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <p className="text-lg font-bold text-red-600">
-              {formatCurrency(totalExpenses)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="pb-1 pt-3 px-4">
-            <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-              Ingresos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <p className="text-lg font-bold text-emerald-600">
+      <section className="hero-surface p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+          Neto {MONTHS[month - 1]} {year}
+        </p>
+        <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums md:text-4xl ${neto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+          {formatCurrency(neto)}
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums">
               {formatCurrency(totalIncome)}
             </p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${neto >= 0 ? "border-l-blue-500" : "border-l-orange-500"}`}>
-          <CardHeader className="pb-1 pt-3 px-4">
-            <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
-              <Wallet className="h-3.5 w-3.5 text-blue-500" />
-              Neto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <p className={`text-lg font-bold ${neto >= 0 ? "text-blue-600" : "text-orange-600"}`}>
-              {formatCurrency(neto)}
+          </div>
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
+            <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums">
+              {formatCurrency(totalExpenses)}
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {MONTHS[month - 1]} {year}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ExpenseList expenses={expenses} categories={categories} accounts={accounts} />
-        </CardContent>
-      </Card>
+      <section>
+        <h2 className="mb-4 text-lg font-semibold md:text-xl">
+          Detalle · {MONTHS[month - 1]}
+        </h2>
+        <div className="glass-panel p-5 md:p-6">
+          <ExpenseList expenses={expenses} categories={categories} />
+        </div>
+      </section>
 
-      <AddExpenseFab categories={categories} accounts={accounts} />
+      <AddExpenseFab categories={categories} />
     </div>
   );
 }

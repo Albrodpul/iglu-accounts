@@ -20,14 +20,14 @@ export function CategoryBreakdown({ data }: Props) {
   return (
     <div className="space-y-3">
       {data.map((item) => (
-        <div key={item.name} className="space-y-1">
+        <div key={item.name} className="space-y-1.5">
           <div className="flex justify-between text-sm">
-            <span>
+            <span className="font-medium text-foreground/90">
               {item.icon} {item.name}
             </span>
-            <span className="font-medium">{formatCurrency(item.total)}</span>
+            <span className="font-semibold tabular-nums">{formatCurrency(item.total)}</span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2.5 overflow-hidden rounded-full bg-muted/70">
             <div
               className="h-full rounded-full transition-all"
               style={{

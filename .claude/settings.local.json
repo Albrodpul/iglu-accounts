@@ -10,7 +10,13 @@
       "Bash(npx shadcn@latest init -d --css-variables --style default)",
       "Bash(npx shadcn@latest init -d)",
       "Bash(npx shadcn@latest add card input label select table dialog badge separator tabs textarea dropdown-menu popover calendar -y)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:iglu-accounts.vercel.app)",
+      "WebFetch(domain:iglu-management.vercel.app)",
+      "Bash(find /g/workspace/external/cuentas-personales -maxdepth 1 -name *.config.* -o -name postcss.config.*)",
+      "Bash(npx next:*)",
+      "Bash(ls \"g:/workspace/external/cuentas-personales/src/app/\\(auth\\)/\")",
+      "Bash(xargs ls:*)"
     ]
   }
 }

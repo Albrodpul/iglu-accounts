@@ -1,10 +1,6 @@
 export type Account = {
   id: string;
-  user_id: string;
   name: string;
-  icon: string | null;
-  color: string | null;
-  is_default: boolean;
   created_at: string;
 };
 

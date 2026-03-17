@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { deleteExpense } from "@/actions/expenses";
 import { formatCurrency, formatDateShort } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -13,20 +12,19 @@ import {
 } from "@/components/ui/dialog";
 import { ExpenseForm } from "./expense-form";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Account, Category, ExpenseWithCategory } from "@/types";
+import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
-  accounts?: Account[];
 };
 
-export function ExpenseList({ expenses, categories, accounts }: Props) {
+export function ExpenseList({ expenses, categories }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
 
   if (expenses.length === 0) {
     return (
-      <p className="text-center text-muted-foreground py-8">
+      <p className="py-10 text-center text-sm text-muted-foreground">
         No hay movimientos en este periodo
       </p>
     );
@@ -47,25 +45,30 @@ export function ExpenseList({ expenses, categories, accounts }: Props) {
 
   async function handleDelete(id: string) {
     if (confirm("¿Eliminar este movimiento?")) {
-      await deleteExpense(id);
+      const result = await deleteExpense(id);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Movimiento eliminado");
+      }
     }
   }
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-5">
         {sortedDates.map((date) => {
           const dayExpenses = grouped[date];
           const dayTotal = dayExpenses.reduce((s, e) => s + e.amount, 0);
 
           return (
-            <div key={date} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-semibold text-gray-500">
+            <div key={date}>
+              <div className="mb-2 flex items-center justify-between px-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {formatDateShort(date)}
-                </h3>
+                </span>
                 <span
-                  className={`text-sm font-semibold ${dayTotal >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-xs font-bold tabular-nums ${dayTotal >= 0 ? "text-income" : "text-expense"}`}
                 >
                   {formatCurrency(dayTotal)}
                 </span>
@@ -74,43 +77,46 @@ export function ExpenseList({ expenses, categories, accounts }: Props) {
                 {dayExpenses.map((expense) => (
                   <div
                     key={expense.id}
-                    className="flex items-center justify-between bg-card rounded px-3 py-2 border"
+                    className="group flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Badge
-                        variant="outline"
-                        className="shrink-0"
-                        style={{
-                          borderColor: expense.category?.color || "#64748b",
-                          color: expense.category?.color || "#64748b",
-                        }}
-                      >
-                        {expense.category?.icon} {expense.category?.name}
-                      </Badge>
-                      <span className="text-sm truncate">{expense.concept}</span>
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
+                      style={{
+                        backgroundColor: (expense.category?.color || "#64748b") + "15",
+                      }}
+                    >
+                      {expense.category?.icon || "📦"}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {expense.concept}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {expense.category?.name}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
                       <span
-                        className={`text-sm font-medium ${expense.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                        className={`text-sm font-semibold tabular-nums ${expense.amount >= 0 ? "text-income" : "text-foreground"}`}
                       >
                         {formatCurrency(expense.amount)}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setEditingExpense(expense)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700"
-                        onClick={() => handleDelete(expense.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                        <button
+                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => setEditingExpense(expense)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors"
+                          onClick={() => handleDelete(expense.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -121,18 +127,19 @@ export function ExpenseList({ expenses, categories, accounts }: Props) {
       </div>
 
       <Dialog open={!!editingExpense} onOpenChange={() => setEditingExpense(null)}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-2xl lg:max-w-3xl">
+          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
             <DialogTitle>Editar movimiento</DialogTitle>
           </DialogHeader>
-          {editingExpense && (
-            <ExpenseForm
-              categories={categories}
-              accounts={accounts}
-              expense={editingExpense}
-              onSuccess={() => setEditingExpense(null)}
-            />
-          )}
+          <div className="px-5 py-4">
+            {editingExpense && (
+              <ExpenseForm
+                categories={categories}
+                expense={editingExpense}
+                onSuccess={() => setEditingExpense(null)}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

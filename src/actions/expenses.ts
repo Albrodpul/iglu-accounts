@@ -3,12 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { expenseSchema } from "@/lib/validators/expense";
 import { revalidatePath } from "next/cache";
+import { getSelectedAccountId } from "./accounts";
 
 export async function getExpenses(params: {
   month: number;
   year: number;
 }) {
   const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
 
   const startDate = `${params.year}-${String(params.month).padStart(2, "0")}-01`;
   const endDate =
@@ -16,12 +18,18 @@ export async function getExpenses(params: {
       ? `${params.year + 1}-01-01`
       : `${params.year}-${String(params.month + 1).padStart(2, "0")}-01`;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("expenses")
     .select("*, category:categories(*)")
     .gte("expense_date", startDate)
     .lt("expense_date", endDate)
     .order("expense_date", { ascending: true });
+
+  if (accountId) {
+    query = query.eq("account_id", accountId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data;
@@ -29,13 +37,20 @@ export async function getExpenses(params: {
 
 export async function getExpensesByYear(year: number) {
   const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("expenses")
     .select("*, category:categories(*)")
     .gte("expense_date", `${year}-01-01`)
     .lt("expense_date", `${year + 1}-01-01`)
     .order("expense_date", { ascending: true });
+
+  if (accountId) {
+    query = query.eq("account_id", accountId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data;
@@ -55,7 +70,7 @@ export async function createExpense(formData: FormData) {
 
   const parsed = expenseSchema.safeParse({
     amount,
-    concept: formData.get("concept"),
+    concept: formData.get("concept") || null,
     category_id: formData.get("category_id"),
     expense_date: formData.get("expense_date"),
     notes: formData.get("notes") || null,
@@ -65,7 +80,7 @@ export async function createExpense(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const accountId = formData.get("account_id") as string | null;
+  const accountId = await getSelectedAccountId();
 
   const { error } = await supabase.from("expenses").insert({
     ...parsed.data,
@@ -95,7 +110,7 @@ export async function updateExpense(id: string, formData: FormData) {
 
   const parsed = expenseSchema.safeParse({
     amount,
-    concept: formData.get("concept"),
+    concept: formData.get("concept") || null,
     category_id: formData.get("category_id"),
     expense_date: formData.get("expense_date"),
     notes: formData.get("notes") || null,
@@ -105,13 +120,10 @@ export async function updateExpense(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const accountId = formData.get("account_id") as string | null;
-
   const { error } = await supabase
     .from("expenses")
     .update({
       ...parsed.data,
-      ...(accountId ? { account_id: accountId } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

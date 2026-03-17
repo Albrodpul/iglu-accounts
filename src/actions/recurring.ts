@@ -3,15 +3,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { recurringExpenseSchema } from "@/lib/validators/expense";
 import { revalidatePath } from "next/cache";
+import { getSelectedAccountId } from "./accounts";
 
 export async function getRecurringExpenses() {
   const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("recurring_expenses")
     .select("*, category:categories(*)")
     .eq("is_active", true)
     .order("concept", { ascending: true });
+
+  if (accountId) {
+    query = query.eq("account_id", accountId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data;
@@ -38,9 +46,12 @@ export async function createRecurringExpense(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  const accountId = await getSelectedAccountId();
+
   const { error } = await supabase.from("recurring_expenses").insert({
     ...parsed.data,
     user_id: user.id,
+    ...(accountId ? { account_id: accountId } : {}),
   });
 
   if (error) return { error: error.message };

@@ -81,7 +81,7 @@ export default async function SummaryPage({ searchParams }: Props) {
           {formatCurrency(neto)}
         </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="kpi-chip">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
             <p className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums md:text-2xl">
@@ -94,7 +94,7 @@ export default async function SummaryPage({ searchParams }: Props) {
               {formatCurrency(totalExpenses)}
             </p>
           </div>
-          <div className="kpi-chip">
+          <div className="kpi-chip col-span-2 md:col-span-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Media/mes</p>
             <p className="mt-1 text-xl font-semibold text-amber-300 tabular-nums md:text-2xl">
               {formatCurrency(avgMonthlyExpense)}

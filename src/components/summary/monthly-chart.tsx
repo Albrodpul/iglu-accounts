@@ -22,12 +22,12 @@ type Props = {
 
 export function MonthlyChart({ data }: Props) {
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-[250px] w-full sm:h-[350px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+        <BarChart data={data} barGap={1} barCategoryGap="15%">
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.25)" vertical={false} />
-          <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-          <YAxis fontSize={12} tickLine={false} axisLine={false} />
+          <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} interval={0} />
+          <YAxis fontSize={11} tickLine={false} axisLine={false} width={45} />
           <Tooltip
             contentStyle={{
               borderRadius: "12px",
@@ -42,8 +42,8 @@ export function MonthlyChart({ data }: Props) {
             }
           />
           <Legend />
-          <Bar dataKey="gastos" name="Gastos" fill="#f43f5e" radius={[8, 8, 0, 0]} />
-          <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[8, 8, 0, 0]} />
+          <Bar dataKey="gastos" name="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -1,19 +1,20 @@
 import { getExpenses, getExpensesByYear } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
+import { getRecurringExpenses } from "@/actions/recurring";
 import { formatCurrency, MONTHS } from "@/lib/format";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
-import { TrendingDown, TrendingUp } from "lucide-react";
 
 export default async function DashboardPage() {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const [monthExpenses, yearExpenses, categories] = await Promise.all([
+  const [monthExpenses, yearExpenses, categories, recurring] = await Promise.all([
     getExpenses({ month, year }),
     getExpensesByYear(year),
     getCategories(),
+    getRecurringExpenses(),
   ]);
 
   // Month stats
@@ -34,6 +35,13 @@ export default async function DashboardPage() {
     .reduce((s, e) => s + e.amount, 0);
   const yearNeto = yearGastos + yearIngresos;
 
+  // Monthly average spending (gastos / months elapsed)
+  const monthsElapsed = month; // current month number = months elapsed in the year
+  const avgMonthlySpend = yearGastos / monthsElapsed;
+
+  // Fixed expenses average (from recurring)
+  const totalFixedMonthly = recurring.reduce((s, r) => s + r.amount, 0);
+
   // Recent expenses (last 10)
   const recentExpenses = [...monthExpenses]
     .sort((a, b) => b.expense_date.localeCompare(a.expense_date))
@@ -48,18 +56,8 @@ export default async function DashboardPage() {
         <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${yearNeto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
           {formatCurrency(yearNeto)}
         </p>
-        <div className="mt-3 flex items-center gap-2">
-          {yearNeto >= 0 ? (
-            <TrendingUp className="h-4 w-4 text-emerald-300" />
-          ) : (
-            <TrendingDown className="h-4 w-4 text-rose-300" />
-          )}
-          <span className="text-sm text-white/65">
-            {formatCurrency(yearIngresos)} ingresos · {formatCurrency(yearGastos)} gastos
-          </span>
-        </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="kpi-chip">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
             <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums md:text-2xl">
@@ -70,6 +68,18 @@ export default async function DashboardPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
             <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums md:text-2xl">
               {formatCurrency(yearGastos)}
+            </p>
+          </div>
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Media gasto/mes</p>
+            <p className="mt-1 text-xl font-semibold text-amber-200 tabular-nums md:text-2xl">
+              {formatCurrency(avgMonthlySpend)}
+            </p>
+          </div>
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Fijos/mes</p>
+            <p className="mt-1 text-xl font-semibold text-sky-200 tabular-nums md:text-2xl">
+              {formatCurrency(totalFixedMonthly)}
             </p>
           </div>
         </div>

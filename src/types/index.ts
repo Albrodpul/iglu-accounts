@@ -18,6 +18,7 @@ export type Category = {
   icon: string | null;
   color: string | null;
   sort_order: number;
+  account_id: string;
   created_at: string;
 };
 

@@ -126,10 +126,10 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
 
       {/* Mobile bottom nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/80 bg-card/95 backdrop-blur-sm md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed bottom-2.5 left-3 right-3 z-50 rounded-2xl border border-border/70 bg-card/95 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] backdrop-blur-sm md:hidden"
+        style={{ paddingBottom: "max(0px, calc(env(safe-area-inset-bottom) - 0.625rem))" }}
       >
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-5 px-1">
           {/* Left items */}
           {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} />

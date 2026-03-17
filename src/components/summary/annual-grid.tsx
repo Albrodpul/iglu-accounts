@@ -28,14 +28,12 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
     });
 
     const total = monthlyTotals.reduce((s, v) => s + v, 0);
-    const monthsWithData = monthlyTotals.filter((v) => v !== 0).length;
-    const avg = monthsWithData > 0 ? total / monthsWithData : 0;
 
     return {
       category: cat,
       months: monthlyTotals,
       total,
-      avg,
+      avg: 0, // calculated below once we know elapsed months
     };
   });
 
@@ -44,6 +42,18 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
     grid.reduce((s, row) => s + row.months[i], 0)
   );
   const grandTotal = monthTotals.reduce((s, v) => s + v, 0);
+
+  // Elapsed months = up to the last month with any data across all categories
+  const lastMonthWithData = monthTotals.reduce(
+    (last, val, i) => (val !== 0 ? i + 1 : last),
+    0
+  );
+  const elapsedMonths = Math.max(lastMonthWithData, 1);
+
+  // Now calculate averages using elapsed months
+  for (const row of grid) {
+    row.avg = row.total / elapsedMonths;
+  }
 
   // Current month for highlighting
   const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
@@ -145,7 +155,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
               {formatCurrency(grandTotal)}
             </td>
             <td className="py-2 px-1.5 text-right text-muted-foreground">
-              {formatCompact(grandTotal / 12)}
+              {formatCompact(grandTotal / elapsedMonths)}
             </td>
           </tr>
         </tfoot>

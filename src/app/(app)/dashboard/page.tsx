@@ -1,6 +1,7 @@
 import { getExpenses, getExpensesByYear } from "@/actions/expenses";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { getCategories } from "@/actions/categories";
+import { getAccounts } from "@/actions/accounts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, MONTHS } from "@/lib/format";
 import { ExpenseList } from "@/components/expenses/expense-list";
@@ -17,11 +18,12 @@ export default async function DashboardPage() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const [monthExpenses, yearExpenses, recurring, categories] = await Promise.all([
+  const [monthExpenses, yearExpenses, recurring, categories, accounts] = await Promise.all([
     getExpenses({ month, year }),
     getExpensesByYear(year),
     getRecurringExpenses(),
     getCategories(),
+    getAccounts(),
   ]);
 
   // Month stats
@@ -172,7 +174,7 @@ export default async function DashboardPage() {
       </Card>
 
       {/* Floating action button */}
-      <AddExpenseFab categories={categories} />
+      <AddExpenseFab categories={categories} accounts={accounts} />
     </div>
   );
 }

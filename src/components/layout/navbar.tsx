@@ -30,10 +30,17 @@ export function Navbar() {
       {/* Desktop sidebar */}
       <nav className="hidden md:flex flex-col w-56 bg-sidebar h-screen fixed left-0 top-0">
         <div className="p-5 border-b border-sidebar-border">
-          <h1 className="font-bold text-lg text-sidebar-foreground tracking-tight">
-            Cuentas Personales
-          </h1>
-          <p className="text-xs text-sidebar-foreground/50 mt-0.5">Control de gastos</p>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-sidebar-primary rounded flex items-center justify-center">
+              <span className="text-sm">🏔️</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-base text-sidebar-foreground tracking-tight leading-tight">
+                Iglú
+              </h1>
+              <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">Management</p>
+            </div>
+          </div>
         </div>
         <div className="flex-1 p-3 space-y-1">
           {navItems.map((item) => {
@@ -71,7 +78,7 @@ export function Navbar() {
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50 safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-bottom">
         <div className="flex justify-around py-1.5 pb-2">
           {navItems.map((item) => {
             const Icon = item.icon;

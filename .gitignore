@@ -41,11 +41,11 @@ yarn-error.log*
 /docs/
 
 # vercel
-.vercel
+.vercel/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
 # claude (local LLM)
-/.claude
+/.claude/

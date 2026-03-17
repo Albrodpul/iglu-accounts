@@ -1,3 +1,21 @@
+export type Account = {
+  id: string;
+  user_id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  is_default: boolean;
+  created_at: string;
+};
+
+export type AccountMember = {
+  id: string;
+  account_id: string;
+  user_id: string;
+  role: "owner" | "member";
+  created_at: string;
+};
+
 export type Category = {
   id: string;
   name: string;
@@ -11,6 +29,7 @@ export type Expense = {
   id: string;
   user_id: string;
   category_id: string;
+  account_id: string | null;
   amount: number;
   concept: string;
   expense_date: string;
@@ -28,6 +47,7 @@ export type RecurringExpense = {
   id: string;
   user_id: string;
   category_id: string;
+  account_id: string | null;
   amount: number;
   concept: string;
   day_of_month: number | null;

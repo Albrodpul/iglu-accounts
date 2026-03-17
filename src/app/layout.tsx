@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cuentas Personales",
-  description: "Gestión de gastos del hogar",
+  title: "Iglú Management",
+  description: "Gestión de cuentas y finanzas del hogar",
 };
 
 export default function RootLayout({

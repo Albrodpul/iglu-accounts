@@ -65,9 +65,12 @@ export async function createExpense(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  const accountId = formData.get("account_id") as string | null;
+
   const { error } = await supabase.from("expenses").insert({
     ...parsed.data,
     user_id: user.id,
+    ...(accountId ? { account_id: accountId } : {}),
   });
 
   if (error) return { error: error.message };
@@ -102,9 +105,15 @@ export async function updateExpense(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  const accountId = formData.get("account_id") as string | null;
+
   const { error } = await supabase
     .from("expenses")
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .update({
+      ...parsed.data,
+      ...(accountId ? { account_id: accountId } : {}),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .eq("user_id", user.id);
 

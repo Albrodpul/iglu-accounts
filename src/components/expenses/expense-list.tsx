@@ -13,14 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { ExpenseForm } from "./expense-form";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Category, ExpenseWithCategory } from "@/types";
+import type { Account, Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
+  accounts?: Account[];
 };
 
-export function ExpenseList({ expenses, categories }: Props) {
+export function ExpenseList({ expenses, categories, accounts }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
 
   if (expenses.length === 0) {
@@ -73,7 +74,7 @@ export function ExpenseList({ expenses, categories }: Props) {
                 {dayExpenses.map((expense) => (
                   <div
                     key={expense.id}
-                    className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border"
+                    className="flex items-center justify-between bg-card rounded px-3 py-2 border"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <Badge
@@ -127,6 +128,7 @@ export function ExpenseList({ expenses, categories }: Props) {
           {editingExpense && (
             <ExpenseForm
               categories={categories}
+              accounts={accounts}
               expense={editingExpense}
               onSuccess={() => setEditingExpense(null)}
             />

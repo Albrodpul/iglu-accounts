@@ -22,12 +22,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Cuentas Personales</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Inicia sesión para gestionar tus gastos
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-9 h-9 bg-primary rounded flex items-center justify-center">
+              <span className="text-primary-foreground text-lg">🏔️</span>
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">Iglú</CardTitle>
+          </div>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+            Management
+          </p>
+          <p className="text-sm text-muted-foreground mt-3">
+            Inicia sesión para gestionar tus cuentas
           </p>
         </CardHeader>
         <CardContent>

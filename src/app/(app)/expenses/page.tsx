@@ -1,5 +1,6 @@
 import { getExpenses } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
+import { getAccounts } from "@/actions/accounts";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
@@ -17,9 +18,10 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
   const year = params.year ? parseInt(params.year) : now.getFullYear();
 
-  const [expenses, categories] = await Promise.all([
+  const [expenses, categories, accounts] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
+    getAccounts(),
   ]);
 
   const totalExpenses = expenses
@@ -86,11 +88,11 @@ export default async function ExpensesPage({ searchParams }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ExpenseList expenses={expenses} categories={categories} />
+          <ExpenseList expenses={expenses} categories={categories} accounts={accounts} />
         </CardContent>
       </Card>
 
-      <AddExpenseFab categories={categories} />
+      <AddExpenseFab categories={categories} accounts={accounts} />
     </div>
   );
 }

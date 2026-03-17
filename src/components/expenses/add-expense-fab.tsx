@@ -10,13 +10,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ExpenseForm } from "./expense-form";
-import type { Category } from "@/types";
+import type { Account, Category } from "@/types";
 
 type Props = {
   categories: Category[];
+  accounts?: Account[];
 };
 
-export function AddExpenseFab({ categories }: Props) {
+export function AddExpenseFab({ categories, accounts }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,6 +37,7 @@ export function AddExpenseFab({ categories }: Props) {
           </DialogHeader>
           <ExpenseForm
             categories={categories}
+            accounts={accounts}
             onSuccess={() => setOpen(false)}
           />
         </DialogContent>

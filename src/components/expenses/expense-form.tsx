@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Category, Expense } from "@/types";
+import type { Account, Category, Expense } from "@/types";
 
 type Props = {
   categories: Category[];
+  accounts?: Account[];
   expense?: Expense;
   onSuccess?: () => void;
 };
 
-export function ExpenseForm({ categories, expense, onSuccess }: Props) {
+export function ExpenseForm({ categories, accounts, expense, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isIncome, setIsIncome] = useState(expense ? expense.amount > 0 : false);
@@ -99,6 +100,25 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
         />
       </div>
 
+      {accounts && accounts.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="account_id">Cuenta</Label>
+          <select
+            id="account_id"
+            name="account_id"
+            defaultValue={expense?.account_id || accounts.find((a) => a.is_default)?.id || ""}
+            required
+            className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {accounts.map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.icon} {acc.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="category_id">Categoría</Label>
         <select
@@ -106,7 +126,7 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
           name="category_id"
           defaultValue={expense?.category_id || ""}
           required
-          className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="" disabled>
             Selecciona categoría

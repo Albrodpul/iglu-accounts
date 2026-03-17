@@ -116,17 +116,17 @@ export function ExpenseList({ expenses, categories, sortable = true }: Props) {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
+                      <p className="text-[15px] font-medium text-foreground truncate">
                         {expense.concept}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {expense.category?.name}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
                       <span
-                        className={`text-sm font-semibold tabular-nums ${expense.amount >= 0 ? "text-income" : "text-foreground"}`}
+                        className={`text-[15px] font-semibold tabular-nums ${expense.amount >= 0 ? "text-income" : "text-foreground"}`}
                       >
                         {formatCurrency(expense.amount)}
                       </span>

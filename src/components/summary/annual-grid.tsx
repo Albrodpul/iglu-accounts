@@ -68,11 +68,11 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto -mx-5 px-5 md:-mx-6 md:px-6">
+    <div className="overflow-x-auto -mx-5 md:-mx-6">
       <table className="w-full min-w-[800px] text-sm tabular-nums md:min-w-0">
         <thead>
           <tr className="border-b border-border/60">
-            <th className="sticky left-0 z-10 bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] py-2 pr-3 text-left font-semibold text-muted-foreground min-w-[100px]">
+            <th className="sticky left-0 z-10 bg-card py-2 pl-5 pr-3 text-left font-semibold text-muted-foreground min-w-[140px] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30 md:pl-6">
               Categoría
             </th>
             {monthAbbr.map((m, i) => (
@@ -90,7 +90,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
             <th className="py-2 px-1 text-right font-semibold text-muted-foreground border-l border-border/40">
               Total
             </th>
-            <th className="py-2 px-1 text-right font-semibold text-muted-foreground">
+            <th className="py-2 pl-1 pr-5 text-right font-semibold text-muted-foreground md:pr-6">
               Media
             </th>
           </tr>
@@ -101,9 +101,9 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
               key={row.category.id}
               className="border-b border-border/30 hover:bg-muted/25 transition-colors"
             >
-              <td className="sticky left-0 z-10 bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] py-1.5 pr-3 font-medium text-foreground">
+              <td className="sticky left-0 z-10 bg-card py-1.5 pl-5 pr-3 font-medium text-foreground after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30 md:pl-6">
                 <span className="mr-1.5">{row.category.icon}</span>
-                {row.category.name}
+                <span className="truncate">{row.category.name}</span>
               </td>
               {row.months.map((val, i) => (
                 <td
@@ -126,7 +126,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
               >
                 {formatCompact(row.total)}
               </td>
-              <td className="py-1.5 px-1 text-right text-muted-foreground">
+              <td className="py-1.5 pl-1 pr-5 text-right text-muted-foreground md:pr-6">
                 {formatCompact(row.avg)}
               </td>
             </tr>
@@ -134,7 +134,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
         </tbody>
         <tfoot>
           <tr className="border-t-2 border-border/60 font-bold">
-            <td className="sticky left-0 z-10 bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] py-2 pr-3 text-foreground">
+            <td className="sticky left-0 z-10 bg-card py-2 pl-5 pr-3 text-foreground after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30 md:pl-6">
               Total
             </td>
             {monthTotals.map((val, i) => (
@@ -154,7 +154,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
             >
               {formatCurrency(grandTotal)}
             </td>
-            <td className="py-2 px-1.5 text-right text-muted-foreground">
+            <td className="py-2 pl-1.5 pr-5 text-right text-muted-foreground md:pr-6">
               {formatCompact(grandTotal / elapsedMonths)}
             </td>
           </tr>

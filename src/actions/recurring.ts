@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { recurringExpenseSchema } from "@/lib/validators/expense";
+import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
 
@@ -33,10 +34,7 @@ export async function createRecurringExpense(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const rawAmount = parseFloat(formData.get("amount") as string);
-  const isIncome = formData.get("is_income") === "true";
-  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
-
+  const amount = parseSignedAmount(formData);
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
 
@@ -76,10 +74,7 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const rawAmount = parseFloat(formData.get("amount") as string);
-  const isIncome = formData.get("is_income") === "true";
-  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
-
+  const amount = parseSignedAmount(formData);
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
 

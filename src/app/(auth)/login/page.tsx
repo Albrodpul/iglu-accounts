@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-2">
           <div className="flex flex-col items-center gap-3 mb-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
-              <span className="text-2xl">🍙</span>
+              <Image src="/iglu.svg" alt="Iglú" width={32} height={32} />
             </div>
             <div>
               <h1 className="text-xl font-semibold tracking-tight">Iglú Management</h1>

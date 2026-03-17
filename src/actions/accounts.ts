@@ -43,6 +43,24 @@ export async function setSelectedAccount(accountId: string) {
 
 /** Sets the cookie, invalidates cache, and redirects — used by the account switcher UI */
 export async function selectAccount(accountId: string) {
+  // Verify the user is a member of this account
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data } = await supabase
+    .from("account_members")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("user_id", user.id)
+    .limit(1);
+
+  if (!data || data.length === 0) {
+    redirect("/login");
+  }
+
   await setSelectedAccount(accountId);
   revalidatePath("/", "layout");
   redirect("/dashboard");

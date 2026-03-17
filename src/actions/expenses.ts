@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { expenseSchema } from "@/lib/validators/expense";
+import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
 
@@ -64,9 +65,7 @@ export async function createExpense(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const rawAmount = parseFloat(formData.get("amount") as string);
-  const isIncome = formData.get("is_income") === "true";
-  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
+  const amount = parseSignedAmount(formData);
 
   const parsed = expenseSchema.safeParse({
     amount,
@@ -104,9 +103,7 @@ export async function updateExpense(id: string, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const rawAmount = parseFloat(formData.get("amount") as string);
-  const isIncome = formData.get("is_income") === "true";
-  const amount = isIncome ? Math.abs(rawAmount) : -Math.abs(rawAmount);
+  const amount = parseSignedAmount(formData);
 
   const parsed = expenseSchema.safeParse({
     amount,

@@ -85,27 +85,27 @@ export default async function DashboardPage() {
             {formatCurrency(yearNeto)}
           </p>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="kpi-chip">
+            <div className="kpi-chip overflow-hidden">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
-              <p className="mt-1 text-lg font-semibold text-emerald-300 tabular-nums md:text-xl">
+              <p className="mt-1 text-base font-semibold text-emerald-300 tabular-nums truncate md:text-xl">
                 {formatCurrency(yearIngresos)}
               </p>
             </div>
-            <div className="kpi-chip">
+            <div className="kpi-chip overflow-hidden">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Gastos</p>
-              <p className="mt-1 text-lg font-semibold text-rose-300 tabular-nums md:text-xl">
+              <p className="mt-1 text-base font-semibold text-rose-300 tabular-nums truncate md:text-xl">
                 {formatCurrency(yearGastos)}
               </p>
             </div>
-            <div className="kpi-chip">
+            <div className="kpi-chip overflow-hidden">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Media/mes</p>
-              <p className="mt-1 text-lg font-semibold text-amber-300 tabular-nums md:text-xl">
+              <p className="mt-1 text-base font-semibold text-amber-300 tabular-nums truncate md:text-xl">
                 {formatCurrency(avgMonthlySpend)}
               </p>
             </div>
-            <div className="kpi-chip">
+            <div className="kpi-chip overflow-hidden">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Fijos/mes</p>
-              <p className="mt-1 text-lg font-semibold text-emerald-300 tabular-nums md:text-xl">
+              <p className="mt-1 text-base font-semibold text-emerald-300 tabular-nums truncate md:text-xl">
                 {formatCurrency(fixedExpenses)}
               </p>
             </div>

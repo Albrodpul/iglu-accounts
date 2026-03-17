@@ -20,7 +20,9 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isIncome, setIsIncome] = useState(expense ? expense.amount > 0 : false);
+  const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const keepOpenRef = useRef(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -40,13 +42,18 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
     } else {
       toast.success(expense ? "Movimiento actualizado" : isIncome ? "Ingreso añadido" : "Gasto añadido");
       setLoading(false);
-      if (!expense) formRef.current?.reset();
-      onSuccess?.();
+      if (keepOpenRef.current && !expense) {
+        setFormKey((k) => k + 1);
+        keepOpenRef.current = false;
+      } else {
+        if (!expense) formRef.current?.reset();
+        onSuccess?.();
+      }
     }
   }
 
   return (
-    <form ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+    <form key={formKey} ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
       <div className="flex gap-2 md:col-span-2">
         <Button
           type="button"
@@ -142,15 +149,30 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
         <p className="rounded bg-red-50 p-2 text-sm text-red-600 md:col-span-2">{error}</p>
       )}
 
-      <Button type="submit" className="w-full md:col-span-2" disabled={loading}>
-        {loading
-          ? "Guardando..."
-          : expense
-            ? "Actualizar"
-            : isIncome
-              ? "Añadir ingreso"
-              : "Añadir gasto"}
-      </Button>
+      {expense ? (
+        <Button type="submit" className="w-full md:col-span-2" disabled={loading}>
+          {loading ? "Guardando..." : "Actualizar"}
+        </Button>
+      ) : (
+        <div className="flex gap-2 md:col-span-2">
+          <Button
+            type="submit"
+            variant="outline"
+            className="flex-1"
+            disabled={loading}
+            onClick={() => { keepOpenRef.current = true; }}
+          >
+            {loading ? "Guardando..." : "Guardar y crear otro"}
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1"
+            disabled={loading}
+          >
+            {loading ? "Guardando..." : isIncome ? "Añadir ingreso" : "Añadir gasto"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

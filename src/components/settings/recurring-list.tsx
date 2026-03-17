@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
@@ -133,7 +134,7 @@ export function RecurringList({ recurring, categories }: Props) {
           <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
             <DialogTitle>{editingItem ? "Editar movimiento fijo" : "Nuevo movimiento fijo"}</DialogTitle>
           </DialogHeader>
-          <form action={handleSubmit} className="space-y-4 px-5 py-4">
+          <form key={editingItem?.id ?? "new"} action={handleSubmit} className="space-y-4 px-5 py-4">
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -238,7 +239,10 @@ export function RecurringList({ recurring, categories }: Props) {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="category_id">Categoría</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="category_id">Categoría</Label>
+                  <QuickCategoryButton />
+                </div>
                 <select
                   id="category_id"
                   name="category_id"
@@ -324,16 +328,16 @@ function RecurringItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">
+        <p className="text-[15px] font-medium text-foreground truncate">
           {item.concept || item.category?.name}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {item.category?.name} · {formatSchedule(item)}
         </p>
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        <span className={`text-sm font-semibold tabular-nums ${item.amount > 0 ? "text-income" : "text-expense"}`}>
+        <span className={`text-[15px] font-semibold tabular-nums ${item.amount > 0 ? "text-income" : "text-expense"}`}>
           {formatCurrency(item.amount)}
         </span>
         <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">

@@ -48,4 +48,4 @@ yarn-error.log*
 next-env.d.ts
 
 # claude (local LLM)
-/.claude/
+.claude/

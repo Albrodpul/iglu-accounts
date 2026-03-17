@@ -17,22 +17,21 @@ export default async function SettingsPage() {
     <div className="space-y-6 md:space-y-8">
       <h1 className="text-2xl font-bold md:text-3xl">Ajustes</h1>
 
-      <div className="glass-panel p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">
-          Total gastos fijos mensuales
-        </p>
-        <p className="mt-2 text-3xl font-bold text-amber-600 tabular-nums">
-          {formatCurrency(totalRecurring)}
-        </p>
-      </div>
-
       <Tabs defaultValue="recurring">
         <TabsList className="grid w-full grid-cols-2 md:w-[360px]">
           <TabsTrigger value="recurring">Gastos fijos</TabsTrigger>
           <TabsTrigger value="categories">Categorías</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="recurring" className="mt-5">
+        <TabsContent value="recurring" className="mt-5 space-y-4">
+          <div className="glass-panel p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">
+              Total gastos fijos mensuales
+            </p>
+            <p className="mt-2 text-3xl font-bold text-amber-600 tabular-nums">
+              {formatCurrency(totalRecurring)}
+            </p>
+          </div>
           <div className="glass-panel p-5 md:p-6">
             <RecurringList recurring={recurring} categories={categories} />
           </div>

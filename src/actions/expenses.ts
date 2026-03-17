@@ -137,6 +137,69 @@ export async function updateExpense(id: string, formData: FormData) {
   return { success: true };
 }
 
+export async function getAvailablePeriods() {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+
+  let query = supabase
+    .from("expenses")
+    .select("expense_date");
+
+  if (accountId) {
+    query = query.eq("account_id", accountId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const periods = new Map<number, Set<number>>();
+  for (const row of data || []) {
+    const d = new Date(row.expense_date);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    if (!periods.has(y)) periods.set(y, new Set());
+    periods.get(y)!.add(m);
+  }
+
+  const result: { year: number; months: number[] }[] = [];
+  for (const [year, months] of Array.from(periods.entries()).sort((a, b) => b[0] - a[0])) {
+    result.push({ year, months: Array.from(months).sort((a, b) => a - b) });
+  }
+
+  return result;
+}
+
+export async function getAllTimeBalance() {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+
+  let query = supabase
+    .from("expenses")
+    .select("expense_date, amount");
+
+  if (accountId) {
+    query = query.eq("account_id", accountId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const byYear = new Map<number, number>();
+  let total = 0;
+
+  for (const row of data || []) {
+    const y = new Date(row.expense_date).getFullYear();
+    byYear.set(y, (byYear.get(y) || 0) + row.amount);
+    total += row.amount;
+  }
+
+  const years = Array.from(byYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([year, neto]) => ({ year, neto }));
+
+  return { total, years };
+}
+
 export async function deleteExpense(id: string) {
   const supabase = await createClient();
 

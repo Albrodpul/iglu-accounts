@@ -62,23 +62,23 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
     if (amount === 0) return "";
     return new Intl.NumberFormat("es-ES", {
       style: "decimal",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   }
 
   return (
     <div className="overflow-x-auto -mx-5 px-5 md:-mx-6 md:px-6">
-      <table className="w-full min-w-[900px] text-xs tabular-nums">
+      <table className="w-full min-w-[800px] text-xs tabular-nums md:min-w-0">
         <thead>
           <tr className="border-b border-border/60">
-            <th className="sticky left-0 bg-card/95 backdrop-blur-sm py-2 pr-3 text-left font-semibold text-muted-foreground min-w-[120px]">
+            <th className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm py-2 pr-3 text-left font-semibold text-muted-foreground min-w-[100px]">
               Categoría
             </th>
             {monthAbbr.map((m, i) => (
               <th
                 key={m}
-                className={`py-2 px-1.5 text-right font-semibold min-w-[65px] ${
+                className={`py-2 px-1 text-right font-semibold ${
                   i === currentMonth
                     ? "text-primary"
                     : "text-muted-foreground"
@@ -87,10 +87,10 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                 {m}
               </th>
             ))}
-            <th className="py-2 px-1.5 text-right font-semibold text-muted-foreground min-w-[75px] border-l border-border/40">
+            <th className="py-2 px-1 text-right font-semibold text-muted-foreground border-l border-border/40">
               Total
             </th>
-            <th className="py-2 px-1.5 text-right font-semibold text-muted-foreground min-w-[65px]">
+            <th className="py-2 px-1 text-right font-semibold text-muted-foreground">
               Media
             </th>
           </tr>
@@ -101,14 +101,14 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
               key={row.category.id}
               className="border-b border-border/30 hover:bg-muted/25 transition-colors"
             >
-              <td className="sticky left-0 bg-card/95 backdrop-blur-sm py-1.5 pr-3 font-medium text-foreground">
+              <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm py-1.5 pr-3 font-medium text-foreground">
                 <span className="mr-1.5">{row.category.icon}</span>
                 {row.category.name}
               </td>
               {row.months.map((val, i) => (
                 <td
                   key={i}
-                  className={`py-1.5 px-1.5 text-right ${
+                  className={`py-1.5 px-1 text-right ${
                     val > 0
                       ? "text-income"
                       : val < 0
@@ -120,13 +120,13 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                 </td>
               ))}
               <td
-                className={`py-1.5 px-1.5 text-right font-semibold border-l border-border/40 ${
+                className={`py-1.5 px-1 text-right font-semibold border-l border-border/40 ${
                   row.total > 0 ? "text-income" : row.total < 0 ? "text-expense" : ""
                 }`}
               >
                 {formatCompact(row.total)}
               </td>
-              <td className="py-1.5 px-1.5 text-right text-muted-foreground">
+              <td className="py-1.5 px-1 text-right text-muted-foreground">
                 {formatCompact(row.avg)}
               </td>
             </tr>
@@ -134,7 +134,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
         </tbody>
         <tfoot>
           <tr className="border-t-2 border-border/60 font-bold">
-            <td className="sticky left-0 bg-card/95 backdrop-blur-sm py-2 pr-3 text-foreground">
+            <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm py-2 pr-3 text-foreground">
               Total
             </td>
             {monthTotals.map((val, i) => (

@@ -1,4 +1,4 @@
-import { getExpensesByYear } from "@/actions/expenses";
+import { getExpensesByYear, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
 import { formatCurrency, MONTHS } from "@/lib/format";
 import { YearSelector } from "@/components/summary/year-selector";
@@ -14,9 +14,10 @@ export default async function SummaryPage({ searchParams }: Props) {
   const params = await searchParams;
   const year = params.year ? parseInt(params.year) : new Date().getFullYear();
 
-  const [expenses, categories] = await Promise.all([
+  const [expenses, categories, availablePeriods] = await Promise.all([
     getExpensesByYear(year),
     getCategories(),
+    getAvailablePeriods(),
   ]);
 
   // Monthly totals
@@ -60,11 +61,16 @@ export default async function SummaryPage({ searchParams }: Props) {
     .reduce((s, e) => s + e.amount, 0);
   const neto = totalExpenses + totalIncome;
 
+  // Average monthly expenses
+  const now = new Date();
+  const monthsElapsed = year === now.getFullYear() ? now.getMonth() + 1 : 12;
+  const avgMonthlyExpense = totalExpenses / monthsElapsed;
+
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold md:text-3xl">Resumen anual</h1>
-        <YearSelector year={year} />
+        <YearSelector year={year} availableYears={availablePeriods.map((p) => p.year)} />
       </div>
 
       <section className="hero-surface p-6 md:p-8">
@@ -75,7 +81,7 @@ export default async function SummaryPage({ searchParams }: Props) {
           {formatCurrency(neto)}
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="kpi-chip">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
             <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums md:text-2xl">
@@ -86,6 +92,12 @@ export default async function SummaryPage({ searchParams }: Props) {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
             <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums md:text-2xl">
               {formatCurrency(totalExpenses)}
+            </p>
+          </div>
+          <div className="kpi-chip">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Media/mes</p>
+            <p className="mt-1 text-xl font-semibold text-amber-200 tabular-nums md:text-2xl">
+              {formatCurrency(avgMonthlyExpense)}
             </p>
           </div>
         </div>

@@ -11,16 +11,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ExpenseForm } from "./expense-form";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
+  sortable?: boolean;
 };
 
-export function ExpenseList({ expenses, categories }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
+  const [sortAsc, setSortAsc] = useState(false);
 
   if (expenses.length === 0) {
     return (
@@ -41,7 +43,9 @@ export function ExpenseList({ expenses, categories }: Props) {
     {} as Record<string, ExpenseWithCategory[]>
   );
 
-  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const sortedDates = Object.keys(grouped).sort((a, b) =>
+    sortAsc ? a.localeCompare(b) : b.localeCompare(a)
+  );
 
   async function handleDelete(id: string) {
     if (confirm("¿Eliminar este movimiento?")) {
@@ -56,14 +60,29 @@ export function ExpenseList({ expenses, categories }: Props) {
 
   return (
     <>
-      <div className="space-y-5">
-        {sortedDates.map((date) => {
+      {sortable && (
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => setSortAsc(!sortAsc)}
+            className="flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {sortAsc ? "Más antiguo primero" : "Más reciente primero"}
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-0">
+        {sortedDates.map((date, dateIndex) => {
           const dayExpenses = grouped[date];
           const dayTotal = dayExpenses.reduce((s, e) => s + e.amount, 0);
 
           return (
             <div key={date}>
-              <div className="mb-2 flex items-center justify-between px-1">
+              {dateIndex > 0 && (
+                <div className="my-1 border-t border-border/40" />
+              )}
+              <div className="mb-2 mt-3 flex items-center justify-between px-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {formatDateShort(date)}
                 </span>

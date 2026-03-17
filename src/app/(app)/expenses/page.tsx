@@ -1,9 +1,9 @@
-import { getExpenses } from "@/actions/expenses";
+import { getExpenses, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
-import { ExpenseList } from "@/components/expenses/expense-list";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { formatCurrency, MONTHS } from "@/lib/format";
+import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
 
 type Props = {
   searchParams: Promise<{ month?: string; year?: string }>;
@@ -15,9 +15,10 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
   const year = params.year ? parseInt(params.year) : now.getFullYear();
 
-  const [expenses, categories] = await Promise.all([
+  const [expenses, categories, availablePeriods] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
+    getAvailablePeriods(),
   ]);
 
   const totalExpenses = expenses
@@ -30,9 +31,9 @@ export default async function ExpensesPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
-        <MonthSelector month={month} year={year} />
+        <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
       </div>
 
       <section className="hero-surface p-6">
@@ -63,7 +64,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
           Detalle · {MONTHS[month - 1]}
         </h2>
         <div className="glass-panel p-5 md:p-6">
-          <ExpenseList expenses={expenses} categories={categories} />
+          <ExpenseListFiltered expenses={expenses} categories={categories} />
         </div>
       </section>
 

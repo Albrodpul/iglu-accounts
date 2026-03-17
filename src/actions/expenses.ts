@@ -5,6 +5,7 @@ import { expenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
+import { getOrCreateIncomeCategory } from "./categories";
 
 export async function getExpenses(params: {
   month: number;
@@ -66,11 +67,18 @@ export async function createExpense(formData: FormData) {
   if (!user) return { error: "No autenticado" };
 
   const amount = parseSignedAmount(formData);
+  const isIncome = formData.get("is_income") === "true";
+
+  let categoryId = formData.get("category_id") as string | null;
+  if (isIncome && !categoryId) {
+    categoryId = await getOrCreateIncomeCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  }
 
   const parsed = expenseSchema.safeParse({
     amount,
     concept: formData.get("concept") || null,
-    category_id: formData.get("category_id"),
+    category_id: categoryId,
     expense_date: formData.get("expense_date"),
     notes: formData.get("notes") || null,
   });
@@ -104,11 +112,18 @@ export async function updateExpense(id: string, formData: FormData) {
   if (!user) return { error: "No autenticado" };
 
   const amount = parseSignedAmount(formData);
+  const isIncome = formData.get("is_income") === "true";
+
+  let categoryId = formData.get("category_id") as string | null;
+  if (isIncome && !categoryId) {
+    categoryId = await getOrCreateIncomeCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  }
 
   const parsed = expenseSchema.safeParse({
     amount,
     concept: formData.get("concept") || null,
-    category_id: formData.get("category_id"),
+    category_id: categoryId,
     expense_date: formData.get("expense_date"),
     notes: formData.get("notes") || null,
   });

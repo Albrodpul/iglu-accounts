@@ -95,6 +95,37 @@ export async function updateCategory(id: string, formData: FormData) {
   return { success: true };
 }
 
+/** Returns the "Ingreso" category for the current account, creating it if needed. */
+export async function getOrCreateIncomeCategory(): Promise<string | null> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data: existing } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("account_id", accountId)
+    .ilike("name", "ingreso")
+    .limit(1);
+
+  if (existing && existing.length > 0) return existing[0].id;
+
+  const { data: created, error } = await supabase
+    .from("categories")
+    .insert({
+      name: "Ingreso",
+      icon: "💰",
+      color: "#10b981",
+      sort_order: 0,
+      account_id: accountId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) return null;
+  return created.id;
+}
+
 export async function deleteCategory(id: string) {
   const supabase = await createClient();
 

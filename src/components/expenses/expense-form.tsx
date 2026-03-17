@@ -111,28 +111,30 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
         />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="category_id">Categoría</Label>
-          <QuickCategoryButton />
-        </div>
-        <select
-          id="category_id"
-          name="category_id"
-          defaultValue={expense?.category_id || (categories.length === 1 ? categories[0].id : "")}
-          required
-          className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="" disabled>
-            Selecciona categoría
-          </option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
+      {!isIncome && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="category_id">Categoría</Label>
+            <QuickCategoryButton />
+          </div>
+          <select
+            id="category_id"
+            name="category_id"
+            defaultValue={expense?.category_id || (categories.length === 1 ? categories[0].id : "")}
+            required
+            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="" disabled>
+              Selecciona categoría
             </option>
-          ))}
-        </select>
-      </div>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon} {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-2 md:col-span-2">
         <Label htmlFor="notes">Notas (opcional)</Label>

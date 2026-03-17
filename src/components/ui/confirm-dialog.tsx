@@ -23,7 +23,7 @@ export function useConfirm() {
   const [options, setOptions] = useState<ConfirmOptions>({
     description: "",
   });
-  const resolveRef = useRef<(value: boolean) => void>();
+  const resolveRef = useRef<((value: boolean) => void) | undefined>(undefined);
 
   const confirm = useCallback((opts: ConfirmOptions) => {
     setOptions(opts);

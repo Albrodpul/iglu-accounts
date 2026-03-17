@@ -16,7 +16,9 @@
       "Bash(find /g/workspace/external/cuentas-personales -maxdepth 1 -name *.config.* -o -name postcss.config.*)",
       "Bash(npx next:*)",
       "Bash(ls \"g:/workspace/external/cuentas-personales/src/app/\\(auth\\)/\")",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(find /g/workspace/external/cuentas-personales -type f \\\\\\(-name favicon* -o -name *.ico -o -name *.png -o -name manifest* \\\\\\))",
+      "Bash(find g:/workspace/external/cuentas-personales -maxdepth 3 -name tailwind.config.* -o -name tailwind.js -o -name tailwind.ts)"
     ]
   }
 }

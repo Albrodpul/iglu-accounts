@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import type { Category, Expense } from "@/types";
 
@@ -104,7 +105,10 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category_id">Categoría</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="category_id">Categoría</Label>
+          <QuickCategoryButton />
+        </div>
         <select
           id="category_id"
           name="category_id"

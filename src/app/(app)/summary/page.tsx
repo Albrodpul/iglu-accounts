@@ -74,29 +74,29 @@ export default async function SummaryPage({ searchParams }: Props) {
       </div>
 
       <section className="hero-surface p-6 md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
           Balance {year}
         </p>
-        <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${neto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+        <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${neto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
           {formatCurrency(neto)}
         </p>
 
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums md:text-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums md:text-2xl">
               {formatCurrency(totalIncome)}
             </p>
           </div>
           <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
-            <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums md:text-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Gastos</p>
+            <p className="mt-1 text-xl font-semibold text-rose-300 tabular-nums md:text-2xl">
               {formatCurrency(totalExpenses)}
             </p>
           </div>
           <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Media/mes</p>
-            <p className="mt-1 text-xl font-semibold text-amber-200 tabular-nums md:text-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Media/mes</p>
+            <p className="mt-1 text-xl font-semibold text-amber-300 tabular-nums md:text-2xl">
               {formatCurrency(avgMonthlyExpense)}
             </p>
           </div>
@@ -112,7 +112,7 @@ export default async function SummaryPage({ searchParams }: Props) {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">Vista anual por categoría</h2>
-        <div className="glass-panel p-5 md:p-6">
+        <div className="glass-panel !bg-card p-5 md:p-6">
           <AnnualGrid expenses={expenses} categories={categories} year={year} />
         </div>
       </section>

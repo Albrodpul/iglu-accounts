@@ -37,22 +37,22 @@ export default async function ExpensesPage({ searchParams }: Props) {
       </div>
 
       <section className="hero-surface p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
           Neto {MONTHS[month - 1]} {year}
         </p>
-        <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums md:text-4xl ${neto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+        <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums md:text-4xl ${neto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
           {formatCurrency(neto)}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-200 tabular-nums">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums">
               {formatCurrency(totalIncome)}
             </p>
           </div>
           <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
-            <p className="mt-1 text-xl font-semibold text-rose-200 tabular-nums">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Gastos</p>
+            <p className="mt-1 text-xl font-semibold text-rose-300 tabular-nums">
               {formatCurrency(totalExpenses)}
             </p>
           </div>

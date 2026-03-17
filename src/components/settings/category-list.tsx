@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { Plus, Trash2 } from "lucide-react";
 import type { Category } from "@/types";
 
@@ -25,16 +26,19 @@ export function CategoryList({ categories }: Props) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState<string>("");
   const { confirm, ConfirmDialog } = useConfirm();
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
+    if (selectedIcon) formData.set("icon", selectedIcon);
     const result = await createCategory(formData);
     if (result?.error) {
       setError(result.error);
     } else {
       setOpen(false);
+      setSelectedIcon("");
     }
     setLoading(false);
   }
@@ -82,8 +86,9 @@ export function CategoryList({ categories }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="icon">Icono (emoji)</Label>
-                  <Input id="icon" name="icon" placeholder="Ej: 🐱" />
+                  <Label>Icono</Label>
+                  <EmojiPicker value={selectedIcon} onChange={setSelectedIcon} />
+                  <input type="hidden" name="icon" value={selectedIcon} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="color">Color</Label>

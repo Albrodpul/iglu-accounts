@@ -1,7 +1,10 @@
 export function formatCurrency(amount: number): string {
+  const hasDecimals = amount % 1 !== 0;
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
     currency: "EUR",
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 

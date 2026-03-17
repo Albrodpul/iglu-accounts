@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Image from "next/image";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import type { Category } from "@/types";
 
@@ -52,10 +53,13 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       <Link
         href={href}
         className={cn(
-          "flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-[11px] font-semibold transition-all",
+          "relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-3 py-2 text-[11px] font-semibold transition-all",
           isActive ? "text-primary" : "text-muted-foreground"
         )}
       >
+        {isActive && (
+          <span className="absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-b-full bg-primary" />
+        )}
         <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
         {label}
       </Link>
@@ -65,11 +69,11 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="fixed inset-y-5 left-4 z-40 hidden w-64 flex-col rounded-xl border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-[0_20px_45px_-24px_rgba(2,18,16,0.9)] backdrop-blur-sm md:flex">
+      <nav className="fixed inset-y-5 left-4 z-40 hidden w-64 flex-col rounded-xl border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-[0_20px_45px_-24px_rgba(10,30,55,0.9)] backdrop-blur-sm md:flex">
         <div className="rounded-lg border border-sidebar-border/60 bg-white/8 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary/20">
-              <span className="text-base">🛖</span>
+            <div className="flex h-9 w-10 items-center justify-center rounded-md bg-sidebar-primary/20 p-1.5">
+              <Image src="/iglu.svg" alt="Iglú" width={28} height={28} className="drop-shadow-sm" />
             </div>
             <div>
               <h1 className="text-base font-extrabold tracking-tight text-sidebar-foreground leading-tight">
@@ -100,7 +104,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold transition-all duration-200",
                   isActive
-                    ? "bg-sidebar-primary/22 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(103,232,197,0.28)]"
+                    ? "bg-sidebar-primary/22 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(126,200,240,0.28)]"
                     : "text-sidebar-foreground/82 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
                 )}
               >
@@ -129,15 +133,28 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {showAccountSwitcher && (
-          <Link
-            href="/select-account"
-            className="flex items-center justify-center gap-1.5 border-b border-border/30 px-4 py-1.5 text-[11px] font-semibold text-muted-foreground"
-          >
-            <ArrowLeftRight className="h-3 w-3" />
-            {accountName || "Seleccionar cuenta"}
-          </Link>
-        )}
+        <div className="flex items-center justify-between border-b border-border/30 px-4 py-1.5">
+          {showAccountSwitcher ? (
+            <Link
+              href="/select-account"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              {accountName || "Seleccionar cuenta"}
+            </Link>
+          ) : (
+            <span />
+          )}
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground cursor-pointer"
+            >
+              <LogOut className="h-3 w-3" />
+              Salir
+            </button>
+          </form>
+        </div>
         <div className="grid grid-cols-5 px-2">
           {/* Left items */}
           {navItemsLeft.map((item) => (

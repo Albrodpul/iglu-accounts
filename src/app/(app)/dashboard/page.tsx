@@ -56,18 +56,18 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 md:gap-8">
         {/* Total acumulado */}
         <section className="hero-surface p-6 md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
             Total acumulado
           </p>
-          <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${allTime.total >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+          <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${allTime.total >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
             {formatCurrency(allTime.total)}
           </p>
           {allTime.years.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
               {allTime.years.map((y) => (
                 <div key={y.year} className="kpi-chip flex-1 min-w-[80px]">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">{y.year}</p>
-                  <p className={`mt-0.5 text-base font-semibold tabular-nums ${y.neto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{y.year}</p>
+                  <p className={`mt-0.5 text-base font-semibold tabular-nums ${y.neto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
                     {formatCurrency(y.neto)}
                   </p>
                 </div>
@@ -78,34 +78,34 @@ export default async function DashboardPage() {
 
         {/* Balance año actual */}
         <section className="hero-surface p-6 md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/65">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
             Balance {year}
           </p>
-          <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${yearNeto >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+          <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${yearNeto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
             {formatCurrency(yearNeto)}
           </p>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="kpi-chip">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Ingresos</p>
-              <p className="mt-1 text-lg font-semibold text-emerald-200 tabular-nums md:text-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
+              <p className="mt-1 text-lg font-semibold text-emerald-300 tabular-nums md:text-xl">
                 {formatCurrency(yearIngresos)}
               </p>
             </div>
             <div className="kpi-chip">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Gastos</p>
-              <p className="mt-1 text-lg font-semibold text-rose-200 tabular-nums md:text-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Gastos</p>
+              <p className="mt-1 text-lg font-semibold text-rose-300 tabular-nums md:text-xl">
                 {formatCurrency(yearGastos)}
               </p>
             </div>
             <div className="kpi-chip">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Media/mes</p>
-              <p className="mt-1 text-lg font-semibold text-amber-200 tabular-nums md:text-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Media/mes</p>
+              <p className="mt-1 text-lg font-semibold text-amber-300 tabular-nums md:text-xl">
                 {formatCurrency(avgMonthlySpend)}
               </p>
             </div>
             <div className="kpi-chip">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">Fijos/mes</p>
-              <p className="mt-1 text-lg font-semibold text-sky-200 tabular-nums md:text-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Fijos/mes</p>
+              <p className="mt-1 text-lg font-semibold text-emerald-300 tabular-nums md:text-xl">
                 {formatCurrency(fixedExpenses)}
               </p>
             </div>

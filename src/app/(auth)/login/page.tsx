@@ -57,19 +57,22 @@ export default function LoginPage() {
       });
       const verifyPayload = (await verifyRes.json()) as {
         error?: string;
-        actionLink?: string;
+        redirectTo?: string;
       };
 
-      if (!verifyRes.ok || !verifyPayload.actionLink) {
+      if (!verifyRes.ok) {
         throw new Error(verifyPayload.error ?? "No se pudo completar el acceso con passkey");
       }
 
-      window.location.href = verifyPayload.actionLink;
+      window.location.href = verifyPayload.redirectTo ?? "/select-account";
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error de autenticación con passkey";
       setError(message);
       setLoadingPasskey(false);
+      return;
     }
+
+    setLoadingPasskey(false);
   }
 
   return (

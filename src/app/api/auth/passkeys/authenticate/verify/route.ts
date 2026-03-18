@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   getChallengeCookieOptions,
@@ -14,6 +15,7 @@ type AuthenticationResponseBody = Parameters<
 
 export async function POST(request: NextRequest) {
   const serviceClient = createServiceClient();
+  const supabase = await createClient();
 
   const expectedChallenge = request.cookies.get(PASSKEY_AUTH_CHALLENGE_COOKIE)?.value;
 
@@ -82,13 +84,26 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const actionLink = linkResult.properties?.action_link;
+  const tokenHash = linkResult.properties?.hashed_token;
 
-  if (linkError || !actionLink) {
+  if (linkError || !tokenHash) {
     return NextResponse.json({ error: "No se pudo crear la sesión" }, { status: 500 });
   }
 
-  const response = NextResponse.json({ verified: true, actionLink });
+  const { error: otpError } = await supabase.auth.verifyOtp({
+    type: "magiclink",
+    token_hash: tokenHash,
+    email,
+  });
+
+  if (otpError) {
+    return NextResponse.json(
+      { error: `No se pudo iniciar sesión: ${otpError.message}` },
+      { status: 500 }
+    );
+  }
+
+  const response = NextResponse.json({ verified: true, redirectTo: "/select-account" });
   response.cookies.set(PASSKEY_AUTH_CHALLENGE_COOKIE, "", {
     ...getChallengeCookieOptions(),
     maxAge: 0,

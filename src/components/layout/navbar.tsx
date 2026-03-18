@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
+  House,
   List,
   BarChart3,
   Settings,
@@ -14,6 +14,8 @@ import {
   ArrowLeftRight,
   Plus,
   TrendingUp,
+  Ellipsis,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -27,7 +29,7 @@ import { ExpenseForm } from "@/components/expenses/expense-form";
 import type { Category } from "@/types";
 
 const navItemsLeft = [
-  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Inicio", icon: House },
   { href: "/expenses", label: "Diario", icon: List },
 ];
 
@@ -47,11 +49,15 @@ type Props = {
 export function Navbar({ accountName, showAccountSwitcher = true, categories = [], hasInvestments = false }: Props) {
   const pathname = usePathname();
   const [addOpen, setAddOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
     : navItemsLeft;
   const allNavItemsFinal = [...navItemsLeftFinal, ...navItemsRight];
+  const mobileRightItems = hasInvestments
+    ? [{ href: "/summary", label: "Resumen", icon: BarChart3 }]
+    : navItemsRight;
 
   function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
     const isActive = pathname.startsWith(href);
@@ -59,16 +65,52 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       <Link
         href={href}
         className={cn(
-          "relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-3 py-2 text-[11px] font-semibold transition-all",
-          isActive ? "text-primary" : "text-muted-foreground"
+          "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all",
+          isActive ? "text-foreground" : "text-muted-foreground"
         )}
       >
-        {isActive && (
-          <span className="absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-b-full bg-primary" />
-        )}
-        <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
+        <span
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full transition-all",
+            isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
+          )}
+        >
+          <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
+        </span>
         {label}
       </Link>
+    );
+  }
+
+  function NavActionItem({
+    label,
+    icon: Icon,
+    onClick,
+    isActive = false,
+  }: {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    onClick: () => void;
+    isActive?: boolean;
+  }) {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all cursor-pointer",
+          isActive ? "text-foreground" : "text-muted-foreground"
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full transition-all",
+            isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
+          )}
+        >
+          <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
+        </span>
+        {label}
+      </button>
     );
   }
 
@@ -168,26 +210,75 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className={`grid px-2 ${hasInvestments ? "grid-cols-6" : "grid-cols-5"}`}>
-          {navItemsLeftFinal.map((item) => (
+        <div className="relative grid grid-cols-5 px-2 pt-0.5">
+          {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}
 
-          {/* Center FAB */}
           <div className="flex items-center justify-center">
             <button
               onClick={() => setAddOpen(true)}
-              className="relative -mt-7 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-card bg-primary text-primary-foreground shadow-md cursor-pointer"
+              className="-mt-9 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_16px_34px_-14px_rgba(32,87,75,0.9)] cursor-pointer"
+              aria-label="Nuevo movimiento"
             >
-              <Plus className="h-5 w-5 stroke-[2.5]" />
+              <Plus className="h-[23px] w-[23px] stroke-[2.5]" />
             </button>
           </div>
 
-          {navItemsRight.map((item) => (
+          {mobileRightItems.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}
+
+          {hasInvestments && (
+            <NavActionItem
+              label="Más"
+              icon={Ellipsis}
+              onClick={() => setMoreOpen(true)}
+              isActive={pathname.startsWith("/settings") || pathname.startsWith("/investments")}
+            />
+          )}
         </div>
       </nav>
+
+      {/* Mobile more sheet */}
+      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-2xl rounded-b-none border border-border bg-card p-0 md:hidden"
+        >
+          <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+          <DialogHeader className="px-5 pb-1 pt-4">
+            <DialogTitle>Más opciones</DialogTitle>
+            <DialogDescription>
+              Accesos rápidos para módulos secundarios.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-3 pb-4">
+            <Link
+              href="/investments"
+              onClick={() => setMoreOpen(false)}
+              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-3 text-sm font-semibold">
+                <TrendingUp className="h-[18px] w-[18px] text-muted-foreground" />
+                Inversiones
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              href="/settings"
+              onClick={() => setMoreOpen(false)}
+              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-3 text-sm font-semibold">
+                <Settings className="h-[18px] w-[18px] text-muted-foreground" />
+                Ajustes
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

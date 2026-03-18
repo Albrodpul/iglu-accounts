@@ -35,7 +35,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
     : 0;
   const neto = totalExpenses + totalIncome;
 
-  const kpis = [
+  const kpis: { label: string; value: number; labelColor: string; valueColor: string; href?: string }[] = [
     {
       label: "Ingresos",
       value: totalIncome,

@@ -1,12 +1,13 @@
 import { getExpenses, getAvailablePeriods } from "@/actions/expenses";
-import { getCategories } from "@/actions/categories";
+import { getCategories, getDebtCategoryId } from "@/actions/categories";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
-import { formatCurrency, MONTHS } from "@/lib/format";
+import { MonthSummary } from "@/components/shared/month-summary";
 import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
+import { MONTHS } from "@/lib/format";
 
 type Props = {
-  searchParams: Promise<{ month?: string; year?: string }>;
+  searchParams: Promise<{ month?: string; year?: string; category?: string }>;
 };
 
 export default async function ExpensesPage({ searchParams }: Props) {
@@ -14,20 +15,50 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const now = new Date();
   const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
   const year = params.year ? parseInt(params.year) : now.getFullYear();
+  const categoryFilter = params.category || "";
 
-  const [expenses, categories, availablePeriods] = await Promise.all([
+  const [expenses, categories, availablePeriods, debtCategoryId] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
     getAvailablePeriods(),
+    getDebtCategoryId(),
   ]);
 
   const totalExpenses = expenses
     .filter((e) => e.amount < 0)
     .reduce((s, e) => s + e.amount, 0);
   const totalIncome = expenses
-    .filter((e) => e.amount > 0)
+    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
     .reduce((s, e) => s + e.amount, 0);
+  const totalDebt = debtCategoryId
+    ? expenses.filter((e) => e.category_id === debtCategoryId).reduce((s, e) => s + e.amount, 0)
+    : 0;
   const neto = totalExpenses + totalIncome;
+
+  const kpis = [
+    {
+      label: "Ingresos",
+      value: totalIncome,
+      labelColor: "text-white/75",
+      valueColor: "text-emerald-300",
+    },
+    {
+      label: "Gastos",
+      value: totalExpenses,
+      labelColor: "text-white/75",
+      valueColor: "text-rose-300",
+    },
+  ];
+
+  if (totalDebt > 0 && debtCategoryId) {
+    kpis.push({
+      label: "Deudas",
+      value: totalDebt,
+      labelColor: "text-white/75",
+      valueColor: "text-sky-300",
+      href: `/expenses?month=${month}&year=${year}&category=${debtCategoryId}`,
+    });
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -36,35 +67,18 @@ export default async function ExpensesPage({ searchParams }: Props) {
         <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
       </div>
 
-      <section className="hero-surface p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
-          Neto {MONTHS[month - 1]} {year}
-        </p>
-        <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums md:text-4xl ${neto >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-          {formatCurrency(neto)}
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Ingresos</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-300 tabular-nums">
-              {formatCurrency(totalIncome)}
-            </p>
-          </div>
-          <div className="kpi-chip">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Gastos</p>
-            <p className="mt-1 text-xl font-semibold text-rose-300 tabular-nums">
-              {formatCurrency(totalExpenses)}
-            </p>
-          </div>
-        </div>
-      </section>
+      <MonthSummary month={month} year={year} neto={neto} kpis={kpis} />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">
           Detalle · {MONTHS[month - 1]}
         </h2>
         <div className="glass-panel p-5 md:p-6">
-          <ExpenseListFiltered expenses={expenses} categories={categories} />
+          <ExpenseListFiltered
+            expenses={expenses}
+            categories={categories}
+            initialCategoryFilter={categoryFilter}
+          />
         </div>
       </section>
 

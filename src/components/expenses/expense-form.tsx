@@ -10,26 +10,38 @@ import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import type { Category, Expense } from "@/types";
 
+type ExpenseType = "expense" | "income" | "debt";
+
 type Props = {
   categories: Category[];
   expense?: Expense;
   onSuccess?: () => void;
 };
 
+function detectExpenseType(expense: Expense | undefined, categories: Category[]): ExpenseType {
+  if (!expense) return "expense";
+  if (expense.amount <= 0) return "expense";
+  const cat = categories.find((c) => c.id === expense.category_id);
+  if (cat?.name.toLowerCase() === "deuda") return "debt";
+  return "income";
+}
+
 export function ExpenseForm({ categories, expense, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isIncome, setIsIncome] = useState(expense ? expense.amount > 0 : false);
+  const [type, setType] = useState<ExpenseType>(() => detectExpenseType(expense, categories));
   const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
 
   const today = new Date().toISOString().split("T")[0];
+  const showCategory = type === "expense";
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
-    formData.set("is_income", String(isIncome));
+    formData.set("is_income", String(type === "income"));
+    formData.set("is_debt", String(type === "debt"));
 
     const result = expense
       ? await updateExpense(expense.id, formData)
@@ -40,7 +52,12 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
       toast.error(result.error);
       setLoading(false);
     } else {
-      toast.success(expense ? "Movimiento actualizado" : isIncome ? "Ingreso añadido" : "Gasto añadido");
+      const labels: Record<ExpenseType, string> = {
+        expense: "Gasto",
+        income: "Ingreso",
+        debt: "Deuda",
+      };
+      toast.success(expense ? "Movimiento actualizado" : `${labels[type]} añadido`);
       setLoading(false);
       if (keepOpenRef.current && !expense) {
         setFormKey((k) => k + 1);
@@ -52,27 +69,29 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
     }
   }
 
+  const typeButtons: { value: ExpenseType; label: string; activeClass: string }[] = [
+    { value: "expense", label: "Gasto", activeClass: "bg-red-500 hover:bg-red-600 text-white" },
+    { value: "income", label: "Ingreso", activeClass: "bg-emerald-500 hover:bg-emerald-600 text-white" },
+    { value: "debt", label: "Deuda", activeClass: "bg-amber-500 hover:bg-amber-600 text-white" },
+  ];
+
+  const submitLabel = type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
+
   return (
     <form key={formKey} ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
       <div className="flex gap-2 md:col-span-2">
-        <Button
-          type="button"
-          variant={!isIncome ? "default" : "outline"}
-          size="sm"
-          onClick={() => setIsIncome(false)}
-          className={!isIncome ? "bg-red-500 hover:bg-red-600 text-white" : ""}
-        >
-          Gasto
-        </Button>
-        <Button
-          type="button"
-          variant={isIncome ? "default" : "outline"}
-          size="sm"
-          onClick={() => setIsIncome(true)}
-          className={isIncome ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}
-        >
-          Ingreso
-        </Button>
+        {typeButtons.map((btn) => (
+          <Button
+            key={btn.value}
+            type="button"
+            variant={type === btn.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setType(btn.value)}
+            className={type === btn.value ? btn.activeClass : ""}
+          >
+            {btn.label}
+          </Button>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:col-span-2">
@@ -107,13 +126,13 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
           id="concept"
           name="concept"
           defaultValue={expense?.concept || ""}
-          placeholder="Ej: Compra supermercado"
+          placeholder={type === "debt" ? "Ej: Pedro me debe cena" : "Ej: Compra supermercado"}
         />
       </div>
 
-      {!isIncome && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+      {showCategory && (
+        <div className="space-y-2 md:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-1">
             <Label htmlFor="category_id">Categoría</Label>
             <QuickCategoryButton />
           </div>
@@ -171,7 +190,7 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
             className="flex-1"
             disabled={loading}
           >
-            {loading ? "Guardando..." : isIncome ? "Añadir ingreso" : "Añadir gasto"}
+            {loading ? "Guardando..." : submitLabel}
           </Button>
         </div>
       )}

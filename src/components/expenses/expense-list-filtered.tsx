@@ -8,10 +8,11 @@ import type { Category, ExpenseWithCategory } from "@/types";
 type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
+  initialCategoryFilter?: string;
 };
 
-export function ExpenseListFiltered({ expenses, categories }: Props) {
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+export function ExpenseListFiltered({ expenses, categories, initialCategoryFilter = "" }: Props) {
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
   const [conceptFilter, setConceptFilter] = useState("");
 
   const filtered = expenses.filter((e) => {

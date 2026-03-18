@@ -126,6 +126,53 @@ export async function getOrCreateIncomeCategory(): Promise<string | null> {
   return created.id;
 }
 
+/** Returns the "Deuda" category for the current account, creating it if needed. */
+export async function getOrCreateDebtCategory(): Promise<string | null> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data: existing } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("account_id", accountId)
+    .ilike("name", "deuda")
+    .limit(1);
+
+  if (existing && existing.length > 0) return existing[0].id;
+
+  const { data: created, error } = await supabase
+    .from("categories")
+    .insert({
+      name: "Deuda",
+      icon: "🤝",
+      color: "#f59e0b",
+      sort_order: 0,
+      account_id: accountId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) return null;
+  return created.id;
+}
+
+/** Returns the debt category ID for the current account, if it exists. */
+export async function getDebtCategoryId(): Promise<string | null> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("account_id", accountId)
+    .ilike("name", "deuda")
+    .limit(1);
+
+  return data && data.length > 0 ? data[0].id : null;
+}
+
 export async function deleteCategory(id: string) {
   const supabase = await createClient();
 

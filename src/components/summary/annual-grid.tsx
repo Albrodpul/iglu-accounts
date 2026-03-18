@@ -60,9 +60,10 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
 
   function formatCompact(amount: number): string {
     if (amount === 0) return "";
+    const hasDecimals = amount % 1 !== 0;
     return new Intl.NumberFormat("es-ES", {
       style: "decimal",
-      minimumFractionDigits: 2,
+      minimumFractionDigits: hasDecimals ? 2 : 0,
       maximumFractionDigits: 2,
     }).format(amount);
   }

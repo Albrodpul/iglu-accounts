@@ -206,7 +206,7 @@ export function RecurringList({ recurring, categories }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {showDaySelector && (
                 <div className="space-y-2">
                   <Label htmlFor="day_of_month">Día del mes</Label>
@@ -238,28 +238,30 @@ export function RecurringList({ recurring, categories }: Props) {
                   </select>
                 </div>
               )}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="category_id">Categoría</Label>
-                  <QuickCategoryButton />
-                </div>
-                <select
-                  id="category_id"
-                  name="category_id"
-                  defaultValue={editingItem?.category_id || (categories.length === 1 ? categories[0].id : "")}
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="" disabled>
-                    Selecciona categoría
-                  </option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
+              {!isIncome && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <Label htmlFor="category_id">Categoría</Label>
+                    <QuickCategoryButton />
+                  </div>
+                  <select
+                    id="category_id"
+                    name="category_id"
+                    defaultValue={editingItem?.category_id || (categories.length === 1 ? categories[0].id : "")}
+                    required
+                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="" disabled>
+                      Selecciona categoría
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {error && (

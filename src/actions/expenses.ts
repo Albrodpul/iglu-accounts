@@ -5,7 +5,7 @@ import { expenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
-import { getOrCreateIncomeCategory } from "./categories";
+import { getOrCreateIncomeCategory, getOrCreateDebtCategory } from "./categories";
 
 export async function getExpenses(params: {
   month: number;
@@ -68,11 +68,15 @@ export async function createExpense(formData: FormData) {
 
   const amount = parseSignedAmount(formData);
   const isIncome = formData.get("is_income") === "true";
+  const isDebt = formData.get("is_debt") === "true";
 
   let categoryId = formData.get("category_id") as string | null;
   if (isIncome && !categoryId) {
     categoryId = await getOrCreateIncomeCategory();
     if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  } else if (isDebt && !categoryId) {
+    categoryId = await getOrCreateDebtCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de deuda" };
   }
 
   const parsed = expenseSchema.safeParse({
@@ -113,11 +117,15 @@ export async function updateExpense(id: string, formData: FormData) {
 
   const amount = parseSignedAmount(formData);
   const isIncome = formData.get("is_income") === "true";
+  const isDebt = formData.get("is_debt") === "true";
 
   let categoryId = formData.get("category_id") as string | null;
   if (isIncome && !categoryId) {
     categoryId = await getOrCreateIncomeCategory();
     if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  } else if (isDebt && !categoryId) {
+    categoryId = await getOrCreateDebtCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de deuda" };
   }
 
   const parsed = expenseSchema.safeParse({
@@ -181,13 +189,13 @@ export async function getAvailablePeriods() {
   return result;
 }
 
-export async function getAllTimeBalance() {
+export async function getAllTimeBalance(debtCategoryId?: string | null) {
   const supabase = await createClient();
   const accountId = await getSelectedAccountId();
 
   let query = supabase
     .from("expenses")
-    .select("expense_date, amount");
+    .select("expense_date, amount, category_id");
 
   if (accountId) {
     query = query.eq("account_id", accountId);
@@ -200,6 +208,7 @@ export async function getAllTimeBalance() {
   let total = 0;
 
   for (const row of data || []) {
+    if (debtCategoryId && row.category_id === debtCategoryId) continue;
     const y = new Date(row.expense_date).getFullYear();
     byYear.set(y, (byYear.get(y) || 0) + row.amount);
     total += row.amount;

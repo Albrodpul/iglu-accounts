@@ -42,6 +42,42 @@ export async function setSelectedAccount(accountId: string) {
 }
 
 /** Sets the cookie, invalidates cache, and redirects — used by the account switcher UI */
+export async function getAccountSettings() {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("id, has_investments")
+    .eq("id", accountId)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+export async function hasInvestmentsEnabled(): Promise<boolean> {
+  const settings = await getAccountSettings();
+  return settings?.has_investments ?? false;
+}
+
+export async function toggleInvestments(enabled: boolean) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ has_investments: enabled })
+    .eq("id", accountId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function selectAccount(accountId: string) {
   // Verify the user is a member of this account
   const supabase = await createClient();

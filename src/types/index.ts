@@ -1,6 +1,7 @@
 export type Account = {
   id: string;
   name: string;
+  has_investments: boolean;
   created_at: string;
 };
 
@@ -22,6 +23,8 @@ export type Category = {
   created_at: string;
 };
 
+export type PaymentMethod = "bank" | "cash";
+
 export type Expense = {
   id: string;
   user_id: string;
@@ -30,6 +33,7 @@ export type Expense = {
   amount: number;
   concept: string;
   expense_date: string;
+  payment_method: PaymentMethod;
   is_recurring: boolean;
   notes: string | null;
   created_at: string;
@@ -73,4 +77,38 @@ export type DailySummary = {
   date: string;
   total: number;
   items: ExpenseWithCategory[];
+};
+
+export type InvestmentType = {
+  id: string;
+  account_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type InvestmentFund = {
+  id: string;
+  account_id: string;
+  type_id: string;
+  name: string;
+  invested_amount: number;
+  current_value: number;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvestmentFundWithType = InvestmentFund & {
+  investment_type: InvestmentType;
+};
+
+export type InvestmentContribution = {
+  id: string;
+  fund_id: string;
+  account_id: string;
+  amount: number;
+  contribution_date: string;
+  notes: string | null;
+  created_at: string;
 };

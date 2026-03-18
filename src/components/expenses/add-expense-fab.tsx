@@ -15,9 +15,10 @@ import type { Category } from "@/types";
 
 type Props = {
   categories: Category[];
+  hasInvestments?: boolean;
 };
 
-export function AddExpenseFab({ categories }: Props) {
+export function AddExpenseFab({ categories, hasInvestments = false }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -42,6 +43,7 @@ export function AddExpenseFab({ categories }: Props) {
             <ExpenseForm
               categories={categories}
               onSuccess={() => setOpen(false)}
+              hasInvestments={hasInvestments}
             />
           </div>
         </DialogContent>

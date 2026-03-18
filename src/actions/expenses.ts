@@ -93,8 +93,11 @@ export async function createExpense(formData: FormData) {
 
   const accountId = await getSelectedAccountId();
 
+  const paymentMethod = (formData.get("payment_method") as string) || "bank";
+
   const { error } = await supabase.from("expenses").insert({
     ...parsed.data,
+    payment_method: paymentMethod,
     user_id: user.id,
     ...(accountId ? { account_id: accountId } : {}),
   });
@@ -140,10 +143,13 @@ export async function updateExpense(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  const paymentMethod = (formData.get("payment_method") as string) || "bank";
+
   const { error } = await supabase
     .from("expenses")
     .update({
       ...parsed.data,
+      payment_method: paymentMethod,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -195,7 +201,7 @@ export async function getAllTimeBalance(debtCategoryId?: string | null) {
 
   let query = supabase
     .from("expenses")
-    .select("expense_date, amount, category_id");
+    .select("expense_date, amount, category_id, payment_method");
 
   if (accountId) {
     query = query.eq("account_id", accountId);
@@ -206,19 +212,27 @@ export async function getAllTimeBalance(debtCategoryId?: string | null) {
 
   const byYear = new Map<number, number>();
   let total = 0;
+  let bankTotal = 0;
+  let cashTotal = 0;
 
   for (const row of data || []) {
     if (debtCategoryId && row.category_id === debtCategoryId) continue;
     const y = new Date(row.expense_date).getFullYear();
     byYear.set(y, (byYear.get(y) || 0) + row.amount);
     total += row.amount;
+
+    if (row.payment_method === "cash") {
+      cashTotal += row.amount;
+    } else {
+      bankTotal += row.amount;
+    }
   }
 
   const years = Array.from(byYear.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([year, neto]) => ({ year, neto }));
 
-  return { total, years };
+  return { total, bankTotal, cashTotal, years };
 }
 
 export async function deleteExpense(id: string) {

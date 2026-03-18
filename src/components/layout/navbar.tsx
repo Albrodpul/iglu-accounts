@@ -13,6 +13,7 @@ import {
   LogOut,
   ArrowLeftRight,
   Plus,
+  TrendingUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,17 +36,22 @@ const navItemsRight = [
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
-const allNavItems = [...navItemsLeft, ...navItemsRight];
 
 type Props = {
   accountName?: string;
   showAccountSwitcher?: boolean;
   categories?: Category[];
+  hasInvestments?: boolean;
 };
 
-export function Navbar({ accountName, showAccountSwitcher = true, categories = [] }: Props) {
+export function Navbar({ accountName, showAccountSwitcher = true, categories = [], hasInvestments = false }: Props) {
   const pathname = usePathname();
   const [addOpen, setAddOpen] = useState(false);
+
+  const navItemsLeftFinal = hasInvestments
+    ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
+    : navItemsLeft;
+  const allNavItemsFinal = [...navItemsLeftFinal, ...navItemsRight];
 
   function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
     const isActive = pathname.startsWith(href);
@@ -94,7 +100,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         )}
 
         <div className="mt-3 flex-1 space-y-1.5">
-          {allNavItems.map((item) => {
+          {allNavItemsFinal.map((item) => {
             const Icon = item.icon;
             const isActive = pathname.startsWith(item.href);
             return (
@@ -162,8 +168,8 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="grid grid-cols-5 px-2">
-          {navItemsLeft.map((item) => (
+        <div className={`grid px-2 ${hasInvestments ? "grid-cols-6" : "grid-cols-5"}`}>
+          {navItemsLeftFinal.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}
 
@@ -196,6 +202,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             <ExpenseForm
               categories={categories}
               onSuccess={() => setAddOpen(false)}
+              hasInvestments={hasInvestments}
             />
           </div>
         </DialogContent>

@@ -19,9 +19,10 @@ type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
   sortable?: boolean;
+  hasInvestments?: boolean;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -121,6 +122,9 @@ export function ExpenseList({ expenses, categories, sortable = true }: Props) {
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {expense.category?.name}
+                        {hasInvestments && expense.payment_method === "cash" && (
+                          <span className="ml-1.5 text-xs text-muted-foreground/70">· Efectivo</span>
+                        )}
                       </p>
                     </div>
 
@@ -164,6 +168,7 @@ export function ExpenseList({ expenses, categories, sortable = true }: Props) {
                 categories={categories}
                 expense={editingExpense}
                 onSuccess={() => setEditingExpense(null)}
+                hasInvestments={hasInvestments}
               />
             )}
           </div>

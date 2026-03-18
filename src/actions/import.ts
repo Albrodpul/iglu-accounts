@@ -16,6 +16,21 @@ type ImportEntry = {
   concept: string;
 };
 
+const MONTH_LABELS = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
 function parseAmount(value: unknown): number | null {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
@@ -33,6 +48,14 @@ function parseAmount(value: unknown): number | null {
 
   const n = Number.parseFloat(normalized);
   return Number.isFinite(n) ? n : null;
+}
+
+function normalizeText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function getCell(
@@ -54,11 +77,54 @@ function getCellComment(cell?: XLSX.CellObject): string {
   return text;
 }
 
+function parseYearFromCell(cell?: XLSX.CellObject): number | null {
+  const value = parseAmount(cell?.v ?? cell?.w ?? null);
+  if (!value || !Number.isInteger(value)) return null;
+  if (value < 2000 || value > 2100) return null;
+  return value;
+}
+
 function isValidIsoDate(isoDate: string): boolean {
   const d = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return false;
 
   return isoDate === d.toISOString().slice(0, 10);
+}
+
+function inferBlockYear(
+  sheet: XLSX.WorkSheet,
+  range: XLSX.Range,
+  headerRow: number,
+  dayCol: number
+): number | null {
+  const startRow = Math.max(range.s.r, headerRow - 4);
+
+  // Prioridad 1: año cercano a la columna de días/mes (caso Ahorros Alberto)
+  for (let r = headerRow - 1; r >= startRow; r--) {
+    for (let c = Math.max(range.s.c, dayCol - 2); c <= Math.min(range.e.c, dayCol + 2); c++) {
+      const y = parseYearFromCell(getCell(sheet, r, c));
+      if (y) return y;
+    }
+  }
+
+  // Prioridad 2: año en filas anteriores en cualquier columna (caso Mensuales)
+  for (let r = headerRow - 1; r >= startRow; r--) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const y = parseYearFromCell(getCell(sheet, r, c));
+      if (y) return y;
+    }
+  }
+
+  return null;
+}
+
+function getDailySheetNames(workbook: XLSX.WorkBook): string[] {
+  const movementSheetNames = workbook.SheetNames.filter((name) => {
+    const n = normalizeText(name);
+    return n.includes("movimiento") && n.includes("diario");
+  });
+
+  return movementSheetNames.length > 0 ? movementSheetNames : workbook.SheetNames;
 }
 
 function parseDailyEntriesFromWorkbook(
@@ -67,66 +133,83 @@ function parseDailyEntriesFromWorkbook(
 ): ImportEntry[] {
   const entries: ImportEntry[] = [];
 
-  for (const name of workbook.SheetNames) {
+  for (const name of getDailySheetNames(workbook)) {
     const sheet = workbook.Sheets[name];
     if (!sheet || !sheet["!ref"]) continue;
 
     const range = XLSX.utils.decode_range(sheet["!ref"]);
-    let currentYear: number | null = null;
+    const headerRows: Array<{ row: number; dayCol: number }> = [];
 
     for (let r = range.s.r; r <= range.e.r; r++) {
-      // El año aparece en distintas columnas según bloque (p.ej. B o F).
       for (let c = range.s.c; c <= range.e.c; c++) {
-        const yearCell = getCell(sheet, r, c);
-        const yearValue = parseAmount(yearCell?.v ?? yearCell?.w ?? null);
-        if (
-          yearValue &&
-          Number.isInteger(yearValue) &&
-          yearValue >= 2000 &&
-          yearValue <= 2100
-        ) {
-          currentYear = yearValue;
+        const cell = getCell(sheet, r, c);
+        const text = normalizeText(String(cell?.w ?? cell?.v ?? ""));
+        if (text === "dias\\mes") {
+          headerRows.push({ row: r, dayCol: c });
           break;
         }
       }
+    }
 
-      const dayOrYearCell = getCell(sheet, r, 5); // Columna F (Día)
-      const dayOrYearValue = parseAmount(dayOrYearCell?.v ?? dayOrYearCell?.w ?? null);
+    for (let h = 0; h < headerRows.length; h++) {
+      const { row: headerRow, dayCol } = headerRows[h];
+      const nextHeaderRow = h + 1 < headerRows.length ? headerRows[h + 1].row : range.e.r + 1;
+      const blockYear = inferBlockYear(sheet, range, headerRow, dayCol);
 
-      if (!currentYear) continue;
-      if (onlyYear && currentYear !== onlyYear) continue;
+      if (!blockYear) continue;
+      if (onlyYear && blockYear !== onlyYear) continue;
 
-      if (
-        !dayOrYearValue ||
-        !Number.isInteger(dayOrYearValue) ||
-        dayOrYearValue < 1 ||
-        dayOrYearValue > 31
-      ) {
-        continue;
+      const monthCols: Array<{ col: number; month: number }> = [];
+      for (let offset = 1; offset <= 12; offset++) {
+        const col = dayCol + offset;
+        if (col > range.e.c) break;
+
+        const monthHeaderText = normalizeText(String(getCell(sheet, headerRow, col)?.w ?? getCell(sheet, headerRow, col)?.v ?? ""));
+        const expectedMonthText = MONTH_LABELS[offset - 1];
+
+        // Acepta cabeceras vacías si la estructura es estrictamente secuencial por columnas.
+        if (monthHeaderText && !monthHeaderText.startsWith(expectedMonthText)) {
+          continue;
+        }
+
+        monthCols.push({ col, month: offset });
       }
 
-      const day = dayOrYearValue;
+      if (monthCols.length === 0) continue;
 
-      for (let c = 6; c <= 17; c++) {
-        const amountCell = getCell(sheet, r, c);
-        if (!amountCell) continue;
+      for (let r = headerRow + 1; r < nextHeaderRow; r++) {
+        const dayCell = getCell(sheet, r, dayCol);
+        const dayValue = parseAmount(dayCell?.v ?? dayCell?.w ?? null);
 
-        const amount = parseAmount(amountCell.v ?? amountCell.w ?? null);
-        if (!amount || amount === 0) continue;
+        if (!dayValue || !Number.isInteger(dayValue) || dayValue < 1 || dayValue > 31) {
+          continue;
+        }
 
-        const month = c - 5;
-        const date = `${currentYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        if (!isValidIsoDate(date)) continue;
+        const day = dayValue;
 
-        const comment = getCellComment(amountCell);
-        const concept =
-          comment || (amount > 0 ? "Ingreso importado desde hoja mensual" : "Gasto importado desde hoja mensual");
+        for (const { col, month } of monthCols) {
+          const amountCell = getCell(sheet, r, col);
+          if (!amountCell) continue;
 
-        entries.push({
-          expense_date: date,
-          amount,
-          concept: concept.slice(0, 200),
-        });
+          const amount = parseAmount(amountCell.v ?? amountCell.w ?? null);
+          if (!amount || amount === 0) continue;
+
+          const date = `${blockYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          if (!isValidIsoDate(date)) continue;
+
+          const comment = getCellComment(amountCell);
+          const concept =
+            comment ||
+            (amount > 0
+              ? "Ingreso importado desde hoja mensual"
+              : "Gasto importado desde hoja mensual");
+
+          entries.push({
+            expense_date: date,
+            amount,
+            concept: concept.slice(0, 200),
+          });
+        }
       }
     }
   }
@@ -144,14 +227,6 @@ function parseDailyEntriesFromWorkbook(
       ? a.amount - b.amount
       : a.expense_date.localeCompare(b.expense_date)
   );
-}
-
-function normalizeText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
 
 function pickCategoryId(

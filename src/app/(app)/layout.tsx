@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         accountName={currentAccount?.name}
         showAccountSwitcher={accounts.length > 1}
         categories={categories}
+        hasInvestments={currentAccount?.has_investments ?? false}
       />
       <main className="pt-14 pb-28 md:ml-[18rem] md:pt-0 md:pb-10">
         <div className="mx-auto w-full max-w-6xl px-4 pt-4 md:px-8 md:pt-8">

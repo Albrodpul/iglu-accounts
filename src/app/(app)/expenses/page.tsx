@@ -1,5 +1,6 @@
 import { getExpenses, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId } from "@/actions/categories";
+import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { MonthSummary } from "@/components/shared/month-summary";
@@ -17,11 +18,12 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const year = params.year ? parseInt(params.year) : now.getFullYear();
   const categoryFilter = params.category || "";
 
-  const [expenses, categories, availablePeriods, debtCategoryId] = await Promise.all([
+  const [expenses, categories, availablePeriods, debtCategoryId, hasInvestments] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
     getAvailablePeriods(),
     getDebtCategoryId(),
+    hasInvestmentsEnabled(),
   ]);
 
   const totalExpenses = expenses
@@ -78,11 +80,12 @@ export default async function ExpensesPage({ searchParams }: Props) {
             expenses={expenses}
             categories={categories}
             initialCategoryFilter={categoryFilter}
+            hasInvestments={hasInvestments}
           />
         </div>
       </section>
 
-      <AddExpenseFab categories={categories} />
+      <AddExpenseFab categories={categories} hasInvestments={hasInvestments} />
     </div>
   );
 }

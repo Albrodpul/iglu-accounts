@@ -1,14 +1,17 @@
 import { getCategories } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
+import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringList } from "@/components/settings/recurring-list";
 import { CategoryList } from "@/components/settings/category-list";
+import { ModulesSettings } from "@/components/settings/modules-settings";
 import { formatCurrency } from "@/lib/format";
 
 export default async function SettingsPage() {
-  const [categories, recurring] = await Promise.all([
+  const [categories, recurring, hasInvestments] = await Promise.all([
     getCategories(),
     getRecurringExpenses(),
+    hasInvestmentsEnabled(),
   ]);
 
   const totalExpenses = recurring
@@ -23,9 +26,10 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-bold md:text-3xl">Ajustes</h1>
 
       <Tabs defaultValue="recurring">
-        <TabsList className="grid w-full grid-cols-2 md:w-[360px]">
-          <TabsTrigger value="recurring">Movimientos fijos</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
+          <TabsTrigger value="recurring">Mov. fijos</TabsTrigger>
           <TabsTrigger value="categories">Categorías</TabsTrigger>
+          <TabsTrigger value="modules">Módulos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recurring" className="mt-5 space-y-4">
@@ -55,6 +59,12 @@ export default async function SettingsPage() {
         <TabsContent value="categories" className="mt-5">
           <div className="glass-panel p-5 md:p-6">
             <CategoryList categories={categories} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="modules" className="mt-5">
+          <div className="glass-panel p-5 md:p-6">
+            <ModulesSettings hasInvestments={hasInvestments} />
           </div>
         </TabsContent>
       </Tabs>

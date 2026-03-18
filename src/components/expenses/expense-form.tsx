@@ -16,6 +16,7 @@ type Props = {
   categories: Category[];
   expense?: Expense;
   onSuccess?: () => void;
+  hasInvestments?: boolean;
 };
 
 function detectExpenseType(expense: Expense | undefined, categories: Category[]): ExpenseType {
@@ -26,22 +27,25 @@ function detectExpenseType(expense: Expense | undefined, categories: Category[])
   return "income";
 }
 
-export function ExpenseForm({ categories, expense, onSuccess }: Props) {
+export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = false }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<ExpenseType>(() => detectExpenseType(expense, categories));
+  const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(expense?.payment_method || "bank");
   const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
 
   const today = new Date().toISOString().split("T")[0];
   const showCategory = type === "expense";
+  const showPaymentMethod = hasInvestments && (type === "income" || type === "expense");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
     formData.set("is_income", String(type === "income"));
     formData.set("is_debt", String(type === "debt"));
+    formData.set("payment_method", type === "debt" ? "bank" : paymentMethod);
 
     const result = expense
       ? await updateExpense(expense.id, formData)
@@ -94,6 +98,29 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
         ))}
       </div>
 
+      {showPaymentMethod && (
+        <div className="flex gap-2 md:col-span-2">
+          <Button
+            type="button"
+            variant={paymentMethod === "bank" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPaymentMethod("bank")}
+            className={paymentMethod === "bank" ? "bg-sky-500 hover:bg-sky-600 text-white" : ""}
+          >
+            🏦 Banco
+          </Button>
+          <Button
+            type="button"
+            variant={paymentMethod === "cash" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPaymentMethod("cash")}
+            className={paymentMethod === "cash" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            💵 Efectivo
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 md:col-span-2">
         <div className="space-y-2">
           <Label htmlFor="amount">Importe (EUR)</Label>
@@ -101,8 +128,8 @@ export function ExpenseForm({ categories, expense, onSuccess }: Props) {
             id="amount"
             name="amount"
             type="number"
-            step="0.01"
-            min="0.01"
+            step="any"
+            min="0.000000001"
             defaultValue={expense ? Math.abs(expense.amount) : ""}
             placeholder="0.00"
             required

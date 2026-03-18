@@ -32,7 +32,7 @@ export default async function SettingsPage() {
         <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
           <TabsTrigger value="recurring">Mov. fijos</TabsTrigger>
           <TabsTrigger value="categories">Categorías</TabsTrigger>
-          <TabsTrigger value="modules">Módulos</TabsTrigger>
+          <TabsTrigger value="modules">Configuración</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recurring" className="mt-5 space-y-4">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { startAuthentication } from "@simplewebauthn/browser";
+import { Fingerprint } from "lucide-react";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,17 +122,19 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" className="h-11 w-full rounded-xl font-semibold" disabled={loading}>
+            <Button type="submit" size="lg" className="w-full rounded-xl font-semibold" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-xl font-semibold"
+              size="lg"
+              className="w-full rounded-xl font-semibold"
               disabled={loadingPasskey}
               onClick={handlePasskeyLogin}
             >
-              {loadingPasskey ? "Verificando huella..." : "Entrar con huella / passkey"}
+              <Fingerprint className="size-4" />
+              {loadingPasskey ? "Verificando huella..." : "Entrar con huella"}
             </Button>
           </form>
         </CardContent>

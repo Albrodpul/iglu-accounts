@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
   const { error: otpError } = await supabase.auth.verifyOtp({
     type: "magiclink",
     token_hash: tokenHash,
-    email,
   });
 
   if (otpError) {

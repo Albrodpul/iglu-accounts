@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { startAuthentication } from "@simplewebauthn/browser";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPasskey, setLoadingPasskey] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -19,6 +21,54 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    if (!window.PublicKeyCredential) {
+      setError("Este dispositivo no soporta Passkeys");
+      return;
+    }
+
+    setLoadingPasskey(true);
+    setError(null);
+
+    try {
+      const optionsRes = await fetch("/api/auth/passkeys/authenticate/options", {
+        method: "POST",
+      });
+      const optionsPayload = (await optionsRes.json()) as {
+        error?: string;
+        options?: Parameters<typeof startAuthentication>[0]["optionsJSON"];
+      };
+
+      if (!optionsRes.ok || !optionsPayload.options) {
+        throw new Error(optionsPayload.error ?? "No se pudo iniciar el acceso por passkey");
+      }
+
+      const authResp = await startAuthentication({
+        optionsJSON: optionsPayload.options,
+      });
+
+      const verifyRes = await fetch("/api/auth/passkeys/authenticate/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(authResp),
+      });
+      const verifyPayload = (await verifyRes.json()) as {
+        error?: string;
+        actionLink?: string;
+      };
+
+      if (!verifyRes.ok || !verifyPayload.actionLink) {
+        throw new Error(verifyPayload.error ?? "No se pudo completar el acceso con passkey");
+      }
+
+      window.location.href = verifyPayload.actionLink;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error de autenticación con passkey";
+      setError(message);
+      setLoadingPasskey(false);
     }
   }
 
@@ -70,6 +120,15 @@ export default function LoginPage() {
             )}
             <Button type="submit" className="h-11 w-full rounded-xl font-semibold" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-xl font-semibold"
+              disabled={loadingPasskey}
+              onClick={handlePasskeyLogin}
+            >
+              {loadingPasskey ? "Verificando huella..." : "Entrar con huella / passkey"}
             </Button>
           </form>
         </CardContent>

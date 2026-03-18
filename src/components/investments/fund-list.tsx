@@ -266,17 +266,17 @@ export function FundList({ types, funds }: Props) {
                               <MoreVertical className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" side="bottom" className="min-w-44">
-                              <DropdownMenuItem onClick={() => openAddContribution(fund)}>
+                              <DropdownMenuItem className="py-3" onClick={() => openAddContribution(fund)}>
                                 <Plus className="h-4 w-4" /> Añadir aportación
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openHistory(fund)}>
+                              <DropdownMenuItem className="py-3" onClick={() => openHistory(fund)}>
                                 <History className="h-4 w-4" /> Historial
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditFund(fund)}>
+                              <DropdownMenuItem className="py-3" onClick={() => openEditFund(fund)}>
                                 <Pencil className="h-4 w-4" /> Editar fondo
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem variant="destructive" onClick={() => handleDeleteFund(fund)}>
+                              <DropdownMenuItem className="py-3" variant="destructive" onClick={() => handleDeleteFund(fund)}>
                                 <Trash2 className="h-4 w-4" /> Eliminar
                               </DropdownMenuItem>
                             </DropdownMenuContent>

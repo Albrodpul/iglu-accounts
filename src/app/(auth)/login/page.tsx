@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { startAuthentication } from "@simplewebauthn/browser";
+import {
+  browserSupportsWebAuthnAutofill,
+  startAuthentication,
+} from "@simplewebauthn/browser";
 import { Fingerprint } from "lucide-react";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -14,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPasskey, setLoadingPasskey] = useState(false);
+  const attemptedAutofillRef = useRef(false);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -25,14 +29,18 @@ export default function LoginPage() {
     }
   }
 
-  async function handlePasskeyLogin() {
+  async function handlePasskeyLogin(useAutofill = false) {
     if (!window.PublicKeyCredential) {
-      setError("Este dispositivo no soporta Passkeys");
+      if (!useAutofill) {
+        setError("Este dispositivo no soporta Passkeys");
+      }
       return;
     }
 
-    setLoadingPasskey(true);
-    setError(null);
+    if (!useAutofill) {
+      setLoadingPasskey(true);
+      setError(null);
+    }
 
     try {
       const optionsRes = await fetch("/api/auth/passkeys/authenticate/options", {
@@ -49,6 +57,8 @@ export default function LoginPage() {
 
       const authResp = await startAuthentication({
         optionsJSON: optionsPayload.options,
+        useBrowserAutofill: useAutofill,
+        verifyBrowserAutofillInput: false,
       });
 
       const verifyRes = await fetch("/api/auth/passkeys/authenticate/verify", {
@@ -67,14 +77,34 @@ export default function LoginPage() {
 
       window.location.href = verifyPayload.redirectTo ?? "/select-account";
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error de autenticación con passkey";
-      setError(message);
-      setLoadingPasskey(false);
+      if (!useAutofill) {
+        const message = err instanceof Error ? err.message : "Error de autenticación con passkey";
+        setError(message);
+        setLoadingPasskey(false);
+      }
       return;
     }
 
-    setLoadingPasskey(false);
+    if (!useAutofill) {
+      setLoadingPasskey(false);
+    }
   }
+
+  useEffect(() => {
+    async function tryAutofillPasskey() {
+      if (attemptedAutofillRef.current) return;
+      attemptedAutofillRef.current = true;
+
+      if (!window.PublicKeyCredential) return;
+
+      const supportsAutofill = await browserSupportsWebAuthnAutofill();
+      if (!supportsAutofill) return;
+
+      await handlePasskeyLogin(true);
+    }
+
+    void tryAutofillPasskey();
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-10">
@@ -102,6 +132,7 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="username webauthn"
                 placeholder="tu@email.com"
                 required
                 className="h-11 rounded-xl"
@@ -113,6 +144,7 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 className="h-11 rounded-xl"
               />
@@ -131,7 +163,7 @@ export default function LoginPage() {
               size="lg"
               className="w-full rounded-xl font-semibold"
               disabled={loadingPasskey}
-              onClick={handlePasskeyLogin}
+              onClick={() => handlePasskeyLogin(false)}
             >
               <Fingerprint className="size-4" />
               {loadingPasskey ? "Verificando huella..." : "Entrar con huella"}

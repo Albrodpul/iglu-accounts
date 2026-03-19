@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/actions/auth";
@@ -50,6 +50,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const pathname = usePathname();
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isSigningOut, startSigningOutTransition] = useTransition();
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
@@ -194,14 +195,19 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
             </Link>
           )}
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={() => {
+              startSigningOutTransition(async () => {
+                await signOut();
+              });
+            }}
+            disabled={isSigningOut}
+            aria-busy={isSigningOut}
+            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </header>
 

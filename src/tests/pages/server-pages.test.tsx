@@ -127,6 +127,10 @@ vi.mock("@/components/settings/passkeys-settings", () => ({
   PasskeysSettings: () => <div data-testid="passkeys-settings" />,
 }));
 
+vi.mock("@/components/settings/accounts-settings", () => ({
+  AccountsSettings: () => <div data-testid="accounts-settings" />,
+}));
+
 vi.mock("@/components/investments/investment-type-manager", () => ({
   InvestmentTypeManager: () => <div data-testid="investment-type-manager" />,
 }));

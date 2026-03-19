@@ -50,6 +50,8 @@ export function createSupabaseMock(options?: {
           user: options?.user === undefined ? { id: "user-1" } : options.user,
         },
       }),
+      signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn((tableName: string) => {
       const builder = tables[tableName];

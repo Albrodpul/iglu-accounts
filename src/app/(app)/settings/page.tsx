@@ -1,20 +1,22 @@
 import { getCategories } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
-import { hasInvestmentsEnabled } from "@/actions/accounts";
+import { getAccounts, hasInvestmentsEnabled } from "@/actions/accounts";
 import { getUserPasskeys } from "@/actions/passkeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringList } from "@/components/settings/recurring-list";
 import { CategoryList } from "@/components/settings/category-list";
 import { ModulesSettings } from "@/components/settings/modules-settings";
 import { PasskeysSettings } from "@/components/settings/passkeys-settings";
+import { AccountsSettings } from "@/components/settings/accounts-settings";
 import { formatCurrency } from "@/lib/format";
 
 export default async function SettingsPage() {
-  const [categories, recurring, hasInvestments, passkeys] = await Promise.all([
+  const [categories, recurring, hasInvestments, passkeys, accounts] = await Promise.all([
     getCategories(),
     getRecurringExpenses(),
     hasInvestmentsEnabled(),
     getUserPasskeys(),
+    getAccounts(),
   ]);
 
   const totalExpenses = recurring
@@ -67,6 +69,9 @@ export default async function SettingsPage() {
 
         <TabsContent value="modules" className="mt-5">
           <div className="space-y-4">
+            <div className="glass-panel p-5 md:p-6">
+              <AccountsSettings accounts={accounts} />
+            </div>
             <div className="glass-panel p-5 md:p-6">
               <ModulesSettings hasInvestments={hasInvestments} />
             </div>

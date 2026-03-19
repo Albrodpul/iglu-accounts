@@ -6,6 +6,7 @@ import { Fingerprint, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { deleteUserPasskey, type UserPasskey } from "@/actions/passkeys";
 
 type Props = {
@@ -16,6 +17,7 @@ export function PasskeysSettings({ passkeys }: Props) {
   const router = useRouter();
   const [loadingRegister, setLoadingRegister] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const supported = useMemo(
     () => typeof window !== "undefined" && !!window.PublicKeyCredential,
@@ -69,7 +71,16 @@ export function PasskeysSettings({ passkeys }: Props) {
     }
   }
 
-  function removePasskey(id: string) {
+  async function removePasskey(id: string) {
+    const confirmed = await confirm({
+      title: "Eliminar passkey",
+      description:
+        "¿Seguro que quieres eliminar esta passkey? No podrás usarla para iniciar sesión.",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+
     startTransition(async () => {
       const result = await deleteUserPasskey(id);
       if (result?.error) {
@@ -82,7 +93,7 @@ export function PasskeysSettings({ passkeys }: Props) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-5">
+    <div className="glass-panel space-y-4 p-5 md:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[15px] font-semibold">Acceso con huella / biometría</p>
@@ -131,12 +142,12 @@ export function PasskeysSettings({ passkeys }: Props) {
                 className="text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="size-4" />
-                Quitar
               </Button>
             </div>
           ))}
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 }

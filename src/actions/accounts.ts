@@ -78,6 +78,120 @@ export async function toggleInvestments(enabled: boolean) {
   return { success: true };
 }
 
+export async function createAccount(name: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "El nombre es obligatorio" };
+
+  const { data: account, error } = await supabase
+    .from("accounts")
+    .insert({ name: trimmed })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message };
+
+  const { error: memberError } = await supabase
+    .from("account_members")
+    .insert({ account_id: account.id, user_id: user.id, role: "owner" });
+
+  if (memberError) return { error: memberError.message };
+
+  revalidatePath("/", "layout");
+  return { success: true, id: account.id };
+}
+
+export async function renameAccount(accountId: string, name: string) {
+  const supabase = await createClient();
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "El nombre es obligatorio" };
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ name: trimmed })
+    .eq("id", accountId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function getAccountDataCounts(accountId: string) {
+  const supabase = await createClient();
+
+  const [expenses, recurring, categories, investments] = await Promise.all([
+    supabase
+      .from("expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", accountId),
+    supabase
+      .from("recurring_expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", accountId),
+    supabase
+      .from("categories")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", accountId),
+    supabase
+      .from("investment_funds")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", accountId),
+  ]);
+
+  return {
+    expenses: expenses.count ?? 0,
+    recurring: recurring.count ?? 0,
+    categories: categories.count ?? 0,
+    investments: investments.count ?? 0,
+  };
+}
+
+export async function deleteAccount(accountId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  // Verify ownership
+  const { data: membership } = await supabase
+    .from("account_members")
+    .select("role")
+    .eq("account_id", accountId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (membership?.role !== "owner") {
+    return { error: "Solo el propietario puede eliminar la cuenta" };
+  }
+
+  // Nullify expenses and recurring (ON DELETE SET NULL)
+  // Categories, investments cascade automatically
+
+  const { error } = await supabase
+    .from("accounts")
+    .delete()
+    .eq("id", accountId);
+
+  if (error) return { error: error.message };
+
+  // If deleted account was selected, clear cookie
+  const selectedId = await getSelectedAccountId();
+  if (selectedId === accountId) {
+    const cookieStore = await cookies();
+    cookieStore.delete(ACCOUNT_COOKIE);
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function selectAccount(accountId: string) {
   // Verify the user is a member of this account
   const supabase = await createClient();

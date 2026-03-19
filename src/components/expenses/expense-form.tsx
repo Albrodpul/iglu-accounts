@@ -176,7 +176,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             {categories
               .filter((cat) => {
                 const n = cat.name.toLowerCase();
-                return n !== "ingresos" && n !== "deuda";
+                return n !== "ingreso" && n !== "deuda";
               })
               .map((cat) => (
                 <option key={cat.id} value={cat.id}>

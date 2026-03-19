@@ -6,6 +6,7 @@ import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
+import { getOrCreateIncomeCategory } from "./categories";
 
 export async function getRecurringExpenses() {
   const supabase = await createClient();
@@ -36,13 +37,23 @@ export async function createRecurringExpense(formData: FormData) {
   if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
+  const isIncome = formData.get("is_income") === "true";
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
+  const categoryValue = formData.get("category_id");
+  let categoryId = typeof categoryValue === "string" && categoryValue.trim().length > 0
+    ? categoryValue
+    : null;
+
+  if (isIncome && !categoryId) {
+    categoryId = await getOrCreateIncomeCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  }
 
   const parsed = recurringExpenseSchema.safeParse({
     amount,
     concept: formData.get("concept"),
-    category_id: formData.get("category_id"),
+    category_id: categoryId,
     day_of_month: dayValue ? parseInt(dayValue) : null,
     schedule_type: scheduleType,
   });
@@ -76,13 +87,23 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
+  const isIncome = formData.get("is_income") === "true";
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
+  const categoryValue = formData.get("category_id");
+  let categoryId = typeof categoryValue === "string" && categoryValue.trim().length > 0
+    ? categoryValue
+    : null;
+
+  if (isIncome && !categoryId) {
+    categoryId = await getOrCreateIncomeCategory();
+    if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
+  }
 
   const parsed = recurringExpenseSchema.safeParse({
     amount,
     concept: formData.get("concept"),
-    category_id: formData.get("category_id"),
+    category_id: categoryId,
     day_of_month: dayValue ? parseInt(dayValue) : null,
     schedule_type: scheduleType,
   });

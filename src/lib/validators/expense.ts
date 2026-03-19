@@ -22,8 +22,31 @@ export const recurringExpenseSchema = z.object({
     .refine((v) => v !== 0, "El importe no puede ser 0"),
   concept: z.string().trim().max(200, "Máximo 200 caracteres").optional().nullable(),
   category_id: z.string().check(z.uuid({ error: "Selecciona una categoría" })),
-  day_of_month: z.number().min(1, "Día inválido").max(31, "Día inválido").optional().nullable(),
+  day_of_month: z.number().int("Día inválido").optional().nullable(),
   schedule_type: z.enum(["monthly", "last_day", "last_weekday", "bimonthly"]).default("monthly"),
+}).superRefine((data, ctx) => {
+  if (data.schedule_type === "last_day") {
+    return;
+  }
+
+  if (data.schedule_type === "last_weekday") {
+    if (data.day_of_month == null || data.day_of_month < 0 || data.day_of_month > 6) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["day_of_month"],
+        message: "Día inválido",
+      });
+    }
+    return;
+  }
+
+  if (data.day_of_month != null && (data.day_of_month < 1 || data.day_of_month > 31)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["day_of_month"],
+      message: "Día inválido",
+    });
+  }
 });
 
 export const categorySchema = z.object({

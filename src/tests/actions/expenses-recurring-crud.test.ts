@@ -231,6 +231,36 @@ describe("recurring CRUD actions", () => {
     );
   });
 
+  it("creates recurring income on last day without category", async () => {
+    const recurringQuery = createQueryBuilder({ data: null, error: null });
+
+    mocks.createClient.mockResolvedValue(
+      createSupabaseMock({
+        user: { id: "user-1" },
+        tables: {
+          recurring_expenses: recurringQuery,
+        },
+      }),
+    );
+
+    const result = await createRecurringExpense(
+      buildRecurringFormData({
+        schedule_type: "last_day",
+        category_id: "",
+      }),
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.getOrCreateIncomeCategory).toHaveBeenCalled();
+    expect(recurringQuery.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 1200,
+        category_id: "33333333-3333-4333-8333-333333333333",
+        schedule_type: "last_day",
+      }),
+    );
+  });
+
   it("updates recurring expense", async () => {
     const recurringQuery = createQueryBuilder({ data: null, error: null });
 

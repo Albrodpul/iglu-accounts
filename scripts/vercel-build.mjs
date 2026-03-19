@@ -4,7 +4,13 @@ const isProductionDeployment = process.env.VERCEL_ENV === "production";
 
 if (isProductionDeployment) {
   console.log("Running tests before production build...");
-  execSync("npm run test:ci", { stdio: "inherit" });
+  execSync("npm run test:ci", {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      NODE_ENV: "test",
+    },
+  });
 } else {
   console.log("Skipping tests on non-production deployment to reduce Vercel free-tier usage.");
 }

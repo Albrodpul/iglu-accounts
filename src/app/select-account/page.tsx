@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getAccounts, selectAccount } from "@/actions/accounts";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { SelectAccountForm } from "@/components/select-account/select-account-form";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default async function SelectAccountPage() {
@@ -16,6 +17,13 @@ export default async function SelectAccountPage() {
 
   if (accounts.length === 0) {
     redirect("/dashboard");
+  }
+
+  async function handleSelectAccount(formData: FormData) {
+    "use server";
+    const accountId = formData.get("account_id");
+    if (typeof accountId !== "string" || !accountId) return;
+    await selectAccount(accountId);
   }
 
   return (
@@ -37,22 +45,10 @@ export default async function SelectAccountPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {accounts.map((account) => (
-            <form
-              key={account.id}
-              action={async () => {
-                "use server";
-                await selectAccount(account.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="w-full rounded-xl border border-border/80 bg-card px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
-              >
-                {account.name}
-              </button>
-            </form>
-          ))}
+          <SelectAccountForm
+            accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
+            action={handleSelectAccount}
+          />
         </CardContent>
       </Card>
       </div>

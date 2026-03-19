@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { expenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 import { getOrCreateIncomeCategory, getOrCreateDebtCategory } from "./categories";
 
@@ -64,7 +65,7 @@ export async function createExpense(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
   const isIncome = formData.get("is_income") === "true";
@@ -116,7 +117,7 @@ export async function updateExpense(id: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
   const isIncome = formData.get("is_income") === "true";
@@ -241,7 +242,7 @@ export async function deleteExpense(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const { error } = await supabase
     .from("expenses")

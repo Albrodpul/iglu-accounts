@@ -52,6 +52,11 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       : await createExpense(formData);
 
     if (result?.error) {
+      if (result.error === "No autenticado") {
+        window.location.href = "/login";
+        return;
+      }
+
       setError(result.error);
       toast.error(result.error);
       setLoading(false);

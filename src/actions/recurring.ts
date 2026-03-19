@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { recurringExpenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 
 export async function getRecurringExpenses() {
@@ -32,7 +33,7 @@ export async function createRecurringExpense(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
@@ -72,7 +73,7 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
@@ -110,7 +111,7 @@ export async function deleteRecurringExpense(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const { error } = await supabase
     .from("recurring_expenses")

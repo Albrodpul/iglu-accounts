@@ -2,6 +2,7 @@
 
 import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSelectedAccountId } from "./accounts";
@@ -259,7 +260,7 @@ export async function importMensualesOds(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const file = formData.get("file");
   if (!(file instanceof File)) {

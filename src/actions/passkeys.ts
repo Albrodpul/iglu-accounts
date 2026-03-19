@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export type UserPasskey = {
@@ -35,7 +36,7 @@ export async function deleteUserPasskey(id: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const { error } = await supabase
     .from("user_passkeys")

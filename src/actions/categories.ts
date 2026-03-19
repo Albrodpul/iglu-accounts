@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { categorySchema } from "@/lib/validators/expense";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 
 export async function getCategories() {
@@ -30,7 +31,7 @@ export async function createCategory(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
@@ -65,7 +66,7 @@ export async function updateCategory(id: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
@@ -179,7 +180,7 @@ export async function deleteCategory(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };

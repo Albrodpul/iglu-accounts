@@ -83,7 +83,7 @@ export async function createAccount(name: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   const trimmed = name.trim();
   if (!trimmed) return { error: "El nombre es obligatorio" };
@@ -157,7 +157,7 @@ export async function deleteAccount(accountId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+  if (!user) redirect("/login");
 
   // Verify ownership
   const { data: membership } = await supabase

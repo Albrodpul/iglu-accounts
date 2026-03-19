@@ -7,6 +7,7 @@ import { MonthlyChart } from "@/components/summary/monthly-chart";
 import { CategoryBreakdown } from "@/components/summary/category-breakdown";
 import { AnnualGrid } from "@/components/summary/annual-grid";
 import { BalanceYear } from "@/components/shared/balance-year";
+import { buildBalanceYearKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
 
 type Props = {
   searchParams: Promise<{ year?: string }>;
@@ -83,37 +84,24 @@ export default async function SummaryPage({ searchParams }: Props) {
     }
   }
 
-  const totalExpenses = expenses
-    .filter((e) => e.amount < 0)
-    .reduce((s, e) => s + e.amount, 0);
-  const totalIncome = expenses
-    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
-    .reduce((s, e) => s + e.amount, 0);
-  const totalDebt = debtCategoryId
-    ? expenses.filter((e) => e.category_id === debtCategoryId).reduce((s, e) => s + e.amount, 0)
-    : 0;
-  const neto = totalExpenses + totalIncome;
+  const totals = calculateFinancialTotals(expenses, debtCategoryId);
 
   // Average monthly expenses
   const now = new Date();
   const monthsElapsed = year === now.getFullYear() ? now.getMonth() + 1 : 12;
-  const avgMonthlyExpense = totalExpenses / monthsElapsed;
+  const avgMonthlyExpense = totals.totalExpenses / monthsElapsed;
 
   // Fixed monthly totals
   const fixedExpenses = recurring.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
 
   // Build KPIs
-  const kpis: { label: string; value: number; color: string }[] = [
-    { label: "Ingresos", value: totalIncome, color: "emerald" },
-    { label: "Gastos", value: totalExpenses, color: "rose" },
-    { label: "Media/mes", value: avgMonthlyExpense, color: "amber" },
-  ];
-
-  if (totalDebt > 0) {
-    kpis.push({ label: "Deudas", value: totalDebt, color: "sky" });
-  } else {
-    kpis.push({ label: "Fijos/mes", value: fixedExpenses, color: "emerald" });
-  }
+  const kpis = buildBalanceYearKpis({
+    totalIncome: totals.totalIncome,
+    totalExpenses: totals.totalExpenses,
+    totalDebt: totals.totalDebt,
+    avgMonthlyExpense,
+    fixedExpenses,
+  });
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -122,7 +110,7 @@ export default async function SummaryPage({ searchParams }: Props) {
         <YearSelector year={year} availableYears={availablePeriods.map((p) => p.year)} />
       </div>
 
-      <BalanceYear year={year} neto={neto} kpis={kpis} />
+      <BalanceYear year={year} neto={totals.net} kpis={kpis} />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">Gastos vs Ingresos por mes</h2>

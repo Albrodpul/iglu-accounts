@@ -5,6 +5,7 @@ import { MonthSelector } from "@/components/expenses/month-selector";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { MonthSummary } from "@/components/shared/month-summary";
 import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
+import { buildMonthSummaryKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
 import { MONTHS } from "@/lib/format";
 
 type Props = {
@@ -26,41 +27,15 @@ export default async function ExpensesPage({ searchParams }: Props) {
     hasInvestmentsEnabled(),
   ]);
 
-  const totalExpenses = expenses
-    .filter((e) => e.amount < 0)
-    .reduce((s, e) => s + e.amount, 0);
-  const totalIncome = expenses
-    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
-    .reduce((s, e) => s + e.amount, 0);
-  const totalDebt = debtCategoryId
-    ? expenses.filter((e) => e.category_id === debtCategoryId).reduce((s, e) => s + e.amount, 0)
-    : 0;
-  const neto = totalExpenses + totalIncome;
-
-  const kpis: { label: string; value: number; labelColor: string; valueColor: string; href?: string }[] = [
-    {
-      label: "Ingresos",
-      value: totalIncome,
-      labelColor: "text-white/75",
-      valueColor: "text-emerald-300",
-    },
-    {
-      label: "Gastos",
-      value: totalExpenses,
-      labelColor: "text-white/75",
-      valueColor: "text-rose-300",
-    },
-  ];
-
-  if (totalDebt > 0 && debtCategoryId) {
-    kpis.push({
-      label: "Deudas",
-      value: totalDebt,
-      labelColor: "text-white/75",
-      valueColor: "text-sky-300",
-      href: `/expenses?month=${month}&year=${year}&category=${debtCategoryId}`,
-    });
-  }
+  const totals = calculateFinancialTotals(expenses, debtCategoryId);
+  const kpis = buildMonthSummaryKpis({
+    totalIncome: totals.totalIncome,
+    totalExpenses: totals.totalExpenses,
+    totalDebt: totals.totalDebt,
+    debtCategoryId,
+    month,
+    year,
+  });
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -69,7 +44,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
         <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
       </div>
 
-      <MonthSummary month={month} year={year} neto={neto} kpis={kpis} />
+      <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">

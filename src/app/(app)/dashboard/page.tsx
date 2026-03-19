@@ -4,6 +4,11 @@ import { getCategories, getDebtCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { getInvestmentSummary } from "@/actions/investments";
+import {
+  buildBalanceYearKpis,
+  buildMonthSummaryKpis,
+  calculateFinancialTotals,
+} from "@/lib/expense-metrics";
 import { formatCurrency, MONTHS } from "@/lib/format";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
@@ -30,32 +35,12 @@ export default async function DashboardPage() {
       getInvestmentSummary(),
     ]);
 
-  // Month stats
-  const monthGastos = monthExpenses
-    .filter((e) => e.amount < 0)
-    .reduce((s, e) => s + e.amount, 0);
-  const monthIngresos = monthExpenses
-    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
-    .reduce((s, e) => s + e.amount, 0);
-  const monthDeudas = debtCategoryId
-    ? monthExpenses.filter((e) => e.category_id === debtCategoryId).reduce((s, e) => s + e.amount, 0)
-    : 0;
-  const monthNeto = monthGastos + monthIngresos;
+  const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId);
 
-  // Year stats
-  const yearGastos = yearExpenses
-    .filter((e) => e.amount < 0)
-    .reduce((s, e) => s + e.amount, 0);
-  const yearIngresos = yearExpenses
-    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
-    .reduce((s, e) => s + e.amount, 0);
-  const yearDeudas = debtCategoryId
-    ? yearExpenses.filter((e) => e.category_id === debtCategoryId).reduce((s, e) => s + e.amount, 0)
-    : 0;
-  const yearNeto = yearGastos + yearIngresos;
+  const yearTotals = calculateFinancialTotals(yearExpenses, debtCategoryId);
 
   // Monthly average spending
-  const avgMonthlySpend = yearGastos / month;
+  const avgMonthlySpend = yearTotals.totalExpenses / month;
 
   // Fixed monthly totals
   const fixedExpenses = recurring.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
@@ -66,51 +51,23 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   // Build KPIs for Balance year card
-  const balanceKpis: { label: string; value: number; color: string }[] = [
-    { label: "Ingresos", value: yearIngresos, color: "emerald" },
-    { label: "Gastos", value: yearGastos, color: "rose" },
-    { label: "Media/mes", value: avgMonthlySpend, color: "amber" },
-  ];
-
-  if (yearDeudas > 0) {
-    balanceKpis.push({
-      label: "Deudas",
-      value: yearDeudas,
-      color: "sky",
-    });
-  } else {
-    balanceKpis.push({
-      label: "Fijos/mes",
-      value: fixedExpenses,
-      color: "emerald",
-    });
-  }
+  const balanceKpis = buildBalanceYearKpis({
+    totalIncome: yearTotals.totalIncome,
+    totalExpenses: yearTotals.totalExpenses,
+    totalDebt: yearTotals.totalDebt,
+    avgMonthlyExpense: avgMonthlySpend,
+    fixedExpenses,
+  });
 
   // Build KPIs for month summary
-  const monthKpis = [
-    {
-      label: "Ingresos",
-      value: monthIngresos,
-      labelColor: "text-white/75",
-      valueColor: "text-emerald-300",
-    },
-    {
-      label: "Gastos",
-      value: monthGastos,
-      labelColor: "text-white/75",
-      valueColor: "text-rose-300",
-    },
-  ];
-
-  if (monthDeudas > 0 && debtCategoryId) {
-    monthKpis.push({
-      label: "Deudas",
-      value: monthDeudas,
-      labelColor: "text-white/75",
-      valueColor: "text-sky-300",
-      href: `/expenses?month=${month}&year=${year}&category=${debtCategoryId}`,
-    } as typeof monthKpis[number]);
-  }
+  const monthKpis = buildMonthSummaryKpis({
+    totalIncome: monthTotals.totalIncome,
+    totalExpenses: monthTotals.totalExpenses,
+    totalDebt: monthTotals.totalDebt,
+    debtCategoryId,
+    month,
+    year,
+  });
 
   // Asset breakdown for investments module
   const totalInvested = investmentSummary?.totalInvested ?? 0;
@@ -217,8 +174,8 @@ export default async function DashboardPage() {
 
           {/* Balance año + mes — second row */}
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-            <BalanceYear year={year} neto={yearNeto} kpis={balanceKpis} />
-            <MonthSummary month={month} year={year} neto={monthNeto} kpis={monthKpis} />
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} />
+            <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} />
           </div>
         </>
       ) : (
@@ -263,7 +220,7 @@ export default async function DashboardPage() {
               )}
             </section>
 
-            <BalanceYear year={year} neto={yearNeto} kpis={balanceKpis} />
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} />
           </div>
 
           <div className="grid gap-6 md:grid-cols-[1fr_1.5fr] md:gap-8">
@@ -271,7 +228,7 @@ export default async function DashboardPage() {
               <h2 className="mb-4 text-xl font-bold md:text-2xl">
                 {MONTHS[month - 1]} {year}
               </h2>
-              <MonthSummary month={month} year={year} neto={monthNeto} kpis={monthKpis} />
+              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} />
             </div>
 
             <section>

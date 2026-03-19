@@ -8,6 +8,7 @@ import {
 } from "@simplewebauthn/browser";
 import { Fingerprint } from "lucide-react";
 import { signIn } from "@/actions/auth";
+import { AuthButtonContent } from "@/components/auth/auth-button-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [loadingPasskey, setLoadingPasskey] = useState(false);
   const attemptedAutofillRef = useRef(false);
+  const isAnyLoading = loading || loadingPasskey;
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -125,7 +127,14 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <form action={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSubmit(new FormData(event.currentTarget));
+            }}
+            className="space-y-4"
+            aria-busy={isAnyLoading}
+          >
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs font-medium">Email</Label>
               <Input
@@ -135,6 +144,7 @@ export default function LoginPage() {
                 autoComplete="username webauthn"
                 placeholder="tu@email.com"
                 required
+                disabled={isAnyLoading}
                 className="h-11 rounded-xl"
               />
             </div>
@@ -146,6 +156,7 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
+                disabled={isAnyLoading}
                 className="h-11 rounded-xl"
               />
             </div>
@@ -154,19 +165,32 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" size="lg" className="w-full rounded-xl font-semibold" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+            {isAnyLoading && (
+              <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
+                Procesando acceso...
+              </p>
+            )}
+            <Button type="submit" size="lg" className="w-full rounded-xl font-semibold" disabled={isAnyLoading}>
+              <AuthButtonContent
+                loading={loading}
+                loadingText="Entrando..."
+                idleText="Entrar"
+              />
             </Button>
             <Button
               type="button"
               variant="outline"
               size="lg"
               className="w-full rounded-xl font-semibold"
-              disabled={loadingPasskey}
+              disabled={isAnyLoading}
               onClick={() => handlePasskeyLogin(false)}
             >
-              <Fingerprint className="size-4" />
-              {loadingPasskey ? "Verificando huella..." : "Entrar con huella"}
+              <AuthButtonContent
+                loading={loadingPasskey}
+                loadingText="Verificando huella..."
+                idleText="Entrar con huella"
+                idleIcon={<Fingerprint className="size-4" />}
+              />
             </Button>
           </form>
         </CardContent>

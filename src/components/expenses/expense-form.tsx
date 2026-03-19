@@ -173,11 +173,16 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             <option value="" disabled>
               Selecciona categoría
             </option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
+            {categories
+              .filter((cat) => {
+                const n = cat.name.toLowerCase();
+                return n !== "ingresos" && n !== "deuda";
+              })
+              .map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
           </select>
         </div>
       )}

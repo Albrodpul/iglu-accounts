@@ -26,6 +26,7 @@ import {
   getInvestmentSummary,
   updateContribution,
   updateInvestmentFund,
+  updateFundProfitability,
 } from "@/actions/investments";
 
 const ACCOUNT_ID = "11111111-1111-4111-8111-111111111111";
@@ -100,8 +101,8 @@ describe("investment funds and contributions", () => {
     );
   });
 
-  it("updates fund current value from invested plus return", async () => {
-    const fundsQuery = createQueryBuilder({ data: { invested_amount: 1000 }, error: null });
+  it("updates fund name only", async () => {
+    const fundsQuery = createQueryBuilder({ data: null, error: null });
 
     mocks.createClient.mockResolvedValue(
       createSupabaseMock({
@@ -113,7 +114,6 @@ describe("investment funds and contributions", () => {
 
     const formData = new FormData();
     formData.set("name", "MSCI World Core");
-    formData.set("return_amount", "120");
 
     const result = await updateInvestmentFund(FUND_ID, formData);
 
@@ -121,6 +121,34 @@ describe("investment funds and contributions", () => {
     expect(fundsQuery.update).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "MSCI World Core",
+      }),
+    );
+    expect(fundsQuery.update).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        current_value: expect.anything(),
+      }),
+    );
+  });
+
+  it("updates fund profitability from invested plus return", async () => {
+    const fundsQuery = createQueryBuilder({ data: { invested_amount: 1000 }, error: null });
+
+    mocks.createClient.mockResolvedValue(
+      createSupabaseMock({
+        tables: {
+          investment_funds: fundsQuery,
+        },
+      }),
+    );
+
+    const formData = new FormData();
+    formData.set("return_amount", "120");
+
+    const result = await updateFundProfitability(FUND_ID, formData);
+
+    expect(result).toEqual({ success: true });
+    expect(fundsQuery.update).toHaveBeenCalledWith(
+      expect.objectContaining({
         current_value: 1120,
       }),
     );

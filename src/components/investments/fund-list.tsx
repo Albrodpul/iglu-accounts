@@ -251,7 +251,7 @@ export function FundList({ types, funds }: Props) {
                       return (
                         <div
                           key={fund.id}
-                          className="group flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:px-3 md:py-3"
+                          className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:px-3 md:py-3"
                         >
                           {/* Icon */}
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
@@ -483,7 +483,7 @@ export function FundList({ types, funds }: Props) {
             ) : (
               <div className="space-y-1">
                 {contributions.map((c) => (
-                  <div key={c.id} className="group flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-muted/35">
+                  <div key={c.id} className="group flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/35">
                     <div>
                       <p className="text-sm font-medium tabular-nums">{formatCurrency(c.amount)}</p>
                       <p className="text-xs text-muted-foreground">

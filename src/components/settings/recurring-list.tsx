@@ -319,7 +319,7 @@ function RecurringItem({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="group flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35">
+    <div className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35">
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
         style={{

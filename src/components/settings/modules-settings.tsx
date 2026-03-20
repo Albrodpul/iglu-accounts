@@ -32,7 +32,7 @@ export function ModulesSettings({ hasInvestments }: Props) {
         Activa o desactiva módulos opcionales para esta cuenta
       </p>
 
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card p-5">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border/80 bg-card p-5">
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
             <TrendingUp className="h-5 w-5 text-amber-500" />

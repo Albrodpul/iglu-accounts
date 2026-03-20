@@ -125,7 +125,7 @@ export function PasskeysSettings({ passkeys }: Props) {
           {passkeys.map((passkey) => (
             <div
               key={passkey.id}
-              className="flex items-center justify-between rounded-xl border border-border/80 px-3 py-2"
+              className="flex items-center justify-between rounded-md border border-border/80 px-3 py-2"
             >
               <div>
                 <p className="text-sm font-medium">{passkey.label ?? "Dispositivo"}</p>

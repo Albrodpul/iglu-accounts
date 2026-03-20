@@ -107,7 +107,7 @@ export function InvestmentTypeManager({ types, funds }: Props) {
                   return (
                     <div
                       key={type.id}
-                      className="group flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/35"
+                      className="group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors hover:bg-muted/35"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{type.name}</span>

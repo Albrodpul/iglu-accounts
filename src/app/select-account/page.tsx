@@ -33,7 +33,7 @@ export default async function SelectAccountPage() {
       <Card className="w-full border-border/70 bg-card/90 shadow-[0_20px_45px_-24px_rgba(8,47,45,0.65)] backdrop-blur-sm">
         <CardHeader className="text-center pb-2">
           <div className="flex flex-col items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15">
               <Image src="/iglu.svg" alt="Iglú" width={32} height={32} />
             </div>
             <div>

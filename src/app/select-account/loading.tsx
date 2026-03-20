@@ -11,7 +11,7 @@ export default function SelectAccountLoading() {
             <h1 className="text-xl font-semibold tracking-tight">Cargando cuenta...</h1>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 rounded-md border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               Preparando acceso
             </div>

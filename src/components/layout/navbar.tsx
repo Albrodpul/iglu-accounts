@@ -118,10 +118,10 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="fixed inset-y-5 left-4 z-40 hidden w-64 flex-col rounded-xl border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-[0_20px_45px_-24px_rgba(10,30,55,0.9)] backdrop-blur-sm md:flex">
-        <div className="rounded-lg border border-sidebar-border/60 bg-white/8 p-4">
+      <nav className="fixed inset-y-5 left-4 z-40 hidden w-64 flex-col rounded-md border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-[0_20px_45px_-24px_rgba(10,30,55,0.9)] backdrop-blur-sm md:flex">
+        <div className="rounded-xl border border-sidebar-border/60 bg-white/8 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-10 items-center justify-center rounded-md bg-sidebar-primary/20 p-1.5">
+            <div className="flex h-9 w-10 items-center justify-center rounded-xl bg-sidebar-primary/20 p-1.5">
               <Image src="/iglu.svg" alt="Iglú" width={28} height={28} className="drop-shadow-sm" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         </div>
 
         {showAccountSwitcher && (
-          <div className="mt-3 rounded-lg border border-sidebar-border/50 bg-sidebar-accent/55 px-4 py-3">
+          <div className="mt-3 rounded-xl border border-sidebar-border/50 bg-sidebar-accent/55 px-4 py-3">
             <Link href="/select-account" className="group flex items-center justify-between">
               <span className="truncate text-xs font-semibold text-sidebar-foreground/90">{accountName || "Seleccionar cuenta"}</span>
               <ArrowLeftRight className="h-3 w-3 text-sidebar-foreground/35 transition-colors group-hover:text-sidebar-foreground/80" />
@@ -250,7 +250,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent
           showCloseButton={false}
-          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-2xl rounded-b-none border border-border bg-card p-0 md:hidden"
+          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-lg rounded-b-none border border-border bg-card p-0 md:hidden"
         >
           <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
           <DialogHeader className="px-5 pb-1 pt-4">

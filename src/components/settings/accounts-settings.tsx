@@ -129,7 +129,7 @@ export function AccountsSettings({ accounts }: Props) {
           {accounts.map((account) => (
             <div
               key={account.id}
-              className="flex items-center justify-between rounded-xl border border-border/80 px-3 py-2"
+              className="flex items-center justify-between rounded-md border border-border/80 px-3 py-2"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">

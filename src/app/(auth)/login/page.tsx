@@ -115,7 +115,7 @@ export default function LoginPage() {
       <Card className="w-full border-border/70 bg-card/90 shadow-[0_20px_45px_-24px_rgba(8,47,45,0.65)] backdrop-blur-sm">
         <CardHeader className="text-center pb-2">
           <div className="flex flex-col items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15">
               <Image src="/iglu.svg" alt="Iglú" width={32} height={32} />
             </div>
             <div>
@@ -145,7 +145,7 @@ export default function LoginPage() {
                 placeholder="tu@email.com"
                 required
                 disabled={isAnyLoading}
-                className="h-11 rounded-xl"
+                className="h-11 rounded-md"
               />
             </div>
             <div className="space-y-2">
@@ -157,11 +157,11 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
                 disabled={isAnyLoading}
-                className="h-11 rounded-xl"
+                className="h-11 rounded-md"
               />
             </div>
             {error && (
-              <p className="rounded-xl bg-rose-50 p-3 text-sm text-expense">
+              <p className="rounded-md bg-rose-50 p-3 text-sm text-expense">
                 {error}
               </p>
             )}
@@ -170,7 +170,7 @@ export default function LoginPage() {
                 Procesando acceso...
               </p>
             )}
-            <Button type="submit" size="lg" className="w-full rounded-xl font-semibold" disabled={isAnyLoading}>
+            <Button type="submit" size="lg" className="w-full rounded-md font-semibold" disabled={isAnyLoading}>
               <AuthButtonContent
                 loading={loading}
                 loadingText="Entrando..."
@@ -181,7 +181,7 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               size="lg"
-              className="w-full rounded-xl font-semibold"
+              className="w-full rounded-md font-semibold"
               disabled={isAnyLoading}
               onClick={() => handlePasskeyLogin(false)}
             >

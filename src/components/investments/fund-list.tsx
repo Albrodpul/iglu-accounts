@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   createInvestmentFund,
   updateInvestmentFund,
+  updateFundProfitability,
   deleteInvestmentFund,
   createContribution,
   updateContribution,
@@ -27,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import type { InvestmentType, InvestmentFundWithType, InvestmentContribution } from "@/types";
@@ -40,6 +41,8 @@ type Props = {
 export function FundList({ types, funds }: Props) {
   const [fundOpen, setFundOpen] = useState(false);
   const [editingFund, setEditingFund] = useState<InvestmentFundWithType | null>(null);
+  const [profitOpen, setProfitOpen] = useState(false);
+  const [profitFund, setProfitFund] = useState<InvestmentFundWithType | null>(null);
   const [contribOpen, setContribOpen] = useState(false);
   const [contribFund, setContribFund] = useState<InvestmentFundWithType | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -69,6 +72,11 @@ export function FundList({ types, funds }: Props) {
     setFundOpen(true);
   }
 
+  function openEditProfitability(fund: InvestmentFundWithType) {
+    setProfitFund(fund);
+    setProfitOpen(true);
+  }
+
   function openAddContribution(fund: InvestmentFundWithType) {
     setContribFund(fund);
     setContribOpen(true);
@@ -93,6 +101,20 @@ export function FundList({ types, funds }: Props) {
       toast.success(editingFund ? "Fondo actualizado" : "Fondo creado");
       setFundOpen(false);
       setEditingFund(null);
+    }
+    setLoading(false);
+  }
+
+  async function handleProfitSubmit(formData: FormData) {
+    if (!profitFund) return;
+    setLoading(true);
+    const result = await updateFundProfitability(profitFund.id, formData);
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Rentabilidad actualizada");
+      setProfitOpen(false);
+      setProfitFund(null);
     }
     setLoading(false);
   }
@@ -275,6 +297,9 @@ export function FundList({ types, funds }: Props) {
                               <DropdownMenuItem className="py-3" onClick={() => openEditFund(fund)}>
                                 <Pencil className="h-4 w-4" /> Editar fondo
                               </DropdownMenuItem>
+                              <DropdownMenuItem className="py-3" onClick={() => openEditProfitability(fund)}>
+                                <Percent className="h-4 w-4" /> Editar rentabilidad
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="py-3" variant="destructive" onClick={() => handleDeleteFund(fund)}>
                                 <Trash2 className="h-4 w-4" /> Eliminar
@@ -326,7 +351,7 @@ export function FundList({ types, funds }: Props) {
               </select>
             </div>
 
-            {!editingFund ? (
+            {!editingFund && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="initial_amount">Inversión inicial (EUR)</Label>
@@ -352,35 +377,46 @@ export function FundList({ types, funds }: Props) {
                   />
                 </div>
               </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label>Invertido (EUR)</Label>
-                  <p className="flex h-10 items-center text-sm font-semibold tabular-nums text-muted-foreground">
-                    {formatCurrency(editingFund.invested_amount)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Se actualiza con aportaciones</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fund_return">Rentabilidad (EUR)</Label>
-                  <Input
-                    id="fund_return"
-                    name="return_amount"
-                    type="number"
-                    step="0.01"
-                    defaultValue={editingFund.current_value - editingFund.invested_amount}
-                    placeholder="0.00"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Ganancia o pérdida del fondo. Ej: 12.50 si has ganado 12,50€
-                  </p>
-                </div>
-              </>
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Guardando..." : editingFund ? "Actualizar" : "Crear"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profitability edit dialog */}
+      <Dialog open={profitOpen} onOpenChange={(v) => { setProfitOpen(v); if (!v) setProfitFund(null); }}>
+        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-sm">
+          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+            <DialogTitle>Editar rentabilidad · {profitFund?.name}</DialogTitle>
+          </DialogHeader>
+          <form key={profitFund?.id ?? "profit"} action={handleProfitSubmit} className="space-y-4 px-5 py-4">
+            <div className="space-y-2">
+              <Label>Invertido (EUR)</Label>
+              <p className="flex h-10 items-center text-sm font-semibold tabular-nums text-muted-foreground">
+                {profitFund ? formatCurrency(profitFund.invested_amount) : "—"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profit_return">Rentabilidad (EUR)</Label>
+              <Input
+                id="profit_return"
+                name="return_amount"
+                type="number"
+                step="0.01"
+                defaultValue={profitFund ? Math.round((profitFund.current_value - profitFund.invested_amount) * 100) / 100 : 0}
+                placeholder="0.00"
+                required
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Ganancia o pérdida del fondo. Ej: 12.50 si has ganado 12,50€
+              </p>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Guardando..." : "Actualizar"}
             </Button>
           </form>
         </DialogContent>

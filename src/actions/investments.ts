@@ -184,9 +184,34 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) return { error: "El nombre es obligatorio" };
 
-  const returnAmount = parseFloat(formData.get("return_amount") as string) || 0;
+  const { error } = await supabase
+    .from("investment_funds")
+    .update({
+      name,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("account_id", accountId);
 
-  // Get current invested_amount to compute current_value
+  if (error) return { error: error.message };
+
+  revalidateAll();
+  return { success: true };
+}
+
+export async function updateFundProfitability(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const raw = formData.get("return_amount") as string;
+  const returnAmount = parseFloat(raw);
+  if (isNaN(returnAmount)) return { error: "La rentabilidad es obligatoria" };
+
+  // Max 2 decimal places
+  const decimals = raw.includes(".") ? raw.split(".")[1]?.length ?? 0 : 0;
+  if (decimals > 2) return { error: "Máximo 2 decimales" };
+
   const { data: fund } = await supabase
     .from("investment_funds")
     .select("invested_amount")
@@ -201,7 +226,6 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   const { error } = await supabase
     .from("investment_funds")
     .update({
-      name,
       current_value: currentValue,
       updated_at: new Date().toISOString(),
     })

@@ -56,6 +56,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
             categories={categories}
             initialCategoryFilter={categoryFilter}
             hasInvestments={hasInvestments}
+            debtCategoryId={debtCategoryId}
           />
         </div>
       </section>

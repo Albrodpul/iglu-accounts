@@ -243,7 +243,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
               <div className="glass-panel p-5 md:p-6">
-                <ExpenseList expenses={recentExpenses} categories={categories} sortable={false} hasInvestments={false} />
+                <ExpenseList expenses={recentExpenses} categories={categories} sortable={false} hasInvestments={false} debtCategoryId={debtCategoryId} />
               </div>
             </section>
           </div>

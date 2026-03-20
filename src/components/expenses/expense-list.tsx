@@ -20,9 +20,10 @@ type Props = {
   categories: Category[];
   sortable?: boolean;
   hasInvestments?: boolean;
+  debtCategoryId?: string | null;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false, debtCategoryId = null }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -84,7 +85,9 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
       <div className="space-y-0">
         {sortedDates.map((date, dateIndex) => {
           const dayExpenses = grouped[date];
-          const dayTotal = dayExpenses.reduce((s, e) => s + e.amount, 0);
+          const dayTotal = dayExpenses
+            .filter((e) => !debtCategoryId || e.category_id !== debtCategoryId)
+            .reduce((s, e) => s + e.amount, 0);
 
           return (
             <div key={date}>
@@ -130,7 +133,13 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
 
                     <div className="flex items-center gap-1 shrink-0">
                       <span
-                        className={`text-[15px] font-semibold tabular-nums ${expense.amount >= 0 ? "text-income" : "text-foreground"}`}
+                        className={`text-[15px] font-semibold tabular-nums ${
+                          debtCategoryId && expense.category_id === debtCategoryId
+                            ? "text-sky-400"
+                            : expense.amount >= 0
+                              ? "text-income"
+                              : "text-foreground"
+                        }`}
                       >
                         {formatCurrency(expense.amount)}
                       </span>

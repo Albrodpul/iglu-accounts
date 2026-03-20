@@ -10,9 +10,10 @@ type Props = {
   categories: Category[];
   initialCategoryFilter?: string;
   hasInvestments?: boolean;
+  debtCategoryId?: string | null;
 };
 
-export function ExpenseListFiltered({ expenses, categories, initialCategoryFilter = "", hasInvestments = false }: Props) {
+export function ExpenseListFiltered({ expenses, categories, initialCategoryFilter = "", hasInvestments = false, debtCategoryId = null }: Props) {
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
   const [conceptFilter, setConceptFilter] = useState("");
 
@@ -64,7 +65,7 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
         )}
       </div>
 
-      <ExpenseList expenses={filtered} categories={categories} hasInvestments={hasInvestments} />
+      <ExpenseList expenses={filtered} categories={categories} hasInvestments={hasInvestments} debtCategoryId={debtCategoryId} />
     </>
   );
 }

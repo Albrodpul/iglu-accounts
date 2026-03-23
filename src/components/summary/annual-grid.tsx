@@ -1,6 +1,7 @@
 "use client";
 
-import { formatCurrency, MONTHS } from "@/lib/format";
+import { MONTHS } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
@@ -58,16 +59,6 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
   // Current month for highlighting
   const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
 
-  function formatCompact(amount: number): string {
-    if (amount === 0) return "";
-    const hasDecimals = amount % 1 !== 0;
-    return new Intl.NumberFormat("es-ES", {
-      style: "decimal",
-      minimumFractionDigits: hasDecimals ? 2 : 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  }
-
   return (
     <div className="overflow-x-auto -mx-5 md:-mx-6">
       <table className="w-full min-w-[800px] text-sm tabular-nums md:min-w-0">
@@ -117,7 +108,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                         : "text-muted-foreground/30"
                   } ${i === currentMonth ? "bg-primary/5" : ""}`}
                 >
-                  {formatCompact(val)}
+                  <Amount value={val} compact />
                 </td>
               ))}
               <td
@@ -125,10 +116,10 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                   row.total > 0 ? "text-income" : row.total < 0 ? "text-expense" : ""
                 }`}
               >
-                {formatCompact(row.total)}
+                <Amount value={row.total} compact />
               </td>
               <td className="py-1.5 pl-1 pr-5 text-right text-muted-foreground md:pr-6">
-                {formatCompact(row.avg)}
+                <Amount value={row.avg} compact />
               </td>
             </tr>
           ))}
@@ -145,7 +136,7 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                   val > 0 ? "text-income" : val < 0 ? "text-expense" : ""
                 } ${i === currentMonth ? "bg-primary/5" : ""}`}
               >
-                {formatCompact(val)}
+                <Amount value={val} compact />
               </td>
             ))}
             <td
@@ -153,10 +144,10 @@ export function AnnualGrid({ expenses, categories, year }: Props) {
                 grandTotal > 0 ? "text-income" : grandTotal < 0 ? "text-expense" : ""
               }`}
             >
-              {formatCurrency(grandTotal)}
+              <Amount value={grandTotal} />
             </td>
             <td className="py-2 pl-1.5 pr-5 text-right text-muted-foreground md:pr-6">
-              {formatCompact(grandTotal / elapsedMonths)}
+              <Amount value={grandTotal / elapsedMonths} compact />
             </td>
           </tr>
         </tfoot>

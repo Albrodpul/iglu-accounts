@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import { DiscreteModeProvider } from "@/contexts/discrete-mode";
 import { getAccounts, getSelectedAccountId, setSelectedAccount } from "@/actions/accounts";
 import { getCategories } from "@/actions/categories";
 
@@ -19,18 +20,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const currentAccount = accounts.find((a) => a.id === effectiveAccountId);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar
-        accountName={currentAccount?.name}
-        showAccountSwitcher={accounts.length > 1}
-        categories={categories}
-        hasInvestments={currentAccount?.has_investments ?? false}
-      />
-      <main className="pt-14 pb-28 md:ml-[18rem] md:pt-0 md:pb-10">
-        <div className="mx-auto w-full max-w-6xl px-4 pt-4 md:px-8 md:pt-8">
-          <div className="page-enter">{children}</div>
-        </div>
-      </main>
-    </div>
+    <DiscreteModeProvider>
+      <div className="min-h-screen bg-background">
+        <Navbar
+          accountName={currentAccount?.name}
+          showAccountSwitcher={accounts.length > 1}
+          categories={categories}
+          hasInvestments={currentAccount?.has_investments ?? false}
+        />
+        <main className="pt-14 pb-28 md:ml-[18rem] md:pt-0 md:pb-10">
+          <div className="mx-auto w-full max-w-6xl px-4 pt-4 md:px-8 md:pt-8">
+            <div className="page-enter">{children}</div>
+          </div>
+        </main>
+      </div>
+    </DiscreteModeProvider>
   );
 }

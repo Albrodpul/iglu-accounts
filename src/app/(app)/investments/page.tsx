@@ -3,7 +3,7 @@ import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { getInvestmentTypes, getInvestmentFunds } from "@/actions/investments";
 import { InvestmentTypeManager } from "@/components/investments/investment-type-manager";
 import { FundList } from "@/components/investments/fund-list";
-import { formatCurrency } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 
 export default async function InvestmentsPage() {
   const enabled = await hasInvestmentsEnabled();
@@ -39,7 +39,7 @@ export default async function InvestmentsPage() {
               totalReturn >= 0 ? "text-emerald-300" : "text-rose-300"
             }`}
           >
-            {totalReturn >= 0 ? "+" : ""}{formatCurrency(totalReturn)}
+            <Amount value={totalReturn} prefix={totalReturn >= 0 ? "+" : ""} />
           </p>
           <p
             className={`text-lg font-semibold tabular-nums md:text-xl ${
@@ -56,7 +56,7 @@ export default async function InvestmentsPage() {
               Total invertido
             </p>
             <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
-              {formatCurrency(totalInvested)}
+              <Amount value={totalInvested} />
             </p>
           </div>
           <div className="kpi-chip">
@@ -64,7 +64,7 @@ export default async function InvestmentsPage() {
               Valor actual
             </p>
             <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
-              {formatCurrency(totalValue)}
+              <Amount value={totalValue} />
             </p>
           </div>
         </div>

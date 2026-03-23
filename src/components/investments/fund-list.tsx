@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { InvestmentType, InvestmentFundWithType, InvestmentContribution } from "@/types";
 
@@ -228,13 +229,13 @@ export function FundList({ types, funds }: Props) {
                     </h3>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs md:text-sm">
                       <span className="text-muted-foreground">
-                        Inv: <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalInvested)}</span>
+                        Inv: <Amount value={totalInvested} className="font-semibold text-foreground tabular-nums" />
                       </span>
                       <span className="text-muted-foreground">
-                        Val: <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalValue)}</span>
+                        Val: <Amount value={totalValue} className="font-semibold text-foreground tabular-nums" />
                       </span>
                       <span className={`font-semibold tabular-nums ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                        {totalReturnAmt >= 0 ? "+" : ""}{formatCurrency(totalReturnAmt)} ({totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%)
+                        <Amount value={totalReturnAmt} prefix={totalReturnAmt >= 0 ? "+" : ""} suffix={` (${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}%)`} />
                       </span>
                     </div>
                   </div>
@@ -268,17 +269,17 @@ export function FundList({ types, funds }: Props) {
                               {fund.name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Inv: {formatCurrency(fund.invested_amount)} · Peso: {weight}%
+                              Inv: <Amount value={fund.invested_amount} /> · Peso: {weight}%
                             </p>
                           </div>
 
                           {/* Values — aligned */}
                           <div className="text-right shrink-0">
                             <p className="text-[15px] font-semibold tabular-nums">
-                              {formatCurrency(fund.current_value)}
+                              <Amount value={fund.current_value} />
                             </p>
                             <p className={`text-xs font-medium tabular-nums ${returnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                              {returnAmt >= 0 ? "+" : ""}{formatCurrency(returnAmt)} ({returnPct >= 0 ? "+" : ""}{returnPct.toFixed(1)}%)
+                              <Amount value={returnAmt} prefix={returnAmt >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
                             </p>
                           </div>
 
@@ -396,7 +397,7 @@ export function FundList({ types, funds }: Props) {
             <div className="space-y-2">
               <Label>Invertido (EUR)</Label>
               <p className="flex h-10 items-center text-sm font-semibold tabular-nums text-muted-foreground">
-                {profitFund ? formatCurrency(profitFund.invested_amount) : "—"}
+                {profitFund ? <Amount value={profitFund.invested_amount} /> : "—"}
               </p>
             </div>
             <div className="space-y-2">
@@ -485,7 +486,7 @@ export function FundList({ types, funds }: Props) {
                 {contributions.map((c) => (
                   <div key={c.id} className="group flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/35">
                     <div>
-                      <p className="text-sm font-medium tabular-nums">{formatCurrency(c.amount)}</p>
+                      <p className="text-sm font-medium tabular-nums"><Amount value={c.amount} /></p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(c.contribution_date).toLocaleDateString("es-ES")}
                         {c.notes && ` · ${c.notes}`}

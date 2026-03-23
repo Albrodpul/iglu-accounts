@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { Category, RecurringExpenseWithCategory, ScheduleType } from "@/types";
 
@@ -340,7 +340,7 @@ function RecurringItem({
 
       <div className="flex items-center gap-1 shrink-0">
         <span className={`text-[15px] font-semibold tabular-nums ${item.amount > 0 ? "text-income" : "text-expense"}`}>
-          {formatCurrency(item.amount)}
+          <Amount value={item.amount} />
         </span>
         <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
           <button

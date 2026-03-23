@@ -16,7 +16,10 @@ import {
   TrendingUp,
   Ellipsis,
   ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { useDiscreteMode } from "@/contexts/discrete-mode";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +54,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
+  const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
@@ -164,7 +168,15 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           })}
         </div>
 
-        <div className="border-t border-sidebar-border/60 pt-2">
+        <div className="border-t border-sidebar-border/60 pt-2 space-y-1">
+          <button
+            type="button"
+            onClick={toggleDiscrete}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
+          >
+            {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {discrete ? "Mostrar importes" : "Ocultar importes"}
+          </button>
           <form action={signOut}>
             <button
               type="submit"
@@ -195,6 +207,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
             </Link>
           )}
+          <button
+            type="button"
+            onClick={toggleDiscrete}
+            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
+            aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
+          >
+            {discrete ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
           <button
             type="button"
             onClick={() => {

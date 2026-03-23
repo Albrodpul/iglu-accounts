@@ -1,4 +1,6 @@
-import { formatCurrency, MONTHS } from "@/lib/format";
+import { MONTHS } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
+import { CollapsibleSection } from "@/components/shared/collapsible-section";
 
 type KpiItem = {
   label: string;
@@ -13,9 +15,48 @@ type Props = {
   year: number;
   neto: number;
   kpis: KpiItem[];
+  /** When true, KPIs are hidden behind a collapsible toggle */
+  collapsible?: boolean;
 };
 
-export function MonthSummary({ month, year, neto, kpis }: Props) {
+export function MonthSummary({ month, year, neto, kpis, collapsible = false }: Props) {
+  const kpiGrid = (
+    <div className="grid grid-cols-2 gap-3">
+      {kpis.map((kpi) => {
+        const content = (
+          <>
+            <p
+              className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${kpi.labelColor}`}
+            >
+              {kpi.label}
+            </p>
+            <p className={`mt-1 text-xl font-semibold tabular-nums ${kpi.valueColor}`}>
+              <Amount value={kpi.value} />
+            </p>
+          </>
+        );
+
+        if (kpi.href) {
+          return (
+            <a
+              key={kpi.label}
+              href={kpi.href}
+              className="kpi-chip transition-colors hover:bg-white/25"
+            >
+              {content}
+            </a>
+          );
+        }
+
+        return (
+          <div key={kpi.label} className="kpi-chip">
+            {content}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <section className="hero-surface p-6">
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
@@ -26,42 +67,13 @@ export function MonthSummary({ month, year, neto, kpis }: Props) {
           neto >= 0 ? "text-emerald-300" : "text-rose-300"
         }`}
       >
-        {formatCurrency(neto)}
+        <Amount value={neto} />
       </p>
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        {kpis.map((kpi) => {
-          const content = (
-            <>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${kpi.labelColor}`}
-              >
-                {kpi.label}
-              </p>
-              <p className={`mt-1 text-xl font-semibold tabular-nums ${kpi.valueColor}`}>
-                {formatCurrency(kpi.value)}
-              </p>
-            </>
-          );
-
-          if (kpi.href) {
-            return (
-              <a
-                key={kpi.label}
-                href={kpi.href}
-                className="kpi-chip transition-colors hover:bg-white/25"
-              >
-                {content}
-              </a>
-            );
-          }
-
-          return (
-            <div key={kpi.label} className="kpi-chip">
-              {content}
-            </div>
-          );
-        })}
-      </div>
+      {collapsible ? (
+        <CollapsibleSection label="Desglose del mes">{kpiGrid}</CollapsibleSection>
+      ) : (
+        <div className="mt-5">{kpiGrid}</div>
+      )}
     </section>
   );
 }

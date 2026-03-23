@@ -2,6 +2,7 @@ import { getExpenses, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId } from "@/actions/categories";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
+import { CategoryManager } from "@/components/expenses/category-manager";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { MonthSummary } from "@/components/shared/month-summary";
 import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
@@ -39,12 +40,15 @@ export default async function ExpensesPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
-        <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
+        <div className="flex items-center gap-2">
+          <CategoryManager categories={categories} />
+          <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
+        </div>
       </div>
 
-      <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} />
+      <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} collapsible />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">

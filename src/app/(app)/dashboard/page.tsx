@@ -9,7 +9,8 @@ import {
   buildMonthSummaryKpis,
   calculateFinancialTotals,
 } from "@/lib/expense-metrics";
-import { formatCurrency, MONTHS } from "@/lib/format";
+import { MONTHS } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { BalanceYear } from "@/components/shared/balance-year";
@@ -113,36 +114,38 @@ export default async function DashboardPage() {
                 grandTotal >= 0 ? "text-emerald-300" : "text-rose-300"
               }`}
             >
-              {formatCurrency(grandTotal)}
+              <Amount value={grandTotal} />
             </p>
 
-            {/* Asset breakdown */}
+            {/* Asset breakdown — collapsible */}
             {assetBreakdown.length > 0 && (
-              <div className="mt-5 space-y-1.5">
-                {assetBreakdown.map((item) => (
-                  <div
-                    key={item.label}
-                    className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${
-                      item.highlight ? "bg-white/10" : ""
-                    }`}
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                      {item.label}
-                    </span>
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        item.highlight
-                          ? item.value >= 0
-                            ? "text-emerald-300"
-                            : "text-rose-300"
-                          : "text-white/90"
+              <CollapsibleSection label="Desglose de activos">
+                <div className="space-y-1.5">
+                  {assetBreakdown.map((item) => (
+                    <div
+                      key={item.label}
+                      className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${
+                        item.highlight ? "bg-white/10" : ""
                       }`}
                     >
-                      {formatCurrency(item.value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                        {item.label}
+                      </span>
+                      <span
+                        className={`text-sm font-semibold tabular-nums ${
+                          item.highlight
+                            ? item.value >= 0
+                              ? "text-emerald-300"
+                              : "text-rose-300"
+                            : "text-white/90"
+                        }`}
+                      >
+                        <Amount value={item.value} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleSection>
             )}
 
             {/* Year chips — collapsible */}
@@ -163,7 +166,7 @@ export default async function DashboardPage() {
                           y.neto >= 0 ? "text-emerald-300" : "text-rose-300"
                         }`}
                       >
-                        {formatCurrency(y.neto)}
+                        <Amount value={y.neto} />
                       </p>
                     </Link>
                   ))}
@@ -174,8 +177,8 @@ export default async function DashboardPage() {
 
           {/* Balance año + mes — second row */}
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} />
-            <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} />
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible />
+            <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
           </div>
         </>
       ) : (
@@ -191,7 +194,7 @@ export default async function DashboardPage() {
                   allTime.total >= 0 ? "text-emerald-300" : "text-rose-300"
                 }`}
               >
-                {formatCurrency(allTime.total)}
+                <Amount value={allTime.total} />
               </p>
 
               {allTime.years.length > 0 && (
@@ -211,7 +214,7 @@ export default async function DashboardPage() {
                             y.neto >= 0 ? "text-emerald-300" : "text-rose-300"
                           }`}
                         >
-                          {formatCurrency(y.neto)}
+                          <Amount value={y.neto} />
                         </p>
                       </Link>
                     ))}
@@ -220,7 +223,7 @@ export default async function DashboardPage() {
               )}
             </section>
 
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} />
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible />
           </div>
 
           <div className="grid gap-6 md:grid-cols-[1fr_1.5fr] md:gap-8">
@@ -228,7 +231,7 @@ export default async function DashboardPage() {
               <h2 className="mb-4 text-xl font-bold md:text-2xl">
                 {MONTHS[month - 1]} {year}
               </h2>
-              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} />
+              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
             </div>
 
             <section>

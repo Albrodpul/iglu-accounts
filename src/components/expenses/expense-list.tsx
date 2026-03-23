@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { deleteExpense } from "@/actions/expenses";
-import { formatCurrency, formatDateShort } from "@/lib/format";
+import { formatDateShort } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -101,7 +102,7 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
                 <span
                   className={`text-xs font-bold tabular-nums ${dayTotal >= 0 ? "text-income" : "text-expense"}`}
                 >
-                  {formatCurrency(dayTotal)}
+                  <Amount value={dayTotal} />
                 </span>
               </div>
               <div className="space-y-1">
@@ -141,7 +142,7 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
                               : "text-foreground"
                         }`}
                       >
-                        {formatCurrency(expense.amount)}
+                        <Amount value={expense.amount} />
                       </span>
                       <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                         <button

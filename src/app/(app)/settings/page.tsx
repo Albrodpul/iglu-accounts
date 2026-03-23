@@ -4,11 +4,10 @@ import { getAccounts, hasInvestmentsEnabled } from "@/actions/accounts";
 import { getUserPasskeys } from "@/actions/passkeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringList } from "@/components/settings/recurring-list";
-import { CategoryList } from "@/components/settings/category-list";
 import { ModulesSettings } from "@/components/settings/modules-settings";
 import { PasskeysSettings } from "@/components/settings/passkeys-settings";
 import { AccountsSettings } from "@/components/settings/accounts-settings";
-import { formatCurrency } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 
 export default async function SettingsPage() {
   const [categories, recurring, hasInvestments, passkeys, accounts] = await Promise.all([
@@ -31,9 +30,8 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-bold md:text-3xl">Ajustes</h1>
 
       <Tabs defaultValue="recurring">
-        <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
+        <TabsList className="grid w-full grid-cols-2 md:w-[320px]">
           <TabsTrigger value="recurring">Mov. fijos</TabsTrigger>
-          <TabsTrigger value="categories">Categorías</TabsTrigger>
           <TabsTrigger value="modules">Configuración</TabsTrigger>
         </TabsList>
 
@@ -44,7 +42,7 @@ export default async function SettingsPage() {
                 Gastos fijos/mes
               </p>
               <p className="mt-2 text-2xl font-bold text-rose-600 tabular-nums md:text-3xl">
-                {formatCurrency(totalExpenses)}
+                <Amount value={totalExpenses} />
               </p>
             </div>
             <div className="glass-panel p-5">
@@ -52,18 +50,12 @@ export default async function SettingsPage() {
                 Ingresos fijos/mes
               </p>
               <p className="mt-2 text-2xl font-bold text-emerald-600 tabular-nums md:text-3xl">
-                {formatCurrency(totalIncome)}
+                <Amount value={totalIncome} />
               </p>
             </div>
           </div>
           <div className="glass-panel p-5 md:p-6">
             <RecurringList recurring={recurring} categories={categories} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="categories" className="mt-5">
-          <div className="glass-panel p-5 md:p-6">
-            <CategoryList categories={categories} />
           </div>
         </TabsContent>
 

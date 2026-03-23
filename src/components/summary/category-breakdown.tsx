@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 
 type Props = {
   data: { name: string; color: string; icon: string; total: number }[];
@@ -25,7 +25,7 @@ export function CategoryBreakdown({ data }: Props) {
             <span className="font-medium text-foreground/90">
               {item.icon} {item.name}
             </span>
-            <span className="font-semibold tabular-nums">{formatCurrency(item.total)}</span>
+            <Amount value={item.total} className="font-semibold tabular-nums" />
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-muted/70">
             <div

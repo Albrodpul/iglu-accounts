@@ -34,9 +34,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
   const isLoginRoute = pathname.startsWith("/login");
+  const isPwaPublicRoute =
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/apple-icon") ||
+    pathname === "/favicon.ico";
 
   if (
     !user &&
+    !isPwaPublicRoute &&
     !isLoginRoute &&
     !pathname.startsWith("/auth") &&
     !pathname.startsWith("/api/auth/passkeys")

@@ -16,7 +16,6 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Iglú Management",
   description: "Gestión de gastos y finanzas personales o compartidas",
-  themeColor: "#1e5a8a",
 };
 
 export default function RootLayout({
@@ -31,11 +30,6 @@ export default function RootLayout({
       >
         {children}
         <Toaster richColors position="top-center" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js")`,
-          }}
-        />
       </body>
     </html>
   );

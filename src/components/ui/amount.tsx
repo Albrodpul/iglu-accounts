@@ -3,8 +3,6 @@
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { formatCurrency } from "@/lib/format";
 
-const MASK = "•••••";
-
 type Props = {
   value: number;
   className?: string;
@@ -29,15 +27,11 @@ function formatCompact(amount: number): string {
 export function Amount({ value, className, prefix, suffix, compact }: Props) {
   const { discrete } = useDiscreteMode();
 
-  const formatted = discrete
-    ? MASK
-    : compact
-      ? formatCompact(value)
-      : formatCurrency(value);
+  const formatted = compact ? formatCompact(value) : formatCurrency(value);
 
   return (
-    <span className={className}>
-      {!discrete && prefix}{formatted}{!discrete && suffix}
+    <span className={className} style={discrete ? { filter: "blur(8px)", userSelect: "none" } : undefined}>
+      {prefix}{formatted}{suffix}
     </span>
   );
 }

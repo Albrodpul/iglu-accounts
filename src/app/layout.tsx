@@ -84,12 +84,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                var isPWA = window.matchMedia('(display-mode: standalone)').matches
+                  || window.navigator.standalone === true;
+                var el = document.getElementById('splash');
+                if (!el) return;
+                if (isPWA) { el.remove(); return; }
                 var done = false;
                 function hide() {
                   if (done) return;
                   done = true;
-                  var el = document.getElementById('splash');
-                  if (!el) return;
                   el.style.opacity = '0';
                   el.style.pointerEvents = 'none';
                   setTimeout(function() { el.remove(); }, 420);

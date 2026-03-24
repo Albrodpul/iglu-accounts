@@ -31,6 +31,11 @@ export default function RootLayout({
       >
         {children}
         <Toaster richColors position="top-center" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js")`,
+          }}
+        />
       </body>
     </html>
   );

@@ -34,7 +34,7 @@ function AccountOptionButton({ account, selectedAccountId, optimisticPending, on
       onClick={() => onSelect(account.id)}
       aria-busy={isSubmitting && isSelected}
       disabled={isSubmitting}
-      className="w-full rounded-md border border-border/80 bg-card px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-75"
+      className="w-full rounded-lg border border-border/80 bg-card px-5 py-4 text-left text-base font-medium transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-75"
     >
       <span className="flex items-center justify-between gap-3">
         <span className="truncate">{account.name}</span>

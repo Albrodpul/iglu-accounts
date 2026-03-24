@@ -12,7 +12,6 @@ import { AuthButtonContent } from "@/components/auth/auth-button-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -109,34 +108,53 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(16,185,129,0.15),transparent_34%),radial-gradient(circle_at_82%_18%,rgba(14,165,233,0.12),transparent_36%)]" />
-      <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
-      <Card className="w-full border-border/70 bg-card/90 shadow-[0_20px_45px_-24px_rgba(8,47,45,0.65)] backdrop-blur-sm">
-        <CardHeader className="text-center pb-2">
-          <div className="flex flex-col items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15">
-              <Image src="/iglu.svg" alt="Iglú" width={32} height={32} />
+    <div className="grid min-h-svh lg:grid-cols-2">
+      {/* Panel decorativo - solo desktop */}
+      <div className="hidden lg:flex hero-surface relative items-center justify-center overflow-hidden rounded-none border-0">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(126,200,240,0.25),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
+        <div className="relative flex flex-col items-center gap-6 px-12 text-center">
+          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm shadow-lg">
+            <Image src="/iglu.svg" alt="Iglú" width={64} height={64} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Iglú Management</h1>
+            <p className="mt-2 text-base text-white/70">
+              Gestión de gastos y finanzas personales
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Panel formulario */}
+      <div className="flex flex-col items-center justify-center px-6 py-12 sm:px-12">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Header - visible en móvil, simplificado en desktop */}
+          <div className="flex flex-col items-center gap-4 text-center lg:items-start lg:text-left">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/12 lg:hidden">
+              <Image src="/iglu.svg" alt="Iglú" width={36} height={36} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">Iglú Management</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight lg:text-xl">
+                <span className="lg:hidden">Iglú Management</span>
+                <span className="hidden lg:inline">Bienvenido</span>
+              </h1>
+              <p className="mt-1.5 text-sm text-muted-foreground">
                 Inicia sesión para continuar
               </p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+
+          {/* Formulario */}
           <form
             onSubmit={(event) => {
               event.preventDefault();
               void handleSubmit(new FormData(event.currentTarget));
             }}
-            className="space-y-4"
+            className="space-y-5"
             aria-busy={isAnyLoading}
           >
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -145,11 +163,11 @@ export default function LoginPage() {
                 placeholder="tu@email.com"
                 required
                 disabled={isAnyLoading}
-                className="h-11 rounded-md"
+                className="h-12 rounded-lg text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-medium">Contraseña</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
               <Input
                 id="password"
                 name="password"
@@ -157,11 +175,12 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
                 disabled={isAnyLoading}
-                className="h-11 rounded-md"
+                className="h-12 rounded-lg text-base"
               />
             </div>
+
             {error && (
-              <p className="rounded-md bg-rose-50 p-3 text-sm text-expense">
+              <p className="rounded-lg bg-expense/10 p-3 text-sm text-expense">
                 {error}
               </p>
             )}
@@ -170,31 +189,40 @@ export default function LoginPage() {
                 Procesando acceso...
               </p>
             )}
-            <Button type="submit" size="lg" className="w-full rounded-md font-semibold" disabled={isAnyLoading}>
-              <AuthButtonContent
-                loading={loading}
-                loadingText="Entrando..."
-                idleText="Entrar"
-              />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="w-full rounded-md font-semibold"
-              disabled={isAnyLoading}
-              onClick={() => handlePasskeyLogin(false)}
-            >
-              <AuthButtonContent
-                loading={loadingPasskey}
-                loadingText="Verificando huella..."
-                idleText="Entrar con huella"
-                idleIcon={<Fingerprint className="size-4" />}
-              />
-            </Button>
+
+            <div className="space-y-3 pt-1">
+              <Button type="submit" size="lg" className="h-12 w-full rounded-lg text-base font-semibold" disabled={isAnyLoading}>
+                <AuthButtonContent
+                  loading={loading}
+                  loadingText="Entrando..."
+                  idleText="Entrar"
+                />
+              </Button>
+
+              <div className="relative flex items-center py-1">
+                <div className="grow border-t border-border" />
+                <span className="mx-3 shrink-0 text-xs text-muted-foreground">o</span>
+                <div className="grow border-t border-border" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-12 w-full rounded-lg text-base font-semibold"
+                disabled={isAnyLoading}
+                onClick={() => handlePasskeyLogin(false)}
+              >
+                <AuthButtonContent
+                  loading={loadingPasskey}
+                  loadingText="Verificando huella..."
+                  idleText="Entrar con huella"
+                  idleIcon={<Fingerprint className="size-5" />}
+                />
+              </Button>
+            </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   getAccounts: vi.fn(),
+  getSelectedAccountId: vi.fn(),
   selectAccount: vi.fn(),
   hasInvestmentsEnabled: vi.fn(),
   getCategories: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/actions/accounts", () => ({
   getAccounts: mocks.getAccounts,
+  getSelectedAccountId: mocks.getSelectedAccountId,
   selectAccount: mocks.selectAccount,
   hasInvestmentsEnabled: mocks.hasInvestmentsEnabled,
 }));
@@ -163,6 +165,7 @@ beforeEach(() => {
 
   mocks.getDebtCategoryId.mockResolvedValue("debt");
   mocks.getAccounts.mockResolvedValue([{ id: "acc-1", name: "Casa", has_investments: false }]);
+  mocks.getSelectedAccountId.mockResolvedValue(null);
   mocks.getCategories.mockResolvedValue([{ id: "food", name: "Comida", color: "#fff" }]);
   mocks.getExpenses.mockResolvedValue(sampleExpenses);
   mocks.getExpensesByYear.mockResolvedValue(sampleExpenses);

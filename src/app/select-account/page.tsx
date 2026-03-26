@@ -1,8 +1,12 @@
 import Image from "next/image";
-import { getAccounts, selectAccount } from "@/actions/accounts";
+import Link from "next/link";
+import { ArrowLeft, LogOut } from "lucide-react";
+import { getAccounts, getSelectedAccountId, selectAccount } from "@/actions/accounts";
+import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SelectAccountForm } from "@/components/select-account/select-account-form";
+import { Button } from "@/components/ui/button";
 
 export default async function SelectAccountPage() {
   const supabase = await createClient();
@@ -12,11 +16,16 @@ export default async function SelectAccountPage() {
 
   if (!user) redirect("/login");
 
-  const accounts = await getAccounts();
+  const [accounts, currentAccountId] = await Promise.all([
+    getAccounts(),
+    getSelectedAccountId(),
+  ]);
 
   if (accounts.length === 0) {
     redirect("/dashboard");
   }
+
+  const hasActiveAccount = !!currentAccountId;
 
   async function handleSelectAccount(formData: FormData) {
     "use server";
@@ -66,6 +75,21 @@ export default async function SelectAccountPage() {
             accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
             action={handleSelectAccount}
           />
+
+          <div className="flex items-center gap-2 pt-2">
+            {hasActiveAccount && (
+              <Link href="/dashboard" className="inline-flex flex-1 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <ArrowLeft className="size-4" />
+                Volver
+              </Link>
+            )}
+            <form action={signOut} className={hasActiveAccount ? "flex-1" : "w-full"}>
+              <Button type="submit" variant="ghost" size="sm" className="w-full text-muted-foreground">
+                <LogOut className="size-4" />
+                Cerrar sesión
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

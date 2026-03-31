@@ -33,11 +33,11 @@ export function ModulesSettings({ hasInvestments }: Props) {
       </p>
 
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border/80 bg-card p-5">
-        <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
-            <TrendingUp className="h-5 w-5 text-amber-500" />
+        <div className="flex min-w-0 items-center gap-3.5 md:gap-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 md:h-10 md:w-10">
+            <TrendingUp className="h-[18px] w-[18px] text-amber-500" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[15px] font-semibold">Inversiones</p>
             <p className="text-sm text-muted-foreground">
               Control de fondos, rentabilidades y desglose de activos

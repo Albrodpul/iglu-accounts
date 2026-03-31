@@ -42,18 +42,18 @@ export default async function ExpensesPage({ searchParams }: Props) {
     <div className="space-y-6 md:space-y-8">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
-        <div className="flex items-center gap-2">
-          <CategoryManager categories={categories} />
-          <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
-        </div>
+        <MonthSelector month={month} year={year} availablePeriods={availablePeriods} />
       </div>
 
       <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} collapsible />
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold md:text-xl">
-          Detalle · {MONTHS[month - 1]}
-        </h2>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold md:text-xl">
+            Detalle · {MONTHS[month - 1]}
+          </h2>
+          <CategoryManager categories={categories} />
+        </div>
         <div className="glass-panel p-5 md:p-6">
           <ExpenseListFiltered
             expenses={expenses}

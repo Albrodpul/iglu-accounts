@@ -122,7 +122,7 @@ export default async function SummaryPage({ searchParams }: Props) {
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">Vista anual por categoría</h2>
         <div className="rounded-lg border border-border/80 bg-card shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] p-5 md:p-6">
-          <AnnualGrid expenses={expenses} categories={categories} year={year} />
+          <AnnualGrid expenses={expenses} categories={categories} year={year} debtCategoryId={debtCategoryId} />
         </div>
       </section>
 

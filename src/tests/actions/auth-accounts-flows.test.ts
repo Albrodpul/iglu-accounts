@@ -51,7 +51,7 @@ describe("auth and account flows", () => {
 
     const result = await signIn(formData);
 
-    expect(result).toEqual({ error: "Invalid login credentials" });
+    expect(result).toEqual({ error: "Email o contraseña incorrectos." });
   });
 
   it("redirects on successful email login", async () => {

@@ -1,19 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-
-function getLastWeekdayOfMonth(year: number, month: number, weekday: number): number {
-  // weekday: 0=Monday ... 6=Sunday (our convention)
-  // JS Date: 0=Sunday, 1=Monday ... 6=Saturday
-  const jsWeekday = weekday === 6 ? 0 : weekday + 1;
-  const lastDay = new Date(year, month, 0).getDate();
-
-  for (let d = lastDay; d >= 1; d--) {
-    if (new Date(year, month - 1, d).getDay() === jsWeekday) {
-      return d;
-    }
-  }
-  return lastDay;
-}
+import { getScheduledDay } from "@/lib/recurring";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -33,8 +20,8 @@ export async function GET(request: Request) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
+    const today = now.getDate();
     const monthStr = `${year}-${String(month).padStart(2, "0")}`;
-    const lastDayOfMonth = new Date(year, month, 0).getDate();
 
     // Get all active recurring items
     const { data: recurring, error: fetchError } = await supabase
@@ -68,56 +55,28 @@ export async function GET(request: Request) {
         .filter(Boolean)
     );
 
-    // Filter and compute dates
+    // Only insert items scheduled for today
     const toInsert = recurring
       .filter((r) => {
         if (alreadyInserted.has(r.id)) return false;
-
-        // Bimonthly: only insert on odd or even months (based on creation month)
-        if (r.schedule_type === "bimonthly") {
-          const createdMonth = new Date(r.created_at).getMonth() + 1;
-          // Insert if same parity as creation month
-          return (month % 2) === (createdMonth % 2);
-        }
-
-        return true;
+        const day = getScheduledDay(r, year, month);
+        return day === today;
       })
-      .map((r) => {
-        let day: number;
-        const scheduleType = r.schedule_type || "monthly";
-
-        switch (scheduleType) {
-          case "last_day":
-            day = lastDayOfMonth;
-            break;
-          case "last_weekday":
-            day = getLastWeekdayOfMonth(year, month, r.day_of_month ?? 4); // default Friday
-            break;
-          case "bimonthly":
-          case "monthly":
-          default:
-            day = r.day_of_month || 1;
-            day = Math.min(day, lastDayOfMonth);
-            break;
-        }
-
-        return {
-          user_id: r.user_id,
-          account_id: r.account_id,
-          category_id: r.category_id,
-          amount: r.amount,
-          concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
-          expense_date: `${monthStr}-${String(day).padStart(2, "0")}`,
-          notes: `auto:recurring:${r.id}`,
-        };
-      });
+      .map((r) => ({
+        user_id: r.user_id,
+        account_id: r.account_id,
+        category_id: r.category_id,
+        amount: r.amount,
+        concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
+        expense_date: `${monthStr}-${String(today).padStart(2, "0")}`,
+        notes: `auto:recurring:${r.id}`,
+      }));
 
     if (toInsert.length === 0) {
       return NextResponse.json({
-        message: "All recurring items already inserted",
+        message: "No recurring items scheduled for today",
         inserted: 0,
-        total_recurring: recurring.length,
-        already_inserted: alreadyInserted.size,
+        today: `${monthStr}-${String(today).padStart(2, "0")}`,
       });
     }
 
@@ -128,7 +87,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Inserted ${toInsert.length} recurring items for ${monthStr}`,
+      message: `Inserted ${toInsert.length} recurring items for ${monthStr}-${String(today).padStart(2, "0")}`,
       inserted: toInsert.length,
     });
   } catch (err) {

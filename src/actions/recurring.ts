@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 import { getOrCreateIncomeCategory } from "./categories";
+import { getScheduledDay } from "@/lib/recurring";
 
 export async function getRecurringExpenses() {
   const supabase = await createClient();
@@ -139,8 +140,8 @@ export async function triggerRecurringExpenses() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const today = now.getDate();
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
-  const lastDayOfMonth = new Date(year, month, 0).getDate();
 
   // Get active recurring items for this account
   let query = supabase
@@ -186,43 +187,15 @@ export async function triggerRecurringExpenses() {
       .filter(Boolean)
   );
 
-  const getLastWeekdayOfMonth = (y: number, m: number, weekday: number) => {
-    const jsWeekday = weekday === 6 ? 0 : weekday + 1;
-    const lastDay = new Date(y, m, 0).getDate();
-    for (let d = lastDay; d >= 1; d--) {
-      if (new Date(y, m - 1, d).getDay() === jsWeekday) return d;
-    }
-    return lastDay;
-  };
-
+  // Catch-up: insert all pending items with scheduled day <= today
   const toInsert = recurring
     .filter((r) => {
       if (alreadyInserted.has(r.id)) return false;
-      if (r.schedule_type === "bimonthly") {
-        const createdMonth = new Date(r.created_at).getMonth() + 1;
-        return month % 2 === createdMonth % 2;
-      }
-      return true;
+      const day = getScheduledDay(r, year, month);
+      return day !== null && day <= today;
     })
     .map((r) => {
-      let day: number;
-      const scheduleType = r.schedule_type || "monthly";
-
-      switch (scheduleType) {
-        case "last_day":
-          day = lastDayOfMonth;
-          break;
-        case "last_weekday":
-          day = getLastWeekdayOfMonth(year, month, r.day_of_month ?? 4);
-          break;
-        case "bimonthly":
-        case "monthly":
-        default:
-          day = r.day_of_month || 1;
-          day = Math.min(day, lastDayOfMonth);
-          break;
-      }
-
+      const day = getScheduledDay(r, year, month)!;
       return {
         user_id: user.id,
         account_id: r.account_id,
@@ -235,7 +208,7 @@ export async function triggerRecurringExpenses() {
     });
 
   if (toInsert.length === 0) {
-    return { inserted: 0, message: "Todos los movimientos fijos ya están insertados este mes" };
+    return { inserted: 0, message: "No hay movimientos fijos pendientes hasta hoy" };
   }
 
   const { error: insertError } = await supabase.from("expenses").insert(toInsert);

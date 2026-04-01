@@ -5,6 +5,7 @@ import {
   createRecurringExpense,
   updateRecurringExpense,
   deleteRecurringExpense,
+  triggerRecurringExpenses,
 } from "@/actions/recurring";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Play } from "lucide-react";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { Category, RecurringExpenseWithCategory, ScheduleType } from "@/types";
@@ -49,6 +50,7 @@ export function RecurringList({ recurring, categories }: Props) {
   const [scheduleType, setScheduleType] = useState<ScheduleType>("monthly");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [triggering, setTriggering] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   function openCreate() {
@@ -93,6 +95,24 @@ export function RecurringList({ recurring, categories }: Props) {
     setLoading(false);
   }
 
+  async function handleTrigger() {
+    const ok = await confirm({
+      title: "Generar movimientos fijos",
+      description: "Se insertarán los movimientos fijos del mes actual que aún no se hayan generado. ¿Continuar?",
+      confirmLabel: "Generar",
+    });
+    if (!ok) return;
+
+    setTriggering(true);
+    const result = await triggerRecurringExpenses();
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(result.message);
+    }
+    setTriggering(false);
+  }
+
   async function handleDelete(id: string) {
     const ok = await confirm({
       title: "Eliminar movimiento fijo",
@@ -124,9 +144,14 @@ export function RecurringList({ recurring, categories }: Props) {
         <p className="text-sm text-muted-foreground">
           Gastos e ingresos que se repiten cada mes
         </p>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-1" /> Añadir
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleTrigger} disabled={triggering || recurring.length === 0}>
+            <Play className="h-4 w-4 mr-1" /> {triggering ? "Generando..." : "Generar mes"}
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" /> Añadir
+          </Button>
+        </div>
       </div>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditingItem(null); }}>

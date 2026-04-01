@@ -45,7 +45,8 @@ export async function updateSession(request: NextRequest) {
     !isPwaPublicRoute &&
     !isLoginRoute &&
     !pathname.startsWith("/auth") &&
-    !pathname.startsWith("/api/auth/passkeys")
+    !pathname.startsWith("/api/auth/passkeys") &&
+    !pathname.startsWith("/api/cron")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

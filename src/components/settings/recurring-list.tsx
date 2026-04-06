@@ -97,8 +97,8 @@ export function RecurringList({ recurring, categories }: Props) {
 
   async function handleTrigger() {
     const ok = await confirm({
-      title: "Generar movimientos fijos",
-      description: "Se insertarán los movimientos fijos del mes actual que aún no se hayan generado. ¿Continuar?",
+      title: "Generar pendientes",
+      description: "Se insertarán los movimientos fijos pendientes hasta hoy que aún no se hayan generado este mes. ¿Continuar?",
       confirmLabel: "Generar",
     });
     if (!ok) return;
@@ -140,13 +140,13 @@ export function RecurringList({ recurring, categories }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Gastos e ingresos que se repiten cada mes
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button size="sm" variant="outline" onClick={handleTrigger} disabled={triggering || recurring.length === 0}>
-            <Play className="h-4 w-4 mr-1" /> {triggering ? "Generando..." : "Generar mes"}
+            <Play className="h-4 w-4 mr-1" /> {triggering ? "Generando..." : "Generar pendientes"}
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" /> Añadir

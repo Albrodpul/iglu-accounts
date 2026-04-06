@@ -1,6 +1,6 @@
 import { getCategories } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
-import { getAccounts, hasInvestmentsEnabled } from "@/actions/accounts";
+import { getAccounts, hasInvestmentsEnabled, notificationsEnabled } from "@/actions/accounts";
 import { getUserPasskeys } from "@/actions/passkeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringList } from "@/components/settings/recurring-list";
@@ -10,10 +10,11 @@ import { AccountsSettings } from "@/components/settings/accounts-settings";
 import { Amount } from "@/components/ui/amount";
 
 export default async function SettingsPage() {
-  const [categories, recurring, hasInvestments, passkeys, accounts] = await Promise.all([
+  const [categories, recurring, hasInvestments, hasNotifications, passkeys, accounts] = await Promise.all([
     getCategories(),
     getRecurringExpenses(),
     hasInvestmentsEnabled(),
+    notificationsEnabled(),
     getUserPasskeys(),
     getAccounts(),
   ]);
@@ -65,7 +66,7 @@ export default async function SettingsPage() {
               <AccountsSettings accounts={accounts} />
             </div>
             <div className="glass-panel p-5 md:p-6">
-              <ModulesSettings hasInvestments={hasInvestments} />
+              <ModulesSettings hasInvestments={hasInvestments} hasNotifications={hasNotifications} />
             </div>
             <PasskeysSettings passkeys={passkeys} />
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getScheduledDay } from "@/lib/recurring";
+import { sendPushToMany, formatRecurringPushBody } from "@/lib/web-push";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -86,9 +87,78 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: `Insert: ${insertError.message}` }, { status: 500 });
     }
 
+    // Send push notifications to affected accounts
+    let notified = 0;
+    try {
+      // Group inserted items by account
+      const byAccount = new Map<string, typeof toInsert>();
+      for (const item of toInsert) {
+        if (item.account_id) {
+          const list = byAccount.get(item.account_id) || [];
+          list.push(item);
+          byAccount.set(item.account_id, list);
+        }
+      }
+
+      for (const [accountId, items] of byAccount) {
+        // Check if notifications enabled for this account
+        const { data: account } = await supabase
+          .from("accounts")
+          .select("notifications_enabled, name")
+          .eq("id", accountId)
+          .single();
+
+        if (!account?.notifications_enabled) continue;
+
+        // Get members of this account
+        const { data: members } = await supabase
+          .from("account_members")
+          .select("user_id")
+          .eq("account_id", accountId);
+
+        if (!members || members.length === 0) continue;
+
+        const userIds = members.map((m) => m.user_id);
+
+        // Get push subscriptions for these users
+        const { data: subscriptions } = await supabase
+          .from("push_subscriptions")
+          .select("endpoint, p256dh, auth")
+          .in("user_id", userIds);
+
+        if (!subscriptions || subscriptions.length === 0) continue;
+
+        const body = formatRecurringPushBody(items);
+        const result = await sendPushToMany(subscriptions, {
+          title: account.name || "Iglu",
+          body,
+          url: "/expenses",
+        });
+
+        notified += result.sent;
+
+        // Clean up expired subscriptions
+        if (result.expired.length > 0) {
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .in("endpoint", result.expired);
+        }
+      }
+    } catch (pushErr) {
+      // Push errors should not fail the cron — but surface them for debugging
+      return NextResponse.json({
+        message: `Inserted ${toInsert.length} recurring items for ${monthStr}-${String(today).padStart(2, "0")}`,
+        inserted: toInsert.length,
+        notified,
+        pushError: pushErr instanceof Error ? pushErr.message : String(pushErr),
+      });
+    }
+
     return NextResponse.json({
       message: `Inserted ${toInsert.length} recurring items for ${monthStr}-${String(today).padStart(2, "0")}`,
       inserted: toInsert.length,
+      notified,
     });
   } catch (err) {
     return NextResponse.json(

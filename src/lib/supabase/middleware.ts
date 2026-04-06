@@ -36,6 +36,7 @@ export async function updateSession(request: NextRequest) {
   const isLoginRoute = pathname.startsWith("/login");
   const isPwaPublicRoute =
     pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
     pathname.startsWith("/icon") ||
     pathname.startsWith("/apple-icon") ||
     pathname === "/favicon.ico";

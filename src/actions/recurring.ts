@@ -215,6 +215,43 @@ export async function triggerRecurringExpenses() {
 
   if (insertError) return { error: insertError.message };
 
+  // Send push notifications
+  try {
+    if (accountId) {
+      const { data: account } = await supabase
+        .from("accounts")
+        .select("notifications_enabled, name")
+        .eq("id", accountId)
+        .single();
+
+      if (account?.notifications_enabled) {
+        const { data: subscriptions } = await supabase
+          .from("push_subscriptions")
+          .select("endpoint, p256dh, auth")
+          .eq("user_id", user.id);
+
+        if (subscriptions && subscriptions.length > 0) {
+          const { sendPushToMany, formatRecurringPushBody } = await import("@/lib/web-push");
+          const body = formatRecurringPushBody(toInsert);
+          const result = await sendPushToMany(subscriptions, {
+            title: account.name || "Iglu",
+            body,
+            url: "/expenses",
+          });
+
+          if (result.expired.length > 0) {
+            await supabase
+              .from("push_subscriptions")
+              .delete()
+              .in("endpoint", result.expired);
+          }
+        }
+      }
+    }
+  } catch {
+    // Push errors should not block the action
+  }
+
   revalidatePath("/settings");
   revalidatePath("/summary");
   revalidatePath("/dashboard");

@@ -78,6 +78,36 @@ export async function toggleInvestments(enabled: boolean) {
   return { success: true };
 }
 
+export async function notificationsEnabled(): Promise<boolean> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return false;
+
+  const { data } = await supabase
+    .from("accounts")
+    .select("notifications_enabled")
+    .eq("id", accountId)
+    .single();
+
+  return data?.notifications_enabled ?? true;
+}
+
+export async function toggleNotifications(enabled: boolean) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ notifications_enabled: enabled })
+    .eq("id", accountId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
 export async function createAccount(name: string) {
   const supabase = await createClient();
   const {

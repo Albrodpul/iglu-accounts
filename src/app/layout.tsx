@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { PwaSplash } from "@/components/layout/pwa-splash";
+import { ServiceWorkerRegister } from "@/components/layout/service-worker-register";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -44,6 +45,7 @@ export default function RootLayout({
         className={`${nunito.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <PwaSplash />
+        <ServiceWorkerRegister />
         {children}
         <Toaster richColors position="top-center" />
       </body>

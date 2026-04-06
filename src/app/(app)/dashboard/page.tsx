@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getExpenses, getExpensesByYear, getAllTimeBalance } from "@/actions/expenses";
-import { getCategories, getDebtCategoryId } from "@/actions/categories";
+import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { getInvestmentSummary } from "@/actions/investments";
@@ -23,7 +23,10 @@ export default async function DashboardPage() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const debtCategoryId = await getDebtCategoryId();
+  const [debtCategoryId, transferCategoryId] = await Promise.all([
+    getDebtCategoryId(),
+    getTransferCategoryId(),
+  ]);
 
   const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary] =
     await Promise.all([
@@ -36,9 +39,9 @@ export default async function DashboardPage() {
       getInvestmentSummary(),
     ]);
 
-  const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId);
+  const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId, transferCategoryId);
 
-  const yearTotals = calculateFinancialTotals(yearExpenses, debtCategoryId);
+  const yearTotals = calculateFinancialTotals(yearExpenses, debtCategoryId, transferCategoryId);
 
   // Monthly average spending
   const avgMonthlySpend = yearTotals.totalExpenses / month;
@@ -246,7 +249,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
               <div className="glass-panel p-5 md:p-6">
-                <ExpenseList expenses={recentExpenses} categories={categories} sortable={false} hasInvestments={false} debtCategoryId={debtCategoryId} />
+                <ExpenseList expenses={recentExpenses} categories={categories} sortable={false} hasInvestments={false} debtCategoryId={debtCategoryId} transferCategoryId={transferCategoryId} />
               </div>
             </section>
           </div>

@@ -22,9 +22,10 @@ type Props = {
   sortable?: boolean;
   hasInvestments?: boolean;
   debtCategoryId?: string | null;
+  transferCategoryId?: string | null;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false, debtCategoryId = null }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -88,6 +89,7 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
           const dayExpenses = grouped[date];
           const dayTotal = dayExpenses
             .filter((e) => !debtCategoryId || e.category_id !== debtCategoryId)
+            .filter((e) => !transferCategoryId || e.category_id !== transferCategoryId)
             .reduce((s, e) => s + e.amount, 0);
 
           return (
@@ -135,22 +137,26 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
                     <div className="flex items-center gap-1 shrink-0">
                       <span
                         className={`text-[15px] font-semibold tabular-nums ${
-                          debtCategoryId && expense.category_id === debtCategoryId
-                            ? "text-sky-400"
-                            : expense.amount >= 0
-                              ? "text-income"
-                              : "text-foreground"
+                          transferCategoryId && expense.category_id === transferCategoryId
+                            ? "text-violet-400"
+                            : debtCategoryId && expense.category_id === debtCategoryId
+                              ? "text-sky-400"
+                              : expense.amount >= 0
+                                ? "text-income"
+                                : "text-foreground"
                         }`}
                       >
                         <Amount value={expense.amount} />
                       </span>
                       <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                        <button
-                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={() => setEditingExpense(expense)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        {!(transferCategoryId && expense.category_id === transferCategoryId) && (
+                          <button
+                            className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => setEditingExpense(expense)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors"
                           onClick={() => handleDelete(expense.id)}

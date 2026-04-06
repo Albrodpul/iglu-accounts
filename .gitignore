@@ -51,3 +51,6 @@ next-env.d.ts
 .claude/
 
 .mcp.json
+
+# context (instrucciones locales para Claude)
+/context/

@@ -64,10 +64,7 @@ export function CategoryManager({ categories }: Props) {
 
   return (
     <>
-      <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={() => setListOpen(true)} aria-label="Categorías">
-        <Settings2 className="h-4 w-4" />
-      </Button>
-      <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => setListOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => setListOpen(true)}>
         <Settings2 className="h-4 w-4 mr-1" /> Categorías
       </Button>
 

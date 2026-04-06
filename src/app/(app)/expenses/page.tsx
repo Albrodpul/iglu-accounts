@@ -1,5 +1,5 @@
 import { getExpenses, getAvailablePeriods } from "@/actions/expenses";
-import { getCategories, getDebtCategoryId } from "@/actions/categories";
+import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { CategoryManager } from "@/components/expenses/category-manager";
@@ -20,15 +20,16 @@ export default async function ExpensesPage({ searchParams }: Props) {
   const year = params.year ? parseInt(params.year) : now.getFullYear();
   const categoryFilter = params.category || "";
 
-  const [expenses, categories, availablePeriods, debtCategoryId, hasInvestments] = await Promise.all([
+  const [expenses, categories, availablePeriods, debtCategoryId, hasInvestments, transferCategoryId] = await Promise.all([
     getExpenses({ month, year }),
     getCategories(),
     getAvailablePeriods(),
     getDebtCategoryId(),
     hasInvestmentsEnabled(),
+    getTransferCategoryId(),
   ]);
 
-  const totals = calculateFinancialTotals(expenses, debtCategoryId);
+  const totals = calculateFinancialTotals(expenses, debtCategoryId, transferCategoryId);
   const kpis = buildMonthSummaryKpis({
     totalIncome: totals.totalIncome,
     totalExpenses: totals.totalExpenses,
@@ -61,6 +62,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
             initialCategoryFilter={categoryFilter}
             hasInvestments={hasInvestments}
             debtCategoryId={debtCategoryId}
+            transferCategoryId={transferCategoryId}
           />
         </div>
       </section>

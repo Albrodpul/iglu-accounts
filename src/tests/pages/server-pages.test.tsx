@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   hasInvestmentsEnabled: vi.fn(),
   getCategories: vi.fn(),
   getDebtCategoryId: vi.fn(),
+  getTransferCategoryId: vi.fn(),
   getExpenses: vi.fn(),
   getExpensesByYear: vi.fn(),
   getAllTimeBalance: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("@/actions/accounts", () => ({
 vi.mock("@/actions/categories", () => ({
   getCategories: mocks.getCategories,
   getDebtCategoryId: mocks.getDebtCategoryId,
+  getTransferCategoryId: mocks.getTransferCategoryId,
 }));
 
 vi.mock("@/actions/expenses", () => ({
@@ -164,6 +166,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mocks.getDebtCategoryId.mockResolvedValue("debt");
+  mocks.getTransferCategoryId.mockResolvedValue(null);
   mocks.getAccounts.mockResolvedValue([{ id: "acc-1", name: "Casa", has_investments: false }]);
   mocks.getSelectedAccountId.mockResolvedValue(null);
   mocks.getCategories.mockResolvedValue([{ id: "food", name: "Comida", color: "#fff" }]);

@@ -1,5 +1,5 @@
 import { getExpensesByYear, getAvailablePeriods } from "@/actions/expenses";
-import { getCategories, getDebtCategoryId } from "@/actions/categories";
+import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { MONTHS } from "@/lib/format";
 import { YearSelector } from "@/components/summary/year-selector";
@@ -17,12 +17,13 @@ export default async function SummaryPage({ searchParams }: Props) {
   const params = await searchParams;
   const year = params.year ? parseInt(params.year) : new Date().getFullYear();
 
-  const [expenses, categories, availablePeriods, debtCategoryId, recurring] = await Promise.all([
+  const [expenses, categories, availablePeriods, debtCategoryId, recurring, transferCategoryId] = await Promise.all([
     getExpensesByYear(year),
     getCategories(),
     getAvailablePeriods(),
     getDebtCategoryId(),
     getRecurringExpenses(),
+    getTransferCategoryId(),
   ]);
 
   // Monthly totals (including debts as separate bar)
@@ -32,11 +33,12 @@ export default async function SummaryPage({ searchParams }: Props) {
       return d.getMonth() === i;
     });
 
+    const isTransfer = (e: { category_id: string }) => transferCategoryId && e.category_id === transferCategoryId;
     const gastos = monthExpenses
-      .filter((e) => e.amount < 0)
+      .filter((e) => e.amount < 0 && !isTransfer(e))
       .reduce((s, e) => s + e.amount, 0);
     const ingresos = monthExpenses
-      .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
+      .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId && !isTransfer(e))
       .reduce((s, e) => s + e.amount, 0);
     const deudas = debtCategoryId
       ? monthExpenses
@@ -84,7 +86,7 @@ export default async function SummaryPage({ searchParams }: Props) {
     }
   }
 
-  const totals = calculateFinancialTotals(expenses, debtCategoryId);
+  const totals = calculateFinancialTotals(expenses, debtCategoryId, transferCategoryId);
 
   // Average monthly expenses
   const now = new Date();
@@ -122,7 +124,7 @@ export default async function SummaryPage({ searchParams }: Props) {
       <section>
         <h2 className="mb-4 text-lg font-semibold md:text-xl">Vista anual por categoría</h2>
         <div className="rounded-lg border border-border/80 bg-card shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] p-5 md:p-6">
-          <AnnualGrid expenses={expenses} categories={categories} year={year} debtCategoryId={debtCategoryId} />
+          <AnnualGrid expenses={expenses} categories={categories} year={year} debtCategoryId={debtCategoryId} transferCategoryId={transferCategoryId} />
         </div>
       </section>
 

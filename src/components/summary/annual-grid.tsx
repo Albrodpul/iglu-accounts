@@ -9,9 +9,10 @@ type Props = {
   categories: Category[];
   year: number;
   debtCategoryId?: string | null;
+  transferCategoryId?: string | null;
 };
 
-export function AnnualGrid({ expenses, categories, year, debtCategoryId = null }: Props) {
+export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, transferCategoryId = null }: Props) {
   const monthAbbr = MONTHS.map((m) => m.substring(0, 3));
 
   // Build matrix: category × month
@@ -39,10 +40,11 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null }
     };
   });
 
-  // Monthly totals row (debts are informational and excluded from totals)
+  // Monthly totals row (debts and transfers are informational and excluded from totals)
   const monthTotals = Array.from({ length: 12 }, (_, i) =>
     grid.reduce((s, row) => {
       if (debtCategoryId && row.category.id === debtCategoryId) return s;
+      if (transferCategoryId && row.category.id === transferCategoryId) return s;
       return s + row.months[i];
     }, 0)
   );

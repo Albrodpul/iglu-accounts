@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createExpense, updateExpense } from "@/actions/expenses";
+import { createExpense, updateExpense, createTransfer } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import type { Category, Expense } from "@/types";
 
-type ExpenseType = "expense" | "income" | "debt";
+type ExpenseType = "expense" | "income" | "debt" | "transfer";
 
 type Props = {
   categories: Category[];
@@ -32,24 +32,33 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<ExpenseType>(() => detectExpenseType(expense, categories));
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(expense?.payment_method || "bank");
+  const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">("bank_to_cash");
   const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
 
   const today = new Date().toISOString().split("T")[0];
+  const isTransfer = type === "transfer";
   const showCategory = type === "expense";
   const showPaymentMethod = hasInvestments && (type === "income" || type === "expense");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
-    formData.set("is_income", String(type === "income"));
-    formData.set("is_debt", String(type === "debt"));
-    formData.set("payment_method", type === "debt" ? "bank" : paymentMethod);
 
-    const result = expense
-      ? await updateExpense(expense.id, formData)
-      : await createExpense(formData);
+    let result;
+
+    if (isTransfer) {
+      formData.set("transfer_direction", transferDirection);
+      result = await createTransfer(formData);
+    } else {
+      formData.set("is_income", String(type === "income"));
+      formData.set("is_debt", String(type === "debt"));
+      formData.set("payment_method", type === "debt" ? "bank" : paymentMethod);
+      result = expense
+        ? await updateExpense(expense.id, formData)
+        : await createExpense(formData);
+    }
 
     if (result?.error) {
       if (result.error === "No autenticado") {
@@ -65,6 +74,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
         expense: "Gasto",
         income: "Ingreso",
         debt: "Deuda",
+        transfer: "Traspaso",
       };
       toast.success(expense ? "Movimiento actualizado" : `${labels[type]} añadido`);
       setLoading(false);
@@ -82,9 +92,10 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
     { value: "expense", label: "Gasto", activeClass: "bg-red-500 hover:bg-red-600 text-white" },
     { value: "income", label: "Ingreso", activeClass: "bg-emerald-500 hover:bg-emerald-600 text-white" },
     { value: "debt", label: "Deuda", activeClass: "bg-amber-500 hover:bg-amber-600 text-white" },
+    ...(hasInvestments && !expense ? [{ value: "transfer" as ExpenseType, label: "Traspaso", activeClass: "bg-violet-500 hover:bg-violet-600 text-white" }] : []),
   ];
 
-  const submitLabel = type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
+  const submitLabel = isTransfer ? "Añadir traspaso" : type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
 
   return (
     <form key={formKey} ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
@@ -122,6 +133,29 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             className={paymentMethod === "cash" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
           >
             💵 Efectivo
+          </Button>
+        </div>
+      )}
+
+      {isTransfer && (
+        <div className="flex gap-2 md:col-span-2">
+          <Button
+            type="button"
+            variant={transferDirection === "bank_to_cash" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTransferDirection("bank_to_cash")}
+            className={transferDirection === "bank_to_cash" ? "bg-violet-500 hover:bg-violet-600 text-white" : ""}
+          >
+            🏦 → 💵 Banco a Efectivo
+          </Button>
+          <Button
+            type="button"
+            variant={transferDirection === "cash_to_bank" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTransferDirection("cash_to_bank")}
+            className={transferDirection === "cash_to_bank" ? "bg-violet-500 hover:bg-violet-600 text-white" : ""}
+          >
+            💵 → 🏦 Efectivo a Banco
           </Button>
         </div>
       )}

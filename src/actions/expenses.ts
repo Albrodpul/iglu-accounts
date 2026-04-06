@@ -6,7 +6,7 @@ import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
-import { getOrCreateIncomeCategory, getOrCreateDebtCategory } from "./categories";
+import { getOrCreateIncomeCategory, getOrCreateDebtCategory, getOrCreateTransferCategory } from "./categories";
 
 export async function getExpenses(params: {
   month: number;
@@ -102,6 +102,66 @@ export async function createExpense(formData: FormData) {
     user_id: user.id,
     ...(accountId ? { account_id: accountId } : {}),
   });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/expenses");
+  revalidatePath("/summary");
+  return { success: true };
+}
+
+export async function createTransfer(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const rawAmount = Math.abs(parseFloat(formData.get("amount") as string));
+  if (!rawAmount || rawAmount <= 0) return { error: "Importe inválido" };
+
+  const direction = formData.get("transfer_direction") as string; // "bank_to_cash" | "cash_to_bank"
+  const expenseDate = formData.get("expense_date") as string;
+  const concept = (formData.get("concept") as string) || "";
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!expenseDate) return { error: "Fecha requerida" };
+
+  const categoryId = await getOrCreateTransferCategory();
+  if (!categoryId) return { error: "No se pudo asignar categoría de traspaso" };
+
+  const accountId = await getSelectedAccountId();
+  const pairId = crypto.randomUUID();
+
+  const sourceMethod = direction === "bank_to_cash" ? "bank" : "cash";
+  const destMethod = direction === "bank_to_cash" ? "cash" : "bank";
+
+  const { error } = await supabase.from("expenses").insert([
+    {
+      amount: -rawAmount,
+      concept,
+      category_id: categoryId,
+      expense_date: expenseDate,
+      payment_method: sourceMethod,
+      transfer_pair_id: pairId,
+      notes,
+      user_id: user.id,
+      ...(accountId ? { account_id: accountId } : {}),
+    },
+    {
+      amount: rawAmount,
+      concept,
+      category_id: categoryId,
+      expense_date: expenseDate,
+      payment_method: destMethod,
+      transfer_pair_id: pairId,
+      notes,
+      user_id: user.id,
+      ...(accountId ? { account_id: accountId } : {}),
+    },
+  ]);
 
   if (error) return { error: error.message };
 
@@ -244,13 +304,32 @@ export async function deleteExpense(id: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase
+  // Check if this expense is part of a transfer pair
+  const { data: expense } = await supabase
     .from("expenses")
-    .delete()
+    .select("transfer_pair_id")
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .single();
 
-  if (error) return { error: error.message };
+  if (expense?.transfer_pair_id) {
+    // Delete both legs of the transfer
+    const { error } = await supabase
+      .from("expenses")
+      .delete()
+      .eq("transfer_pair_id", expense.transfer_pair_id)
+      .eq("user_id", user.id);
+
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("expenses")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) return { error: error.message };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/expenses");

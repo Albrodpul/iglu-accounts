@@ -34,6 +34,7 @@ export type Expense = {
   concept: string;
   expense_date: string;
   payment_method: PaymentMethod;
+  transfer_pair_id: string | null;
   is_recurring: boolean;
   notes: string | null;
   created_at: string;

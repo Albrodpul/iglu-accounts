@@ -174,6 +174,53 @@ export async function getDebtCategoryId(): Promise<string | null> {
   return data && data.length > 0 ? data[0].id : null;
 }
 
+/** Returns the "Traspaso" category for the current account, creating it if needed. */
+export async function getOrCreateTransferCategory(): Promise<string | null> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data: existing } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("account_id", accountId)
+    .ilike("name", "traspaso")
+    .limit(1);
+
+  if (existing && existing.length > 0) return existing[0].id;
+
+  const { data: created, error } = await supabase
+    .from("categories")
+    .insert({
+      name: "Traspaso",
+      icon: "🔄",
+      color: "#8b5cf6",
+      sort_order: 0,
+      account_id: accountId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) return null;
+  return created.id;
+}
+
+/** Returns the transfer category ID for the current account, if it exists. */
+export async function getTransferCategoryId(): Promise<string | null> {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return null;
+
+  const { data } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("account_id", accountId)
+    .ilike("name", "traspaso")
+    .limit(1);
+
+  return data && data.length > 0 ? data[0].id : null;
+}
+
 export async function deleteCategory(id: string) {
   const supabase = await createClient();
 

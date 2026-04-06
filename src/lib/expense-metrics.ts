@@ -27,13 +27,16 @@ export type BalanceYearKpi = {
 export function calculateFinancialTotals(
   expenses: ExpenseLike[],
   debtCategoryId: string | null,
+  transferCategoryId?: string | null,
 ): FinancialTotals {
+  const isTransfer = (e: ExpenseLike) => transferCategoryId && e.category_id === transferCategoryId;
+
   const totalExpenses = expenses
-    .filter((e) => e.amount < 0)
+    .filter((e) => e.amount < 0 && !isTransfer(e))
     .reduce((sum, e) => sum + e.amount, 0);
 
   const totalIncome = expenses
-    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId)
+    .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId && !isTransfer(e))
     .reduce((sum, e) => sum + e.amount, 0);
 
   const totalDebt = debtCategoryId

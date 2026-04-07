@@ -19,6 +19,9 @@ import {
   Eye,
   EyeOff,
   Search,
+  CircleHelp,
+  Menu,
+  Keyboard,
 } from "lucide-react";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import {
@@ -56,6 +59,8 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
   const [offline, setOffline] = useState(false);
@@ -70,6 +75,26 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       window.removeEventListener("offline", goOffline);
       window.removeEventListener("online", goOnline);
     };
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      const isTyping = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      // Ctrl+K: search (works even in inputs)
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+
+      // Single-key shortcuts (only when not typing)
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "n") { e.preventDefault(); setAddOpen(true); }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const navItemsLeftFinal = hasInvestments
@@ -201,6 +226,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {discrete ? "Mostrar importes" : "Ocultar importes"}
           </button>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
+          >
+            <CircleHelp className="h-4 w-4" />
+            Ayuda
+          </button>
           <form action={signOut}>
             <button
               type="submit"
@@ -241,24 +274,11 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </button>
           <button
             type="button"
-            onClick={toggleDiscrete}
+            onClick={() => setHeaderMenuOpen(true)}
             className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-            aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
+            aria-label="Menú"
           >
-            {discrete ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              startSigningOutTransition(async () => {
-                await signOut();
-              });
-            }}
-            disabled={isSigningOut}
-            aria-busy={isSigningOut}
-            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <LogOut className="h-3.5 w-3.5" />
+            <Menu className="h-3.5 w-3.5" />
           </button>
         </div>
       </header>
@@ -341,6 +361,83 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile header menu */}
+      <Dialog open={headerMenuOpen} onOpenChange={setHeaderMenuOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-lg rounded-b-none border border-border bg-card p-0 md:hidden"
+        >
+          <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+          <DialogHeader className="sr-only">
+            <DialogTitle>Menú</DialogTitle>
+            <DialogDescription>Opciones de la aplicación</DialogDescription>
+          </DialogHeader>
+          <div className="px-3 pb-4 pt-1 space-y-0.5">
+            <button
+              type="button"
+              onClick={() => { toggleDiscrete(); setHeaderMenuOpen(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors hover:bg-muted/50"
+            >
+              {discrete ? <EyeOff className="h-[18px] w-[18px] text-muted-foreground" /> : <Eye className="h-[18px] w-[18px] text-muted-foreground" />}
+              {discrete ? "Mostrar importes" : "Ocultar importes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setHeaderMenuOpen(false); setHelpOpen(true); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors hover:bg-muted/50"
+            >
+              <CircleHelp className="h-[18px] w-[18px] text-muted-foreground" />
+              Ayuda
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHeaderMenuOpen(false);
+                startSigningOutTransition(async () => { await signOut(); });
+              }}
+              disabled={isSigningOut}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-rose-500 transition-colors hover:bg-muted/50 disabled:opacity-70"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+              Cerrar sesión
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help dialog */}
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-sm">
+          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+            <DialogTitle>Ayuda</DialogTitle>
+          </DialogHeader>
+          <div className="px-5 py-4 space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Atajos de teclado</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Buscar movimientos</span>
+                  <div className="flex items-center gap-1">
+                    <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono">Ctrl</kbd>
+                    <span className="text-xs text-muted-foreground">+</span>
+                    <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono">K</kbd>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Nuevo movimiento</span>
+                  <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono">N</kbd>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-border/60 pt-3">
+              <p className="text-xs text-muted-foreground">
+                Iglú Management · Gestión de gastos personales
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

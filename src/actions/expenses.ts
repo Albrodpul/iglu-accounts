@@ -38,6 +38,34 @@ export async function getExpenses(params: {
   return data;
 }
 
+export async function suggestCategory(concept: string) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+
+  const trimmed = concept.trim();
+  if (!trimmed) return null;
+
+  let q = supabase
+    .from("expenses")
+    .select("category_id, category:categories(id, name)")
+    .ilike("concept", trimmed)
+    .order("expense_date", { ascending: false })
+    .limit(1);
+
+  if (accountId) q = q.eq("account_id", accountId);
+
+  const { data } = await q;
+  if (!data || data.length === 0) return null;
+
+  const cat = data[0].category as unknown as { id: string; name: string } | null;
+  if (!cat) return null;
+
+  const excluded = ["ingreso", "deuda", "traspaso"];
+  if (excluded.includes(cat.name.toLowerCase())) return null;
+
+  return { category_id: cat.id, category_name: cat.name };
+}
+
 export async function searchExpenses(query: string) {
   const supabase = await createClient();
   const accountId = await getSelectedAccountId();

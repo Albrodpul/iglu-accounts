@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createExpense, updateExpense, createTransfer, checkDuplicate } from "@/actions/expenses";
+import { createExpense, updateExpense, createTransfer, checkDuplicate, suggestCategory } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,8 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(expense?.payment_method || "bank");
   const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">("bank_to_cash");
   const [formKey, setFormKey] = useState(0);
+  const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
+  const categoryManual = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
 
@@ -222,6 +224,18 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
           name="concept"
           defaultValue={expense?.concept || ""}
           placeholder={type === "debt" ? "Ej: Pedro me debe cena" : "Ej: Compra supermercado"}
+          onBlur={async (e) => {
+            const val = e.target.value.trim();
+            if (!val || expense || type !== "expense" || categoryManual.current) return;
+            const result = await suggestCategory(val);
+            if (result && !categoryManual.current) {
+              const select = formRef.current?.querySelector<HTMLSelectElement>("#category_id");
+              if (select && !select.value) {
+                select.value = result.category_id;
+                setSuggestedCat(result.category_name);
+              }
+            }
+          }}
         />
       </div>
 
@@ -236,6 +250,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             name="category_id"
             defaultValue={expense?.category_id || (categories.length === 1 ? categories[0].id : "")}
             required
+            onChange={() => { categoryManual.current = true; setSuggestedCat(null); }}
             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="" disabled>
@@ -252,6 +267,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
                 </option>
               ))}
           </select>
+          {suggestedCat && (
+            <p className="text-[11px] text-primary">Sugerido: {suggestedCat}</p>
+          )}
         </div>
       )}
 

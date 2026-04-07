@@ -36,6 +36,23 @@ export function formatRecurringPushBody(items: { concept: string; amount: number
     .join("\n");
 }
 
+export function formatWeeklySummaryBody(params: {
+  weekStart: string;
+  weekEnd: string;
+  totalExpenses: number;
+  totalIncome: number;
+  monthNet: number;
+  monthName: string;
+}): string {
+  const lines = [`Semana del ${params.weekStart} al ${params.weekEnd}`];
+  lines.push(`Gastos: ${currencyFmt.format(params.totalExpenses)}`);
+  if (params.totalIncome > 0) {
+    lines.push(`Ingresos: ${currencyFmt.format(params.totalIncome)}`);
+  }
+  lines.push(`Neto ${params.monthName}: ${currencyFmt.format(params.monthNet)}`);
+  return lines.join("\n");
+}
+
 export async function sendPush(subscription: SubscriptionRow, payload: PushPayload) {
   ensureConfigured();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createExpense, updateExpense, createTransfer } from "@/actions/expenses";
+import { createExpense, updateExpense, createTransfer, checkDuplicate } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +56,34 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       formData.set("is_income", String(type === "income"));
       formData.set("is_debt", String(type === "debt"));
       formData.set("payment_method", type === "debt" ? "bank" : paymentMethod);
+
+      // Duplicate check for new expenses (not edits)
+      if (!expense) {
+        const rawAmount = parseFloat(formData.get("amount") as string);
+        const categoryId = formData.get("category_id") as string;
+        const expenseDate = formData.get("expense_date") as string;
+        const isIncome = type === "income";
+        const isDebt = type === "debt";
+        const signedAmount = isIncome || isDebt ? Math.abs(rawAmount) : -Math.abs(rawAmount);
+
+        if (categoryId && expenseDate && rawAmount) {
+          const dup = await checkDuplicate({
+            amount: signedAmount,
+            category_id: categoryId,
+            expense_date: expenseDate,
+          });
+          if (dup.duplicate) {
+            const msg = dup.concept
+              ? `Ya existe un movimiento similar: "${dup.concept}". ¿Añadir de todas formas?`
+              : "Ya existe un movimiento con el mismo importe, categoría y fecha. ¿Añadir de todas formas?";
+            if (!window.confirm(msg)) {
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      }
+
       result = expense
         ? await updateExpense(expense.id, formData)
         : await createExpense(formData);

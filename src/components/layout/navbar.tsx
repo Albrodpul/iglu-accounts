@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Search,
 } from "lucide-react";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import {
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { GlobalSearch } from "@/components/expenses/global-search";
 import type { Category } from "@/types";
 
 const navItemsLeft = [
@@ -53,6 +55,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const pathname = usePathname();
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
   const [offline, setOffline] = useState(false);
@@ -184,6 +187,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         <div className="border-t border-sidebar-border/60 pt-2 space-y-1">
           <button
             type="button"
+            onClick={() => setSearchOpen(true)}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
+          >
+            <Search className="h-4 w-4" />
+            Buscar
+          </button>
+          <button
+            type="button"
             onClick={toggleDiscrete}
             className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
           >
@@ -220,6 +231,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
+            aria-label="Buscar"
+          >
+            <Search className="h-3.5 w-3.5" />
+          </button>
           <button
             type="button"
             onClick={toggleDiscrete}
@@ -325,6 +344,9 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Global search dialog */}
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Mobile add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

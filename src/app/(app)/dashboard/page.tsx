@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getExpenses, getExpensesByYear, getAllTimeBalance } from "@/actions/expenses";
+import { getExpenses, getExpensesByYear, getAllTimeBalance, getMonthProjection } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
@@ -16,6 +16,7 @@ import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { BalanceYear } from "@/components/shared/balance-year";
 import { MonthSummary } from "@/components/shared/month-summary";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
+import { MonthProjection } from "@/components/shared/month-projection";
 import { ArrowRight } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
     getTransferCategoryId(),
   ]);
 
-  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary] =
+  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection] =
     await Promise.all([
       getExpenses({ month, year }),
       getExpensesByYear(year),
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
       getAllTimeBalance(debtCategoryId),
       hasInvestmentsEnabled(),
       getInvestmentSummary(),
+      getMonthProjection({ month, year, debtCategoryId, transferCategoryId }),
     ]);
 
   const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId, transferCategoryId);
@@ -181,7 +183,16 @@ export default async function DashboardPage() {
           {/* Balance año + mes — second row */}
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible />
-            <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
+            <div>
+              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
+              <MonthProjection
+                projected={projection.projected}
+                currentNet={projection.currentNet}
+                historicalMonths={projection.historicalMonths}
+                monthProgress={projection.monthProgress}
+                pendingRecurringNet={projection.pendingRecurringNet}
+              />
+            </div>
           </div>
         </>
       ) : (
@@ -235,6 +246,13 @@ export default async function DashboardPage() {
                 {MONTHS[month - 1]} {year}
               </h2>
               <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
+              <MonthProjection
+                projected={projection.projected}
+                currentNet={projection.currentNet}
+                historicalMonths={projection.historicalMonths}
+                monthProgress={projection.monthProgress}
+                pendingRecurringNet={projection.pendingRecurringNet}
+              />
             </div>
 
             <section>

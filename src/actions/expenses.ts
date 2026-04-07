@@ -38,6 +38,30 @@ export async function getExpenses(params: {
   return data;
 }
 
+export async function searchExpenses(query: string) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  let q = supabase
+    .from("expenses")
+    .select("*, category:categories(*)")
+    .ilike("concept", `%${trimmed}%`)
+    .order("expense_date", { ascending: false })
+    .limit(50);
+
+  if (accountId) {
+    q = q.eq("account_id", accountId);
+  }
+
+  const { data, error } = await q;
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getExpensesByYear(year: number) {
   const supabase = await createClient();
   const accountId = await getSelectedAccountId();
@@ -294,6 +318,166 @@ export async function getAllTimeBalance(debtCategoryId?: string | null) {
     .map(([year, neto]) => ({ year, neto }));
 
   return { total, bankTotal, cashTotal, years };
+}
+
+export async function getMonthProjection(params: {
+  month: number;
+  year: number;
+  debtCategoryId?: string | null;
+  transferCategoryId?: string | null;
+}) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  const { month, year, debtCategoryId, transferCategoryId } = params;
+
+  const isExcluded = (categoryId: string) =>
+    (debtCategoryId && categoryId === debtCategoryId) ||
+    (transferCategoryId && categoryId === transferCategoryId);
+
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const startDate = `${monthStr}-01`;
+  const endDate = month === 12
+    ? `${year + 1}-01-01`
+    : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+
+  // 1. Current month net (excluding debt/transfer)
+  let currentQuery = supabase
+    .from("expenses")
+    .select("amount, category_id")
+    .gte("expense_date", startDate)
+    .lt("expense_date", endDate);
+  if (accountId) currentQuery = currentQuery.eq("account_id", accountId);
+
+  const { data: currentExpenses } = await currentQuery;
+
+  const currentNet = (currentExpenses || [])
+    .filter((e) => !isExcluded(e.category_id))
+    .reduce((s, e) => s + e.amount, 0);
+
+  // 2. Pending recurring expenses (scheduled but not yet generated this month)
+  let recurringQuery = supabase
+    .from("recurring_expenses")
+    .select("id, amount, schedule_type, day_of_month, created_at")
+    .eq("is_active", true);
+  if (accountId) recurringQuery = recurringQuery.eq("account_id", accountId);
+
+  const { data: allRecurring } = await recurringQuery;
+
+  let existingQuery = supabase
+    .from("expenses")
+    .select("notes")
+    .like("notes", "auto:recurring:%")
+    .gte("expense_date", startDate)
+    .lt("expense_date", endDate);
+  if (accountId) existingQuery = existingQuery.eq("account_id", accountId);
+
+  const { data: existingRecurring } = await existingQuery;
+
+  const alreadyInserted = new Set(
+    (existingRecurring || [])
+      .map((e) => e.notes?.replace("auto:recurring:", ""))
+      .filter(Boolean),
+  );
+
+  const { getScheduledDay } = await import("@/lib/recurring");
+  const pendingRecurring = (allRecurring || []).filter((r) => {
+    if (alreadyInserted.has(r.id)) return false;
+    const day = getScheduledDay(r, year, month);
+    return day !== null;
+  });
+  const pendingRecurringNet = pendingRecurring.reduce((s, r) => s + r.amount, 0);
+
+  // 3. Historical monthly nets (real months with ≥5 transactions)
+  const historicalNets: number[] = [];
+
+  for (let i = 1; i <= 12; i++) {
+    let hMonth = month - i;
+    let hYear = year;
+    if (hMonth <= 0) { hMonth += 12; hYear -= 1; }
+
+    const hStart = `${hYear}-${String(hMonth).padStart(2, "0")}-01`;
+    const hEnd = hMonth === 12
+      ? `${hYear + 1}-01-01`
+      : `${hYear}-${String(hMonth + 1).padStart(2, "0")}-01`;
+
+    let hQuery = supabase
+      .from("expenses")
+      .select("amount, category_id")
+      .gte("expense_date", hStart)
+      .lt("expense_date", hEnd);
+    if (accountId) hQuery = hQuery.eq("account_id", accountId);
+
+    const { data: hExpenses } = await hQuery;
+    if (!hExpenses || hExpenses.length < 5) continue;
+
+    const net = hExpenses
+      .filter((e) => !isExcluded(e.category_id))
+      .reduce((s, e) => s + e.amount, 0);
+    historicalNets.push(net);
+  }
+
+  // 4. Calculate projection
+  const today = new Date();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dayOfMonth = today.getFullYear() === year && today.getMonth() + 1 === month
+    ? today.getDate()
+    : daysInMonth;
+  const monthProgress = dayOfMonth / daysInMonth;
+
+  // Use median (resistant to outliers like one-off large movements)
+  const sorted = [...historicalNets].sort((a, b) => a - b);
+  const medianHistorical = sorted.length > 0
+    ? sorted.length % 2 === 1
+      ? sorted[Math.floor(sorted.length / 2)]
+      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+    : null;
+
+  let projected: number | null = null;
+  const historicalMonths = historicalNets.length;
+
+  if (medianHistorical !== null) {
+    if (monthProgress < 0.5) {
+      // First half: trust historical median (current pace is unreliable)
+      projected = medianHistorical + pendingRecurringNet;
+    } else {
+      // Second half: gradually blend in current pace
+      const currentPace = currentNet / monthProgress;
+      const blendWeight = (monthProgress - 0.5) * 2; // 0 at 50%, 1 at 100%
+      projected = (currentPace * blendWeight + medianHistorical * (1 - blendWeight)) + pendingRecurringNet;
+    }
+  } else {
+    projected = currentNet + pendingRecurringNet;
+  }
+
+  return { currentNet, projected, monthProgress, historicalMonths, pendingRecurringNet };
+}
+
+export async function checkDuplicate(params: {
+  amount: number;
+  category_id: string;
+  expense_date: string;
+  excludeId?: string;
+}) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+
+  let q = supabase
+    .from("expenses")
+    .select("id, concept")
+    .eq("amount", params.amount)
+    .eq("category_id", params.category_id)
+    .eq("expense_date", params.expense_date)
+    .limit(1);
+
+  if (accountId) q = q.eq("account_id", accountId);
+  if (params.excludeId) q = q.neq("id", params.excludeId);
+
+  const { data } = await q;
+
+  if (data && data.length > 0) {
+    return { duplicate: true, concept: data[0].concept };
+  }
+  return { duplicate: false };
 }
 
 export async function deleteExpense(id: string) {

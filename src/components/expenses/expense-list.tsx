@@ -123,7 +123,7 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-medium text-foreground truncate">
+                      <p className="text-[15px] font-medium text-foreground break-words">
                         {expense.concept}
                       </p>
                       <p className="text-sm text-muted-foreground">

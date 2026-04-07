@@ -21,9 +21,12 @@ import {
   Search,
   CircleHelp,
   Menu,
-  Keyboard,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
+import { useTheme } from "@/contexts/theme";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +66,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
+  const { theme, setTheme } = useTheme();
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -226,6 +230,32 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {discrete ? "Mostrar importes" : "Ocultar importes"}
           </button>
+          <div className="flex items-center gap-1 rounded-md px-3 py-1.5">
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "light" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
+              aria-label="Tema claro"
+            >
+              <Sun className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "dark" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
+              aria-label="Tema oscuro"
+            >
+              <Moon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme("system")}
+              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "system" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
+              aria-label="Tema del sistema"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
@@ -247,7 +277,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       </nav>
 
       {/* Mobile top header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 backdrop-blur-sm px-4 py-2.5 md:hidden">
+      <header className="mobile-header fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 backdrop-blur-sm px-4 py-2.5 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/12">
             <Image src="/iglu.svg" alt="Iglú" width={22} height={22} className="block" />
@@ -292,7 +322,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
 
       {/* Mobile bottom nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
+        className="mobile-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative grid grid-cols-5 px-2 pt-0.5">
@@ -385,6 +415,30 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               {discrete ? <EyeOff className="h-[18px] w-[18px] text-muted-foreground" /> : <Eye className="h-[18px] w-[18px] text-muted-foreground" />}
               {discrete ? "Mostrar importes" : "Ocultar importes"}
             </button>
+            <div className="flex items-center gap-1 px-3 py-2">
+              <span className="text-sm font-semibold mr-auto">Tema</span>
+              <button
+                type="button"
+                onClick={() => setTheme("light")}
+                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "light" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
+              >
+                <Sun className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("dark")}
+                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "dark" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
+              >
+                <Moon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("system")}
+                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "system" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
+              >
+                <Monitor className="h-4 w-4" />
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => { setHeaderMenuOpen(false); setHelpOpen(true); }}

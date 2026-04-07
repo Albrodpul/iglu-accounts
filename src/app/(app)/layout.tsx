@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/navbar";
 import { DiscreteModeProvider } from "@/contexts/discrete-mode";
+import { ThemeProvider } from "@/contexts/theme";
 import { getAccounts, getSelectedAccountId, setSelectedAccount } from "@/actions/accounts";
 import { getCategories } from "@/actions/categories";
 
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const currentAccount = accounts.find((a) => a.id === effectiveAccountId);
 
   return (
+    <ThemeProvider>
     <DiscreteModeProvider>
       <div className="min-h-screen bg-background">
         <Navbar
@@ -35,5 +37,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
     </DiscreteModeProvider>
+    </ThemeProvider>
   );
 }

@@ -102,20 +102,20 @@ export function YearComparison({ availableYears }: Props) {
       )}
 
       {!isPending && fetched && rows.length > 0 && (
-        <div className="overflow-x-auto -mx-5 md:-mx-6">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[500px] text-sm tabular-nums md:min-w-0">
             <thead>
               <tr className="border-b border-border/60">
-                <th className="py-2 pl-5 pr-3 text-left font-semibold text-muted-foreground md:pl-6">Categoría</th>
+                <th className="py-2 pl-3 pr-3 text-left font-semibold text-muted-foreground md:pl-6">Categoría</th>
                 <th className="py-2 px-2 text-right font-semibold text-muted-foreground">{labelA}</th>
                 <th className="py-2 px-2 text-right font-semibold text-muted-foreground">{labelB}</th>
-                <th className="py-2 pl-2 pr-5 text-right font-semibold text-muted-foreground md:pr-6">Diferencia</th>
+                <th className="py-2 pl-2 pr-3 text-right font-semibold text-muted-foreground">Diferencia</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.name} className="border-b border-border/30 hover:bg-muted/25 transition-colors">
-                  <td className="py-1.5 pl-5 pr-3 font-medium text-foreground md:pl-6">
+                  <td className="py-1.5 pl-3 pr-3 font-medium text-foreground md:pl-6">
                     <span className="mr-1.5">{row.icon}</span>{row.name}
                   </td>
                   <td className={`py-1.5 px-2 text-right ${row.valueA > 0 ? "text-income" : row.valueA < 0 ? "text-foreground" : "text-muted-foreground/30"}`}>
@@ -124,7 +124,7 @@ export function YearComparison({ availableYears }: Props) {
                   <td className={`py-1.5 px-2 text-right ${row.valueB > 0 ? "text-income" : row.valueB < 0 ? "text-foreground" : "text-muted-foreground/30"}`}>
                     {row.valueB === 0 ? "—" : <Amount value={row.valueB} />}
                   </td>
-                  <td className={`py-1.5 pl-2 pr-5 text-right font-semibold md:pr-6 ${row.diff > 0 ? "text-emerald-600" : row.diff < 0 ? "text-rose-600" : ""}`}>
+                  <td className={`py-1.5 pl-2 pr-3 text-right font-semibold ${row.diff > 0 ? "text-emerald-600" : row.diff < 0 ? "text-rose-600" : ""}`}>
                     {row.diff === 0 ? "—" : <Amount value={row.diff} />}
                   </td>
                 </tr>
@@ -132,14 +132,14 @@ export function YearComparison({ availableYears }: Props) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border/60 font-bold">
-                <td className="py-2 pl-5 pr-3 text-foreground md:pl-6">Total</td>
+                <td className="py-2 pl-3 pr-3 text-foreground md:pl-6">Total</td>
                 <td className={`py-2 px-2 text-right ${totalA > 0 ? "text-income" : totalA < 0 ? "text-expense" : ""}`}>
                   <Amount value={totalA} />
                 </td>
                 <td className={`py-2 px-2 text-right ${totalB > 0 ? "text-income" : totalB < 0 ? "text-expense" : ""}`}>
                   <Amount value={totalB} />
                 </td>
-                <td className={`py-2 pl-2 pr-5 text-right md:pr-6 ${totalDiff > 0 ? "text-emerald-600" : totalDiff < 0 ? "text-rose-600" : ""}`}>
+                <td className={`py-2 pl-2 pr-3 text-right ${totalDiff > 0 ? "text-emerald-600" : totalDiff < 0 ? "text-rose-600" : ""}`}>
                   <Amount value={totalDiff} />
                 </td>
               </tr>

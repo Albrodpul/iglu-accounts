@@ -8,7 +8,6 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   const w = 52;
   const h = 18;
   const pad = 1;
-
   const values = data.map(Math.abs);
   const max = Math.max(...values, 1);
   const points = values.map((v, i) => {
@@ -16,12 +15,10 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
     const y = pad + (1 - v / max) * (h - pad * 2);
     return `${x},${y}`;
   });
-
   const line = points.join(" ");
   const area = `${pad},${h - pad} ${line} ${w - pad},${h - pad}`;
-
   return (
-    <svg width={w} height={h} className="shrink-0">
+    <svg width={w} height={h}>
       <polygon points={area} fill={color} opacity={0.15} />
       <polyline points={line} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
@@ -91,7 +88,7 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
 
   return (
     <div className="overflow-x-auto -mx-5 md:-mx-6">
-      <table className="w-full min-w-[800px] text-sm tabular-nums md:min-w-0">
+      <table className="w-full min-w-[860px] text-sm tabular-nums md:min-w-0">
         <thead>
           <tr className="border-b border-border/60">
             <th className="sticky left-0 z-10 bg-card py-2 pl-5 pr-3 text-left font-semibold text-muted-foreground min-w-[140px] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30 md:pl-6">
@@ -115,9 +112,7 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
             <th className="py-2 pl-1 pr-1 text-right font-semibold text-muted-foreground">
               Media
             </th>
-            <th className="py-2 pl-1 pr-5 md:pr-6">
-              <span className="sr-only">Tendencia</span>
-            </th>
+            <th className="py-2 pl-1 pr-5 md:pr-6"></th>
           </tr>
         </thead>
         <tbody>

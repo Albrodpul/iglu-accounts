@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Category, Expense } from "@/types";
 
 type ExpenseType = "expense" | "income" | "debt" | "transfer";
@@ -99,7 +100,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
 
   return (
     <form key={formKey} ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
-      <div className="flex gap-2 md:col-span-2">
+      <div className="flex flex-wrap gap-2 md:col-span-2">
         {typeButtons.map((btn) => (
           <Button
             key={btn.value}
@@ -138,13 +139,13 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       )}
 
       {isTransfer && (
-        <div className="flex gap-2 md:col-span-2">
+        <div className="grid grid-cols-2 gap-2 md:col-span-2">
           <Button
             type="button"
             variant={transferDirection === "bank_to_cash" ? "default" : "outline"}
             size="sm"
             onClick={() => setTransferDirection("bank_to_cash")}
-            className={transferDirection === "bank_to_cash" ? "bg-violet-500 hover:bg-violet-600 text-white" : ""}
+            className={cn(transferDirection === "bank_to_cash" ? "bg-violet-500 hover:bg-violet-600 text-white" : "", "h-auto whitespace-normal py-2")}
           >
             🏦 → 💵 Banco a Efectivo
           </Button>
@@ -153,7 +154,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             variant={transferDirection === "cash_to_bank" ? "default" : "outline"}
             size="sm"
             onClick={() => setTransferDirection("cash_to_bank")}
-            className={transferDirection === "cash_to_bank" ? "bg-violet-500 hover:bg-violet-600 text-white" : ""}
+            className={cn(transferDirection === "cash_to_bank" ? "bg-violet-500 hover:bg-violet-600 text-white" : "", "h-auto whitespace-normal py-2")}
           >
             💵 → 🏦 Efectivo a Banco
           </Button>

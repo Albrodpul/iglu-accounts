@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/actions/auth";
@@ -55,6 +55,19 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [moreOpen, setMoreOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
+  const [offline, setOffline] = useState(false);
+
+  useEffect(() => {
+    setOffline(!navigator.onLine);
+    const goOffline = () => setOffline(true);
+    const goOnline = () => setOffline(false);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", goOnline);
+    return () => {
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", goOnline);
+    };
+  }, []);
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
@@ -230,6 +243,13 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </button>
         </div>
       </header>
+
+      {/* Offline banner */}
+      {offline && (
+        <div className="fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:top-0">
+          Sin conexión — datos en caché
+        </div>
+      )}
 
       {/* Mobile bottom nav */}
       <nav

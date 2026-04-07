@@ -4,6 +4,30 @@ import { MONTHS } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import type { Category, ExpenseWithCategory } from "@/types";
 
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const w = 52;
+  const h = 18;
+  const pad = 1;
+
+  const values = data.map(Math.abs);
+  const max = Math.max(...values, 1);
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - v / max) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+
+  const line = points.join(" ");
+  const area = `${pad},${h - pad} ${line} ${w - pad},${h - pad}`;
+
+  return (
+    <svg width={w} height={h} className="shrink-0">
+      <polygon points={area} fill={color} opacity={0.15} />
+      <polyline points={line} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
@@ -88,8 +112,11 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
             <th className="py-2 px-1 text-right font-semibold text-muted-foreground border-l border-border/40">
               Total
             </th>
-            <th className="py-2 pl-1 pr-5 text-right font-semibold text-muted-foreground md:pr-6">
+            <th className="py-2 pl-1 pr-1 text-right font-semibold text-muted-foreground">
               Media
+            </th>
+            <th className="py-2 pl-1 pr-5 md:pr-6">
+              <span className="sr-only">Tendencia</span>
             </th>
           </tr>
         </thead>
@@ -124,8 +151,11 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
               >
                 <Amount value={row.total} compact />
               </td>
-              <td className="py-1.5 pl-1 pr-5 text-right text-muted-foreground md:pr-6">
+              <td className="py-1.5 pl-1 pr-1 text-right text-muted-foreground">
                 <Amount value={row.avg} compact />
+              </td>
+              <td className="py-1.5 pl-1 pr-5 md:pr-6">
+                <Sparkline data={row.months} color={row.category.color || "#64748b"} />
               </td>
             </tr>
           ))}
@@ -152,8 +182,11 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
             >
               <Amount value={grandTotal} />
             </td>
-            <td className="py-2 pl-1.5 pr-5 text-right text-muted-foreground md:pr-6">
+            <td className="py-2 pl-1.5 pr-1 text-right text-muted-foreground">
               <Amount value={grandTotal / elapsedMonths} compact />
+            </td>
+            <td className="py-2 pl-1 pr-5 md:pr-6">
+              <Sparkline data={monthTotals} color="#64748b" />
             </td>
           </tr>
         </tfoot>

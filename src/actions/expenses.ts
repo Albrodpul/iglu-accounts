@@ -480,6 +480,69 @@ export async function getMonthProjection(params: {
   return { currentNet, projected, monthProgress, historicalMonths, pendingRecurringNet };
 }
 
+export async function comparePeriods(params: {
+  yearA: number;
+  monthA?: number | null;
+  yearB: number;
+  monthB?: number | null;
+}) {
+  const supabase = await createClient();
+  const accountId = await getSelectedAccountId();
+  const { yearA, monthA, yearB, monthB } = params;
+
+  async function fetchPeriod(year: number, month?: number | null) {
+    if (month) {
+      const start = `${year}-${String(month).padStart(2, "0")}-01`;
+      const end = month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      let q = supabase.from("expenses").select("amount, category_id").gte("expense_date", start).lt("expense_date", end);
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data } = await q;
+      return data || [];
+    } else {
+      let q = supabase.from("expenses").select("amount, category_id").gte("expense_date", `${year}-01-01`).lt("expense_date", `${year + 1}-01-01`);
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data } = await q;
+      return data || [];
+    }
+  }
+
+  const [expensesA, expensesB, cats] = await Promise.all([
+    fetchPeriod(yearA, monthA),
+    fetchPeriod(yearB, monthB),
+    (async () => {
+      let q = supabase.from("categories").select("id, name, icon, color");
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data } = await q;
+      return data || [];
+    })(),
+  ]);
+
+  // Get special category IDs to exclude
+  const excludeNames = ["deuda", "traspaso"];
+  const excludeIds = new Set(cats.filter((c) => excludeNames.includes(c.name.toLowerCase())).map((c) => c.id));
+
+  const allCatIds = new Set([...expensesA.map((e) => e.category_id), ...expensesB.map((e) => e.category_id)]);
+
+  const rows: { name: string; icon: string; color: string; valueA: number; valueB: number; diff: number }[] = [];
+
+  for (const catId of allCatIds) {
+    if (excludeIds.has(catId)) continue;
+    const cat = cats.find((c) => c.id === catId);
+    if (!cat) continue;
+
+    const valueA = expensesA.filter((e) => e.category_id === catId).reduce((s, e) => s + e.amount, 0);
+    const valueB = expensesB.filter((e) => e.category_id === catId).reduce((s, e) => s + e.amount, 0);
+    if (valueA === 0 && valueB === 0) continue;
+
+    rows.push({ name: cat.name, icon: cat.icon || "📦", color: cat.color || "#64748b", valueA, valueB, diff: valueA - valueB });
+  }
+
+  rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  return rows;
+}
+
 export async function checkDuplicate(params: {
   amount: number;
   category_id: string;

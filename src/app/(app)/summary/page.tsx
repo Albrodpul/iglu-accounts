@@ -6,6 +6,7 @@ import { YearSelector } from "@/components/summary/year-selector";
 import { MonthlyChart } from "@/components/summary/monthly-chart";
 import { CategoryBreakdown } from "@/components/summary/category-breakdown";
 import { AnnualGrid } from "@/components/summary/annual-grid";
+import { YearComparison } from "@/components/summary/year-comparison";
 import { BalanceYear } from "@/components/shared/balance-year";
 import { buildBalanceYearKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
 
@@ -132,6 +133,13 @@ export default async function SummaryPage({ searchParams }: Props) {
         <h2 className="mb-4 text-lg font-semibold md:text-xl">Desglose por categoría</h2>
         <div className="glass-panel p-5 md:p-6">
           <CategoryBreakdown data={categoryTotals} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold md:text-xl">Comparar periodos</h2>
+        <div className="glass-panel p-5 md:p-6">
+          <YearComparison availableYears={availablePeriods.map((p) => p.year)} />
         </div>
       </section>
     </div>

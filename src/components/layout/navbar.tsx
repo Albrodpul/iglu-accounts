@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +59,8 @@ type Props = {
 
 export function Navbar({ accountName, showAccountSwitcher = true, categories = [], hasInvestments = false }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -68,6 +70,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
   const { theme, setTheme } = useTheme();
   const [offline, setOffline] = useState(false);
+
+  // Auto-open add dialog from PWA shortcut (?add=1)
+  useEffect(() => {
+    if (searchParams.get("add") === "1") {
+      setAddOpen(true);
+      router.replace(pathname, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
 
   useEffect(() => {
     setOffline(!navigator.onLine);

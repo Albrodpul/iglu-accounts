@@ -12,6 +12,21 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f0f6fb",
     theme_color: "#2d7eb5",
     lang: "es",
+    shortcuts: [
+      {
+        name: "Nuevo movimiento",
+        short_name: "Añadir",
+        description: "Registrar un gasto o ingreso",
+        url: "/dashboard?add=1",
+        icons: [
+          {
+            src: "/pwa-shortcut-add.svg",
+            sizes: "96x96",
+            type: "image/svg+xml",
+          },
+        ],
+      },
+    ],
     icons: [
       {
         src: "/pwa-icon-192.svg",

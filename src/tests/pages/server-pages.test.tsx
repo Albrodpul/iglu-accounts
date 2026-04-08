@@ -36,6 +36,7 @@ vi.mock("@/actions/accounts", () => ({
   selectAccount: mocks.selectAccount,
   hasInvestmentsEnabled: mocks.hasInvestmentsEnabled,
   notificationsEnabled: mocks.notificationsEnabled,
+  getUserDisplayName: vi.fn().mockResolvedValue("Test"),
 }));
 
 vi.mock("@/actions/categories", () => ({

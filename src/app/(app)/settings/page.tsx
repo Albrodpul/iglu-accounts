@@ -1,22 +1,24 @@
 import { getCategories } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
-import { getAccounts, hasInvestmentsEnabled, notificationsEnabled } from "@/actions/accounts";
+import { getAccounts, hasInvestmentsEnabled, notificationsEnabled, getUserDisplayName } from "@/actions/accounts";
 import { getUserPasskeys } from "@/actions/passkeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringList } from "@/components/settings/recurring-list";
 import { ModulesSettings } from "@/components/settings/modules-settings";
 import { PasskeysSettings } from "@/components/settings/passkeys-settings";
 import { AccountsSettings } from "@/components/settings/accounts-settings";
+import { DisplayNameSettings } from "@/components/settings/display-name-settings";
 import { Amount } from "@/components/ui/amount";
 
 export default async function SettingsPage() {
-  const [categories, recurring, hasInvestments, hasNotifications, passkeys, accounts] = await Promise.all([
+  const [categories, recurring, hasInvestments, hasNotifications, passkeys, accounts, displayName] = await Promise.all([
     getCategories(),
     getRecurringExpenses(),
     hasInvestmentsEnabled(),
     notificationsEnabled(),
     getUserPasskeys(),
     getAccounts(),
+    getUserDisplayName(),
   ]);
 
   const totalExpenses = recurring
@@ -62,6 +64,9 @@ export default async function SettingsPage() {
 
         <TabsContent value="modules" className="mt-5">
           <div className="space-y-4">
+            <div className="glass-panel p-5 md:p-6">
+              <DisplayNameSettings currentName={displayName} />
+            </div>
             <div className="glass-panel p-5 md:p-6">
               <AccountsSettings accounts={accounts} />
             </div>

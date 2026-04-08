@@ -1,13 +1,15 @@
 import { Navbar } from "@/components/layout/navbar";
+import { PersistUserName } from "@/components/layout/persist-user-name";
 import { DiscreteModeProvider } from "@/contexts/discrete-mode";
 import { ThemeProvider } from "@/contexts/theme";
-import { getAccounts, getSelectedAccountId, setSelectedAccount } from "@/actions/accounts";
+import { getAccounts, getSelectedAccountId, setSelectedAccount, getUserDisplayName } from "@/actions/accounts";
 import { getCategories } from "@/actions/categories";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [accounts, selectedAccountId] = await Promise.all([
+  const [accounts, selectedAccountId, userName] = await Promise.all([
     getAccounts(),
     getSelectedAccountId(),
+    getUserDisplayName(),
   ]);
 
   // Auto-select first account if none selected or selected one no longer exists
@@ -23,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ThemeProvider>
     <DiscreteModeProvider>
+      <PersistUserName name={userName} />
       <div className="min-h-screen bg-background">
         <Navbar
           accountName={currentAccount?.name}

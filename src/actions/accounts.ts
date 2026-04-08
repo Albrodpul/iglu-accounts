@@ -222,6 +222,35 @@ export async function deleteAccount(accountId: string) {
   return { success: true };
 }
 
+export async function getUserDisplayName(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  return (
+    user.user_metadata?.display_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    null
+  );
+}
+
+export async function updateDisplayName(name: string) {
+  const supabase = await createClient();
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "El nombre es obligatorio" };
+
+  const { error } = await supabase.auth.updateUser({
+    data: { display_name: trimmed },
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function selectAccount(accountId: string) {
   // Verify the user is a member of this account
   const supabase = await createClient();

@@ -6,17 +6,49 @@ import {
   browserSupportsWebAuthnAutofill,
   startAuthentication,
 } from "@simplewebauthn/browser";
-import { Fingerprint } from "lucide-react";
+import { Eye, EyeOff, Fingerprint } from "lucide-react";
 import { signIn } from "@/actions/auth";
 import { AuthButtonContent } from "@/components/auth/auth-button-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const NAME_KEY = "iglu:user:name";
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 13) return "Buenos días";
+  if (h >= 13 && h < 21) return "Buenas tardes";
+  return "Buenas noches";
+}
+
+function LoginGreeting() {
+  const [firstName, setFirstName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(NAME_KEY);
+    if (stored) setFirstName(stored.split(" ")[0]);
+  }, []);
+
+  const greeting = getGreeting();
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight lg:text-xl">
+        {firstName ? `${greeting}, ${firstName}` : "Bienvenido"}
+      </h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        Inicia sesión para continuar
+      </p>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPasskey, setLoadingPasskey] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const attemptedAutofillRef = useRef(false);
   const isAnyLoading = loading || loadingPasskey;
 
@@ -133,15 +165,7 @@ export default function LoginPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/12 lg:hidden">
               <Image src="/iglu.svg" alt="Iglú" width={36} height={36} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight lg:text-xl">
-                <span className="lg:hidden">Iglú Management</span>
-                <span className="hidden lg:inline">Bienvenido</span>
-              </h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Inicia sesión para continuar
-              </p>
-            </div>
+            <LoginGreeting />
           </div>
 
           {/* Formulario */}
@@ -168,15 +192,26 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                disabled={isAnyLoading}
-                className="h-12 rounded-lg text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  disabled={isAnyLoading}
+                  className="h-12 rounded-lg text-base pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center justify-center w-12 rounded-r-lg text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             {error && (

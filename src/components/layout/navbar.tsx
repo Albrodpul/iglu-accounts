@@ -24,7 +24,11 @@ import {
   Sun,
   Moon,
   Monitor,
+  Download,
+  Upload,
+  Database,
 } from "lucide-react";
+import { exportAccountData } from "@/actions/export";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { useTheme } from "@/contexts/theme";
 import {
@@ -64,8 +68,11 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
   const { theme, setTheme } = useTheme();
@@ -111,13 +118,34 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (pathname.startsWith("/import")) setDataOpen(true);
+  }, [pathname]);
+
+  async function handleExport() {
+    setExporting(true);
+    setExportError(null);
+    const result = await exportAccountData();
+    setExporting(false);
+    if (result.error) {
+      setExportError(result.error);
+      return;
+    }
+    const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `iglu-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMoreOpen(false);
+  }
+
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
     : navItemsLeft;
   const allNavItemsFinal = [...navItemsLeftFinal, ...navItemsRight];
-  const mobileRightItems = hasInvestments
-    ? [{ href: "/summary", label: "Resumen", icon: BarChart3 }]
-    : navItemsRight;
+  const mobileRightItems = [{ href: "/summary", label: "Resumen", icon: BarChart3 }];
 
   function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
     const isActive = pathname.startsWith(href);
@@ -177,31 +205,32 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="fixed inset-y-5 left-4 z-40 hidden w-64 flex-col rounded-md border border-sidebar-border/70 bg-sidebar/95 p-3 shadow-[0_20px_45px_-24px_rgba(10,30,55,0.9)] backdrop-blur-sm md:flex">
-        <div className="rounded-xl border border-sidebar-border/60 bg-white/8 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-10 items-center justify-center rounded-xl bg-sidebar-primary/20 p-1.5">
-              <Image src="/iglu.svg" alt="Iglú" width={28} height={28} className="drop-shadow-sm" />
-            </div>
-            <div>
-              <h1 className="text-base font-extrabold tracking-tight text-sidebar-foreground leading-tight">
-                Iglú Management
-              </h1>
-              <p className="text-[13px] text-sidebar-foreground/88">Tus gastos personales o compartidos</p>
-            </div>
+      <nav className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border/70 bg-sidebar md:flex">
+        {/* Logo */}
+        <div className="flex items-center gap-3 border-b border-sidebar-border/50 px-5 py-[18px]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary/20 p-1.5">
+            <Image src="/iglu.svg" alt="Iglú" width={26} height={26} className="drop-shadow-sm" />
+          </div>
+          <div>
+            <h1 className="text-[15px] font-extrabold tracking-tight text-sidebar-foreground leading-tight">
+              Iglú Management
+            </h1>
+            <p className="text-[11px] text-sidebar-foreground/65">Gastos personales</p>
           </div>
         </div>
 
+        {/* Account switcher */}
         {showAccountSwitcher && (
-          <div className="mt-3 rounded-xl border border-sidebar-border/50 bg-sidebar-accent/55 px-4 py-3">
-            <Link href="/select-account" className="group flex items-center justify-between">
-              <span className="truncate text-xs font-semibold text-sidebar-foreground/90">{accountName || "Seleccionar cuenta"}</span>
+          <div className="border-b border-sidebar-border/50 px-4 py-3">
+            <Link href="/select-account" className="group flex items-center justify-between rounded-md px-1">
+              <span className="truncate text-[13px] font-semibold text-sidebar-foreground/80">{accountName || "Seleccionar cuenta"}</span>
               <ArrowLeftRight className="h-3 w-3 text-sidebar-foreground/35 transition-colors group-hover:text-sidebar-foreground/80" />
             </Link>
           </div>
         )}
 
-        <div className="mt-3 flex-1 space-y-1.5">
+        {/* Nav items */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {allNavItemsFinal.map((item) => {
             const Icon = item.icon;
             const isActive = pathname.startsWith(item.href);
@@ -221,51 +250,52 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               </Link>
             );
           })}
+
+          {/* Datos collapsible */}
+          <button
+            type="button"
+            onClick={() => setDataOpen((v) => !v)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold transition-all duration-200",
+              pathname.startsWith("/import")
+                ? "bg-sidebar-primary/22 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(126,200,240,0.28)]"
+                : "text-sidebar-foreground/82 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
+            )}
+          >
+            <Database className={cn("h-4 w-4", pathname.startsWith("/import") && "stroke-[2.4]")} />
+            Copia de seguridad
+            <ChevronRight className={cn("ml-auto h-3.5 w-3.5 transition-transform duration-200", dataOpen && "rotate-90")} />
+          </button>
+          {dataOpen && (
+            <div className="ml-3 space-y-0.5 border-l border-sidebar-border/50 pl-3">
+              <Link
+                href="/import"
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] font-semibold transition-all",
+                  pathname.startsWith("/import")
+                    ? "text-sidebar-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
+                )}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Importar
+              </Link>
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[14px] font-semibold text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent/65 hover:text-sidebar-foreground disabled:opacity-50 cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {exporting ? "Exportando…" : "Exportar"}
+              </button>
+              {exportError && <p className="px-3 text-[11px] text-rose-400">{exportError}</p>}
+            </div>
+          )}
         </div>
 
-        <div className="border-t border-sidebar-border/60 pt-2 space-y-1">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
-          >
-            <Search className="h-4 w-4" />
-            Buscar
-          </button>
-          <button
-            type="button"
-            onClick={toggleDiscrete}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
-          >
-            {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {discrete ? "Mostrar importes" : "Ocultar importes"}
-          </button>
-          <div className="flex items-center gap-1 rounded-md px-3 py-1.5">
-            <button
-              type="button"
-              onClick={() => setTheme("light")}
-              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "light" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
-              aria-label="Tema claro"
-            >
-              <Sun className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme("dark")}
-              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "dark" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
-              aria-label="Tema oscuro"
-            >
-              <Moon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme("system")}
-              className={`rounded-md p-1.5 transition-colors cursor-pointer ${theme === "system" ? "bg-sidebar-primary/25 text-sidebar-foreground" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"}`}
-              aria-label="Tema del sistema"
-            >
-              <Monitor className="h-3.5 w-3.5" />
-            </button>
-          </div>
+        {/* Bottom */}
+        <div className="border-t border-sidebar-border/60 px-3 py-3 space-y-0.5">
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
@@ -285,6 +315,53 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </form>
         </div>
       </nav>
+
+      {/* Desktop header */}
+      <header className="fixed top-0 left-64 right-0 z-30 hidden h-14 items-center justify-end border-b border-border/50 bg-card/95 backdrop-blur-sm px-6 md:flex gap-2">
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 rounded-md border border-border/50 bg-muted/40 px-3 py-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground cursor-pointer"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Buscar
+          <kbd className="ml-0.5 rounded border border-border bg-background px-1 py-px text-[10px] font-mono leading-none">⌘K</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={toggleDiscrete}
+          className="flex items-center justify-center rounded-md border border-border/50 p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer"
+          aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
+        >
+          {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+        <div className="flex items-center rounded-md border border-border/50 bg-muted/30 p-0.5">
+          <button
+            type="button"
+            onClick={() => setTheme("light")}
+            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "light" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="Tema claro"
+          >
+            <Sun className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme("dark")}
+            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "dark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="Tema oscuro"
+          >
+            <Moon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme("system")}
+            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "system" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="Tema del sistema"
+          >
+            <Monitor className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </header>
 
       {/* Mobile top header */}
       <header className="mobile-header fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 backdrop-blur-sm px-4 py-2.5 md:hidden">
@@ -325,7 +402,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
 
       {/* Offline banner */}
       {offline && (
-        <div className="fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:top-0">
+        <div className="fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:left-64 md:top-14">
           Sin conexión — datos en caché
         </div>
       )}
@@ -354,19 +431,21 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             <NavItem key={item.href} {...item} />
           ))}
 
-          {hasInvestments && (
-            <NavActionItem
-              label="Más"
-              icon={Ellipsis}
-              onClick={() => setMoreOpen(true)}
-              isActive={pathname.startsWith("/settings") || pathname.startsWith("/investments")}
-            />
-          )}
+          <NavActionItem
+            label="Más"
+            icon={Ellipsis}
+            onClick={() => setMoreOpen(true)}
+            isActive={
+              pathname.startsWith("/settings") ||
+              pathname.startsWith("/investments") ||
+              pathname.startsWith("/import")
+            }
+          />
         </div>
       </nav>
 
       {/* Mobile more sheet */}
-      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+      <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) setExportError(null); }}>
         <DialogContent
           showCloseButton={false}
           className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-lg rounded-b-none border border-border bg-card p-0 md:hidden"
@@ -379,17 +458,19 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             </DialogDescription>
           </DialogHeader>
           <div className="px-3 pb-4">
-            <Link
-              href="/investments"
-              onClick={() => setMoreOpen(false)}
-              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
-            >
-              <span className="flex items-center gap-3 text-sm font-semibold">
-                <TrendingUp className="h-[18px] w-[18px] text-muted-foreground" />
-                Inversiones
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
+            {hasInvestments && (
+              <Link
+                href="/investments"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
+              >
+                <span className="flex items-center gap-3 text-sm font-semibold">
+                  <TrendingUp className="h-[18px] w-[18px] text-muted-foreground" />
+                  Inversiones
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            )}
             <Link
               href="/settings"
               onClick={() => setMoreOpen(false)}
@@ -401,6 +482,31 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
+            <Link
+              href="/import"
+              onClick={() => setMoreOpen(false)}
+              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-3 text-sm font-semibold">
+                <Upload className="h-[18px] w-[18px] text-muted-foreground" />
+                Importar
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex w-full items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50 disabled:opacity-60"
+            >
+              <span className="flex items-center gap-3 text-sm font-semibold">
+                <Download className="h-[18px] w-[18px] text-muted-foreground" />
+                {exporting ? "Exportando..." : "Exportar"}
+              </span>
+            </button>
+            {exportError && (
+              <p className="px-3 text-xs text-rose-500">{exportError}</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

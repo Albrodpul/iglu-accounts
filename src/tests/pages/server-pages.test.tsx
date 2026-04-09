@@ -150,8 +150,8 @@ vi.mock("@/components/investments/fund-list", () => ({
   FundList: () => <div data-testid="fund-list" />,
 }));
 
-vi.mock("@/components/import/import-ods-form", () => ({
-  ImportOdsForm: () => <div data-testid="import-ods-form" />,
+vi.mock("@/components/import/import-backup-form", () => ({
+  ImportBackupForm: () => <div data-testid="import-backup-form" />,
 }));
 
 import Home from "@/app/page";
@@ -293,19 +293,10 @@ describe("app pages", () => {
     expect(screen.getByTestId("fund-list")).toBeInTheDocument();
   });
 
-  it("renders import page warning when no categories exist", async () => {
-    mocks.getCategories.mockResolvedValue([]);
-
+  it("renders import backup form", async () => {
     const element = await ImportPage();
     render(element);
 
-    expect(screen.getByText(/Necesitas al menos una categoría/i)).toBeInTheDocument();
-  });
-
-  it("renders import form when categories are available", async () => {
-    const element = await ImportPage();
-    render(element);
-
-    expect(screen.getByTestId("import-ods-form")).toBeInTheDocument();
+    expect(screen.getByTestId("import-backup-form")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import {
   getChallengeCookieOptions,
   getExpectedOrigin,
@@ -9,20 +10,14 @@ import {
 } from "@/lib/passkeys";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const { data: credentials } = await supabase
-    .from("user_passkeys")
-    .select("credential_id")
-    .eq("user_id", user.id);
+  const db = await getDb();
+  const credentials = await db.passkeys.findCredentialIdsByUser(user.id);
 
   const rpID = getRpId(request);
   const origin = getExpectedOrigin(request);
@@ -39,7 +34,7 @@ export async function POST(request: NextRequest) {
       residentKey: "required",
       userVerification: "required",
     },
-    excludeCredentials: (credentials ?? []).map((item) => ({
+    excludeCredentials: credentials.map((item) => ({
       id: item.credential_id,
       type: "public-key" as const,
       transports: ["internal" as const],
@@ -51,7 +46,7 @@ export async function POST(request: NextRequest) {
   response.cookies.set(
     PASSKEY_REGISTRATION_CHALLENGE_COOKIE,
     options.challenge,
-    getChallengeCookieOptions()
+    getChallengeCookieOptions(),
   );
 
   return response;

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import {
   getChallengeCookieOptions,
   getExpectedOrigin,
@@ -13,11 +14,7 @@ type RegistrationResponseBody = Parameters<
 >[0]["response"];
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -53,7 +50,8 @@ export async function POST(request: NextRequest) {
 
   const { credential } = verification.registrationInfo;
 
-  const { error } = await supabase.from("user_passkeys").insert({
+  const db = await getDb();
+  const { error } = await db.passkeys.create({
     user_id: user.id,
     credential_id: credential.id,
     public_key: Buffer.from(credential.publicKey).toString("base64url"),
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error }, { status: 500 });
   }
 
   const response = NextResponse.json({ verified: true });

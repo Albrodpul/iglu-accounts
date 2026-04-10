@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import { redirect } from "next/navigation";
 
 export async function savePushSubscription(subscription: {
@@ -8,42 +9,30 @@ export async function savePushSubscription(subscription: {
   p256dh: string;
   auth: string;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase.from("push_subscriptions").upsert(
-    {
-      user_id: user.id,
-      endpoint: subscription.endpoint,
-      p256dh: subscription.p256dh,
-      auth: subscription.auth,
-    },
-    { onConflict: "user_id,endpoint" },
-  );
+  const db = await getDb();
+  const { error } = await db.notifications.upsert({
+    user_id: user.id,
+    endpoint: subscription.endpoint,
+    p256dh: subscription.p256dh,
+    auth: subscription.auth,
+  });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
   return { success: true };
 }
 
 export async function sendTestNotification() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const { data: subscriptions, error: fetchError } = await supabase
-    .from("push_subscriptions")
-    .select("endpoint, p256dh, auth")
-    .eq("user_id", user.id);
+  const db = await getDb();
+  const subscriptions = await db.notifications.findByUser(user.id);
 
-  if (fetchError) return { error: fetchError.message };
-  if (!subscriptions || subscriptions.length === 0) {
+  if (!subscriptions) return { error: "Error al obtener suscripciones" };
+  if (subscriptions.length === 0) {
     return { error: "No hay suscripciones activas para este usuario" };
   }
 
@@ -54,12 +43,8 @@ export async function sendTestNotification() {
     url: "/settings",
   });
 
-  // Clean expired
   if (result.expired.length > 0) {
-    await supabase
-      .from("push_subscriptions")
-      .delete()
-      .in("endpoint", result.expired);
+    await db.notifications.deleteByEndpoints(result.expired);
   }
 
   if (result.sent === 0) {
@@ -70,19 +55,12 @@ export async function sendTestNotification() {
 }
 
 export async function removePushSubscription(endpoint: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase
-    .from("push_subscriptions")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("endpoint", endpoint);
+  const db = await getDb();
+  const { error } = await db.notifications.delete(user.id, endpoint);
 
-  if (error) return { error: error.message };
+  if (error) return { error };
   return { success: true };
 }

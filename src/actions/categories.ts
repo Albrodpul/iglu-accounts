@@ -1,36 +1,20 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import { categorySchema } from "@/lib/validators/expense";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 
 export async function getCategories() {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
-
-  let query = supabase
-    .from("categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (accountId) {
-    query = query.eq("account_id", accountId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return data;
+  const db = await getDb();
+  return db.categories.findAll(accountId);
 }
 
 export async function createCategory(formData: FormData) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
@@ -46,13 +30,14 @@ export async function createCategory(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { error } = await supabase.from("categories").insert({
+  const db = await getDb();
+  const { error } = await db.categories.create({
     ...parsed.data,
     sort_order: parseInt((formData.get("sort_order") as string) || "99"),
     account_id: accountId,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
@@ -61,11 +46,7 @@ export async function createCategory(formData: FormData) {
 }
 
 export async function updateCategory(id: string, formData: FormData) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
@@ -81,13 +62,10 @@ export async function updateCategory(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { error } = await supabase
-    .from("categories")
-    .update(parsed.data)
-    .eq("id", id)
-    .eq("account_id", accountId);
+  const db = await getDb();
+  const { error } = await db.categories.update(id, accountId, parsed.data);
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
@@ -98,147 +76,95 @@ export async function updateCategory(id: string, formData: FormData) {
 
 /** Returns the "Ingreso" category for the current account, creating it if needed. */
 export async function getOrCreateIncomeCategory(): Promise<string | null> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data: existing } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("account_id", accountId)
-    .ilike("name", "ingreso")
-    .limit(1);
+  const db = await getDb();
+  const existing = await db.categories.findByNameIlike(accountId, "ingreso");
+  if (existing) return existing.id;
 
-  if (existing && existing.length > 0) return existing[0].id;
+  const { data: created } = await db.categories.create({
+    name: "Ingreso",
+    icon: "💰",
+    color: "#10b981",
+    sort_order: 0,
+    account_id: accountId,
+  });
 
-  const { data: created, error } = await supabase
-    .from("categories")
-    .insert({
-      name: "Ingreso",
-      icon: "💰",
-      color: "#10b981",
-      sort_order: 0,
-      account_id: accountId,
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) return null;
-  return created.id;
+  return created?.id ?? null;
 }
 
 /** Returns the "Deuda" category for the current account, creating it if needed. */
 export async function getOrCreateDebtCategory(): Promise<string | null> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data: existing } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("account_id", accountId)
-    .ilike("name", "deuda")
-    .limit(1);
+  const db = await getDb();
+  const existing = await db.categories.findByNameIlike(accountId, "deuda");
+  if (existing) return existing.id;
 
-  if (existing && existing.length > 0) return existing[0].id;
+  const { data: created } = await db.categories.create({
+    name: "Deuda",
+    icon: "🤝",
+    color: "#f59e0b",
+    sort_order: 0,
+    account_id: accountId,
+  });
 
-  const { data: created, error } = await supabase
-    .from("categories")
-    .insert({
-      name: "Deuda",
-      icon: "🤝",
-      color: "#f59e0b",
-      sort_order: 0,
-      account_id: accountId,
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) return null;
-  return created.id;
+  return created?.id ?? null;
 }
 
 /** Returns the debt category ID for the current account, if it exists. */
 export async function getDebtCategoryId(): Promise<string | null> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("account_id", accountId)
-    .ilike("name", "deuda")
-    .limit(1);
-
-  return data && data.length > 0 ? data[0].id : null;
+  const db = await getDb();
+  const data = await db.categories.findByNameIlike(accountId, "deuda");
+  return data?.id ?? null;
 }
 
 /** Returns the "Traspaso" category for the current account, creating it if needed. */
 export async function getOrCreateTransferCategory(): Promise<string | null> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data: existing } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("account_id", accountId)
-    .ilike("name", "traspaso")
-    .limit(1);
+  const db = await getDb();
+  const existing = await db.categories.findByNameIlike(accountId, "traspaso");
+  if (existing) return existing.id;
 
-  if (existing && existing.length > 0) return existing[0].id;
+  const { data: created } = await db.categories.create({
+    name: "Traspaso",
+    icon: "🔄",
+    color: "#8b5cf6",
+    sort_order: 0,
+    account_id: accountId,
+  });
 
-  const { data: created, error } = await supabase
-    .from("categories")
-    .insert({
-      name: "Traspaso",
-      icon: "🔄",
-      color: "#8b5cf6",
-      sort_order: 0,
-      account_id: accountId,
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) return null;
-  return created.id;
+  return created?.id ?? null;
 }
 
 /** Returns the transfer category ID for the current account, if it exists. */
 export async function getTransferCategoryId(): Promise<string | null> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("account_id", accountId)
-    .ilike("name", "traspaso")
-    .limit(1);
-
-  return data && data.length > 0 ? data[0].id : null;
+  const db = await getDb();
+  const data = await db.categories.findByNameIlike(accountId, "traspaso");
+  return data?.id ?? null;
 }
 
 export async function deleteCategory(id: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
-  const { error } = await supabase
-    .from("categories")
-    .delete()
-    .eq("id", id)
-    .eq("account_id", accountId);
+  const db = await getDb();
+  const { error } = await db.categories.delete(id, accountId);
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   return { success: true };

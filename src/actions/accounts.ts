@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser, authUpdateUser } from "@/lib/db/auth";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -8,20 +9,8 @@ import { redirect } from "next/navigation";
 const ACCOUNT_COOKIE = "iglu_account_id";
 
 export async function getAccounts() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  if (error) return [];
-  return data;
+  const db = await getDb();
+  return db.accounts.findAll();
 }
 
 export async function getSelectedAccountId(): Promise<string | null> {
@@ -41,20 +30,12 @@ export async function setSelectedAccount(accountId: string) {
   });
 }
 
-/** Sets the cookie, invalidates cache, and redirects — used by the account switcher UI */
 export async function getAccountSettings() {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
 
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("id, has_investments")
-    .eq("id", accountId)
-    .single();
-
-  if (error) return null;
-  return data;
+  const db = await getDb();
+  return db.accounts.findSettings(accountId);
 }
 
 export async function hasInvestmentsEnabled(): Promise<boolean> {
@@ -63,155 +44,93 @@ export async function hasInvestmentsEnabled(): Promise<boolean> {
 }
 
 export async function toggleInvestments(enabled: boolean) {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
-  const { error } = await supabase
-    .from("accounts")
-    .update({ has_investments: enabled })
-    .eq("id", accountId);
+  const db = await getDb();
+  const { error } = await db.accounts.update(accountId, { has_investments: enabled });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/", "layout");
   return { success: true };
 }
 
 export async function notificationsEnabled(): Promise<boolean> {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return false;
 
-  const { data } = await supabase
-    .from("accounts")
-    .select("notifications_enabled")
-    .eq("id", accountId)
-    .single();
-
+  const db = await getDb();
+  const data = await db.accounts.findForNotifications(accountId);
   return data?.notifications_enabled ?? true;
 }
 
 export async function toggleNotifications(enabled: boolean) {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
-  const { error } = await supabase
-    .from("accounts")
-    .update({ notifications_enabled: enabled })
-    .eq("id", accountId);
+  const db = await getDb();
+  const { error } = await db.accounts.update(accountId, { notifications_enabled: enabled });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   return { success: true };
 }
 
 export async function createAccount(name: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const trimmed = name.trim();
   if (!trimmed) return { error: "El nombre es obligatorio" };
 
-  const { data: account, error } = await supabase
-    .from("accounts")
-    .insert({ name: trimmed })
-    .select("id")
-    .single();
+  const db = await getDb();
+  const { data: account, error } = await db.accounts.create(trimmed);
 
-  if (error) return { error: error.message };
+  if (error || !account) return { error: error ?? "Error al crear la cuenta" };
 
-  const { error: memberError } = await supabase
-    .from("account_members")
-    .insert({ account_id: account.id, user_id: user.id, role: "owner" });
+  const { error: memberError } = await db.accounts.createMember(account.id, user.id, "owner");
 
-  if (memberError) return { error: memberError.message };
+  if (memberError) return { error: memberError };
 
   revalidatePath("/", "layout");
   return { success: true, id: account.id };
 }
 
 export async function renameAccount(accountId: string, name: string) {
-  const supabase = await createClient();
   const trimmed = name.trim();
   if (!trimmed) return { error: "El nombre es obligatorio" };
 
-  const { error } = await supabase
-    .from("accounts")
-    .update({ name: trimmed })
-    .eq("id", accountId);
+  const db = await getDb();
+  const { error } = await db.accounts.update(accountId, { name: trimmed });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/", "layout");
   return { success: true };
 }
 
 export async function getAccountDataCounts(accountId: string) {
-  const supabase = await createClient();
-
-  const [expenses, recurring, categories, investments] = await Promise.all([
-    supabase
-      .from("expenses")
-      .select("id", { count: "exact", head: true })
-      .eq("account_id", accountId),
-    supabase
-      .from("recurring_expenses")
-      .select("id", { count: "exact", head: true })
-      .eq("account_id", accountId),
-    supabase
-      .from("categories")
-      .select("id", { count: "exact", head: true })
-      .eq("account_id", accountId),
-    supabase
-      .from("investment_funds")
-      .select("id", { count: "exact", head: true })
-      .eq("account_id", accountId),
-  ]);
-
-  return {
-    expenses: expenses.count ?? 0,
-    recurring: recurring.count ?? 0,
-    categories: categories.count ?? 0,
-    investments: investments.count ?? 0,
-  };
+  const db = await getDb();
+  return db.accounts.getDataCounts(accountId);
 }
 
 export async function deleteAccount(accountId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  // Verify ownership
-  const { data: membership } = await supabase
-    .from("account_members")
-    .select("role")
-    .eq("account_id", accountId)
-    .eq("user_id", user.id)
-    .single();
+  const db = await getDb();
+  const membership = await db.accounts.getMembership(accountId, user.id);
 
   if (membership?.role !== "owner") {
     return { error: "Solo el propietario puede eliminar la cuenta" };
   }
 
-  // Nullify expenses and recurring (ON DELETE SET NULL)
-  // Categories, investments cascade automatically
+  const { error } = await db.accounts.delete(accountId);
 
-  const { error } = await supabase
-    .from("accounts")
-    .delete()
-    .eq("id", accountId);
+  if (error) return { error };
 
-  if (error) return { error: error.message };
-
-  // If deleted account was selected, clear cookie
   const selectedId = await getSelectedAccountId();
   if (selectedId === accountId) {
     const cookieStore = await cookies();
@@ -223,10 +142,7 @@ export async function deleteAccount(accountId: string) {
 }
 
 export async function getUserDisplayName(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
   return (
     user.user_metadata?.display_name ||
@@ -237,13 +153,10 @@ export async function getUserDisplayName(): Promise<string | null> {
 }
 
 export async function updateDisplayName(name: string) {
-  const supabase = await createClient();
   const trimmed = name.trim();
   if (!trimmed) return { error: "El nombre es obligatorio" };
 
-  const { error } = await supabase.auth.updateUser({
-    data: { display_name: trimmed },
-  });
+  const { error } = await authUpdateUser({ data: { display_name: trimmed } });
 
   if (error) return { error: error.message };
 
@@ -252,21 +165,13 @@ export async function updateDisplayName(name: string) {
 }
 
 export async function selectAccount(accountId: string) {
-  // Verify the user is a member of this account
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const { data } = await supabase
-    .from("account_members")
-    .select("id")
-    .eq("account_id", accountId)
-    .eq("user_id", user.id)
-    .limit(1);
+  const db = await getDb();
+  const isMember = await db.accounts.isMember(accountId, user.id);
 
-  if (!data || data.length === 0) {
+  if (!isMember) {
     redirect("/login");
   }
 

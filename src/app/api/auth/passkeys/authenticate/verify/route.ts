@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getServiceDb } from "@/lib/db/service";
 import {
   getChallengeCookieOptions,
   getExpectedOrigin,
@@ -14,7 +15,11 @@ type AuthenticationResponseBody = Parameters<
 >[0]["response"];
 
 export async function POST(request: NextRequest) {
+  // Service DB for passkey table operations (no auth context needed)
+  const db = getServiceDb();
+  // Service client needed for Supabase Admin auth operations (admin.getUserById, admin.generateLink)
   const serviceClient = createServiceClient();
+  // Server client for verifyOtp (needs cookie context)
   const supabase = await createClient();
 
   const expectedChallenge = request.cookies.get(PASSKEY_AUTH_CHALLENGE_COOKIE)?.value;
@@ -30,13 +35,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
-  const { data: passkey, error: passkeyError } = await serviceClient
-    .from("user_passkeys")
-    .select("user_id, credential_id, public_key, counter, transports")
-    .eq("credential_id", body.id)
-    .maybeSingle();
+  const passkey = await db.passkeys.findByCredentialId(body.id);
 
-  if (passkeyError || !passkey) {
+  if (!passkey) {
     return NextResponse.json({ error: "Passkey no encontrada" }, { status: 404 });
   }
 
@@ -58,16 +59,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Verificación fallida" }, { status: 401 });
   }
 
-  await serviceClient
-    .from("user_passkeys")
-    .update({
-      counter: verification.authenticationInfo.newCounter,
-      last_used_at: new Date().toISOString(),
-    })
-    .eq("credential_id", passkey.credential_id);
+  await db.passkeys.updateCounter(
+    passkey.credential_id,
+    verification.authenticationInfo.newCounter,
+    new Date().toISOString(),
+  );
 
+  // Supabase Admin auth — specific to Supabase Auth provider
   const { data: userResult, error: userError } = await serviceClient.auth.admin.getUserById(
-    passkey.user_id
+    passkey.user_id,
   );
 
   const email = userResult.user?.email;
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
   if (otpError) {
     return NextResponse.json(
       { error: `No se pudo iniciar sesión: ${otpError.message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

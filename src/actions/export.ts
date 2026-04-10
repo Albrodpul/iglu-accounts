@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 
@@ -61,73 +62,42 @@ export type BackupData = {
 };
 
 export async function exportAccountData(): Promise<{ data?: BackupData; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
-  const { data: account, error: accountError } = await supabase
-    .from("accounts")
-    .select("id, name, has_investments")
-    .eq("id", accountId)
-    .single();
-  if (accountError || !account) return { error: "No se pudo obtener la cuenta" };
+  const db = await getDb();
 
-  const { data: categories, error: categoriesError } = await supabase
-    .from("categories")
-    .select("id, name, icon, color, sort_order")
-    .eq("account_id", accountId)
-    .order("sort_order", { ascending: true });
-  if (categoriesError) return { error: categoriesError.message };
+  const account = await db.accounts.findById(accountId);
+  if (!account) return { error: "No se pudo obtener la cuenta" };
 
-  const { data: expenses, error: expensesError } = await supabase
-    .from("expenses")
-    .select("id, category_id, amount, concept, expense_date, notes, payment_method, transfer_pair_id")
-    .eq("account_id", accountId)
-    .order("expense_date", { ascending: true });
-  if (expensesError) return { error: expensesError.message };
+  const categories = await db.categories.findAll(accountId);
+  const expenses = await db.expenses.findForBackup(accountId);
+  if (!expenses) return { error: "Error al exportar gastos" };
 
-  const { data: recurring, error: recurringError } = await supabase
-    .from("recurring_expenses")
-    .select("id, category_id, amount, concept, day_of_month, schedule_type, is_active")
-    .eq("account_id", accountId)
-    .order("created_at", { ascending: true });
-  if (recurringError) return { error: recurringError.message };
+  const recurring = await db.recurring.findForBackup(accountId);
+  if (!recurring) return { error: "Error al exportar recurrentes" };
 
   let investmentTypes: BackupData["investment_types"] = [];
   let investmentFunds: BackupData["investment_funds"] = [];
   let investmentContributions: BackupData["investment_contributions"] = [];
 
   if (account.has_investments) {
-    const { data: types, error: typesError } = await supabase
-      .from("investment_types")
-      .select("id, name, sort_order")
-      .eq("account_id", accountId)
-      .order("sort_order", { ascending: true });
-    if (typesError) return { error: typesError.message };
-    investmentTypes = types ?? [];
+    const types = await db.investments.findTypesForBackup(accountId);
+    if (!types) return { error: "Error al exportar tipos de inversión" };
+    investmentTypes = types;
 
-    const { data: funds, error: fundsError } = await supabase
-      .from("investment_funds")
-      .select("id, type_id, name, invested_amount, current_value, sort_order")
-      .eq("account_id", accountId)
-      .order("sort_order", { ascending: true });
-    if (fundsError) return { error: fundsError.message };
-    investmentFunds = funds ?? [];
+    const funds = await db.investments.findFundsForBackup(accountId);
+    if (!funds) return { error: "Error al exportar fondos" };
+    investmentFunds = funds;
 
     if (investmentFunds.length > 0) {
       const fundIds = investmentFunds.map((f) => f.id);
-      const { data: contributions, error: contribError } = await supabase
-        .from("investment_contributions")
-        .select("id, fund_id, amount, contribution_date, notes")
-        .in("fund_id", fundIds)
-        .order("contribution_date", { ascending: true });
-      if (contribError) return { error: contribError.message };
-      investmentContributions = contributions ?? [];
+      const contributions = await db.investments.findContributionsForBackup(fundIds);
+      if (!contributions) return { error: "Error al exportar aportaciones" };
+      investmentContributions = contributions;
     }
   }
 
@@ -139,14 +109,14 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
       name: account.name,
       has_investments: account.has_investments,
     },
-    categories: (categories ?? []).map((c) => ({
+    categories: categories.map((c) => ({
       id: c.id,
       name: c.name,
       icon: c.icon,
       color: c.color,
       sort_order: c.sort_order,
     })),
-    expenses: (expenses ?? []).map((e) => ({
+    expenses: expenses.map((e) => ({
       id: e.id,
       category_id: e.category_id,
       amount: Number(e.amount),
@@ -156,7 +126,7 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
       payment_method: e.payment_method ?? "bank",
       transfer_pair_id: e.transfer_pair_id ?? null,
     })),
-    recurring_expenses: (recurring ?? []).map((r) => ({
+    recurring_expenses: recurring.map((r) => ({
       id: r.id,
       category_id: r.category_id,
       amount: Number(r.amount),

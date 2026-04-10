@@ -3,16 +3,13 @@ import Link from "next/link";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { getAccounts, getSelectedAccountId, selectAccount } from "@/actions/accounts";
 import { signOut } from "@/actions/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/db/auth";
 import { redirect } from "next/navigation";
 import { SelectAccountForm } from "@/components/select-account/select-account-form";
 import { Button } from "@/components/ui/button";
 
 export default async function SelectAccountPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) redirect("/login");
 

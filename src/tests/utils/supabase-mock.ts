@@ -19,9 +19,12 @@ export function createQueryBuilder<T = unknown>(
     delete: vi.fn(() => builder),
     order: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
     gte: vi.fn(() => builder),
     lt: vi.fn(() => builder),
     ilike: vi.fn(() => builder),
+    like: vi.fn(() => builder),
+    in: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     single: vi.fn(async () => result),
     maybeSingle: vi.fn(async () => result),
@@ -52,6 +55,7 @@ export function createSupabaseMock(options?: {
       }),
       signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
+      updateUser: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn((tableName: string) => {
       const builder = tables[tableName];

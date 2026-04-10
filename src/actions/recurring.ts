@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/db/auth";
 import { recurringExpenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
@@ -10,31 +11,13 @@ import { getOrCreateIncomeCategory } from "./categories";
 import { getScheduledDay } from "@/lib/recurring";
 
 export async function getRecurringExpenses() {
-  const supabase = await createClient();
   const accountId = await getSelectedAccountId();
-
-  let query = supabase
-    .from("recurring_expenses")
-    .select("*, category:categories(*)")
-    .eq("is_active", true)
-    .order("concept", { ascending: true });
-
-  if (accountId) {
-    query = query.eq("account_id", accountId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return data;
+  const db = await getDb();
+  return db.recurring.findActive(accountId);
 }
 
 export async function createRecurringExpense(formData: FormData) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
@@ -42,9 +25,10 @@ export async function createRecurringExpense(formData: FormData) {
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
   const categoryValue = formData.get("category_id");
-  let categoryId = typeof categoryValue === "string" && categoryValue.trim().length > 0
-    ? categoryValue
-    : null;
+  let categoryId =
+    typeof categoryValue === "string" && categoryValue.trim().length > 0
+      ? categoryValue
+      : null;
 
   if (isIncome && !categoryId) {
     categoryId = await getOrCreateIncomeCategory();
@@ -64,14 +48,14 @@ export async function createRecurringExpense(formData: FormData) {
   }
 
   const accountId = await getSelectedAccountId();
-
-  const { error } = await supabase.from("recurring_expenses").insert({
+  const db = await getDb();
+  const { error } = await db.recurring.create({
     ...parsed.data,
     user_id: user.id,
-    ...(accountId ? { account_id: accountId } : {}),
+    account_id: accountId,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   revalidatePath("/summary");
@@ -80,11 +64,7 @@ export async function createRecurringExpense(formData: FormData) {
 }
 
 export async function updateRecurringExpense(id: string, formData: FormData) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const amount = parseSignedAmount(formData);
@@ -92,9 +72,10 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   const scheduleType = (formData.get("schedule_type") as string) || "monthly";
   const dayValue = formData.get("day_of_month") as string;
   const categoryValue = formData.get("category_id");
-  let categoryId = typeof categoryValue === "string" && categoryValue.trim().length > 0
-    ? categoryValue
-    : null;
+  let categoryId =
+    typeof categoryValue === "string" && categoryValue.trim().length > 0
+      ? categoryValue
+      : null;
 
   if (isIncome && !categoryId) {
     categoryId = await getOrCreateIncomeCategory();
@@ -113,13 +94,13 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { error } = await supabase
-    .from("recurring_expenses")
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const db = await getDb();
+  const { error } = await db.recurring.update(id, user.id, {
+    ...parsed.data,
+    updated_at: new Date().toISOString(),
+  });
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   revalidatePath("/summary");
@@ -128,14 +109,11 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
 }
 
 export async function triggerRecurringExpenses() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const accountId = await getSelectedAccountId();
+  const db = await getDb();
 
   const now = new Date();
   const year = now.getFullYear();
@@ -143,51 +121,27 @@ export async function triggerRecurringExpenses() {
   const today = now.getDate();
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
-  // Get active recurring items for this account
-  let query = supabase
-    .from("recurring_expenses")
-    .select("*")
-    .eq("is_active", true)
-    .eq("user_id", user.id);
+  const recurring = await db.recurring.findActiveForUser(user.id, accountId);
 
-  if (accountId) {
-    query = query.eq("account_id", accountId);
-  }
-
-  const { data: recurring, error: fetchError } = await query;
-
-  if (fetchError) return { error: fetchError.message };
-  if (!recurring || recurring.length === 0) {
+  if (!recurring) return { error: "Error al obtener movimientos fijos" };
+  if (recurring.length === 0) {
     return { error: "No hay movimientos fijos configurados" };
   }
 
-  // Check which have already been inserted this month
-  let existingQuery = supabase
-    .from("expenses")
-    .select("notes")
-    .eq("user_id", user.id)
-    .like("notes", "auto:recurring:%")
-    .gte("expense_date", `${monthStr}-01`)
-    .lt(
-      "expense_date",
-      month === 12
-        ? `${year + 1}-01-01`
-        : `${year}-${String(month + 1).padStart(2, "0")}-01`
-    );
+  const startDate = `${monthStr}-01`;
+  const endDate =
+    month === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
-  if (accountId) {
-    existingQuery = existingQuery.eq("account_id", accountId);
-  }
-
-  const { data: existing } = await existingQuery;
+  const existingNotes = await db.expenses.findRecurringNotesInRange(accountId, startDate, endDate);
 
   const alreadyInserted = new Set(
-    (existing || [])
+    existingNotes
       .map((e) => e.notes?.replace("auto:recurring:", ""))
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
-  // Catch-up: insert all pending items with scheduled day <= today
   const toInsert = recurring
     .filter((r) => {
       if (alreadyInserted.has(r.id)) return false;
@@ -211,24 +165,17 @@ export async function triggerRecurringExpenses() {
     return { inserted: 0, message: "No hay movimientos fijos pendientes hasta hoy" };
   }
 
-  const { error: insertError } = await supabase.from("expenses").insert(toInsert);
+  const { error: insertError } = await db.expenses.createMany(toInsert);
 
-  if (insertError) return { error: insertError.message };
+  if (insertError) return { error: insertError };
 
   // Send push notifications
   try {
     if (accountId) {
-      const { data: account } = await supabase
-        .from("accounts")
-        .select("notifications_enabled, name")
-        .eq("id", accountId)
-        .single();
+      const account = await db.accounts.findForNotifications(accountId);
 
       if (account?.notifications_enabled) {
-        const { data: subscriptions } = await supabase
-          .from("push_subscriptions")
-          .select("endpoint, p256dh, auth")
-          .eq("user_id", user.id);
+        const subscriptions = await db.notifications.findByUser(user.id);
 
         if (subscriptions && subscriptions.length > 0) {
           const { sendPushToMany, formatRecurringPushBody } = await import("@/lib/web-push");
@@ -240,10 +187,7 @@ export async function triggerRecurringExpenses() {
           });
 
           if (result.expired.length > 0) {
-            await supabase
-              .from("push_subscriptions")
-              .delete()
-              .in("endpoint", result.expired);
+            await db.notifications.deleteByEndpoints(result.expired);
           }
         }
       }
@@ -256,24 +200,20 @@ export async function triggerRecurringExpenses() {
   revalidatePath("/summary");
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
-  return { inserted: toInsert.length, message: `${toInsert.length} movimiento(s) fijo(s) insertado(s)` };
+  return {
+    inserted: toInsert.length,
+    message: `${toInsert.length} movimiento(s) fijo(s) insertado(s)`,
+  };
 }
 
 export async function deleteRecurringExpense(id: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase
-    .from("recurring_expenses")
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const db = await getDb();
+  const { error } = await db.recurring.deactivate(id, user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error };
 
   revalidatePath("/settings");
   revalidatePath("/summary");

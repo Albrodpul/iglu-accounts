@@ -15,6 +15,9 @@
 name: Update investment NAV
 
 on:
+  push:       # <--- Añade esto para que se dispare al subir código
+    branches:
+      - main
   schedule:
     - cron: "0 0 * * *"   # ~01:00 Spain
     - cron: "0 8 * * *"   # ~09:00 Spain

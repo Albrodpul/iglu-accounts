@@ -48,6 +48,8 @@ export type BackupData = {
     id: string;
     type_id: string;
     name: string;
+    isin: string | null;
+    show_negative_returns: boolean;
     invested_amount: number;
     current_value: number;
     sort_order: number;
@@ -56,6 +58,7 @@ export type BackupData = {
     id: string;
     fund_id: string;
     amount: number;
+    purchase_price: number | null;
     contribution_date: string;
     notes: string | null;
   }>;

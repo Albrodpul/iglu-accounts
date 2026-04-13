@@ -198,6 +198,8 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
             account_id: accountId,
             type_id: mappedTypeId,
             name: fund.name,
+            isin: fund.isin ?? null,
+            show_negative_returns: fund.show_negative_returns ?? true,
             invested_amount: fund.invested_amount,
             current_value: fund.current_value,
             sort_order: fund.sort_order,
@@ -232,6 +234,7 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
             fund_id: fundIdMap.get(c.fund_id)!,
             account_id: accountId,
             amount: c.amount,
+            purchase_price: c.purchase_price ?? null,
             contribution_date: c.contribution_date,
             notes: c.notes,
           }));

@@ -4,8 +4,10 @@ import { getDb } from "@/lib/db";
 import {
   investmentTypeSchema,
   investmentFundCreateSchema,
+  investmentFundUpdateSchema,
   investmentContributionSchema,
 } from "@/lib/validators/expense";
+import { fetchNavByIsin, calculateCurrentValue } from "@/lib/nav";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
 
@@ -106,22 +108,31 @@ export async function createInvestmentFund(formData: FormData) {
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
   const initialAmount = parseFloat(formData.get("initial_amount") as string) || 0;
+  const purchasePriceRaw = formData.get("purchase_price") as string;
+  const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
+
+  const isinRaw = (formData.get("isin") as string)?.trim() || null;
+  const showNegativeReturns = formData.get("show_negative_returns") !== "false";
 
   const parsed = investmentFundCreateSchema.safeParse({
     name: formData.get("name"),
     type_id: formData.get("type_id"),
     initial_amount: initialAmount,
+    isin: isinRaw || null,
+    show_negative_returns: showNegativeReturns,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { initial_amount, ...fundData } = parsed.data;
+  const { initial_amount, isin, show_negative_returns, ...fundData } = parsed.data;
 
   const db = await getDb();
   const { data: fund, error } = await db.investments.createFund({
     ...fundData,
+    isin: isin ?? null,
+    show_negative_returns: show_negative_returns ?? true,
     invested_amount: initial_amount,
     current_value: initial_amount,
     account_id: accountId,
@@ -136,6 +147,7 @@ export async function createInvestmentFund(formData: FormData) {
       fund_id: fund.id,
       account_id: accountId,
       amount: initial_amount,
+      purchase_price: purchasePrice && purchasePrice > 0 ? purchasePrice : null,
       contribution_date: contribDate,
       notes: "Aportación inicial",
     });
@@ -149,12 +161,24 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   const accountId = await getSelectedAccountId();
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
-  const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "El nombre es obligatorio" };
+  const isinRaw = (formData.get("isin") as string)?.trim() || null;
+  const showNegativeReturns = formData.get("show_negative_returns") !== "false";
+
+  const parsed = investmentFundUpdateSchema.safeParse({
+    name: formData.get("name"),
+    isin: isinRaw || null,
+    show_negative_returns: showNegativeReturns,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
 
   const db = await getDb();
   const { error } = await db.investments.updateFund(id, accountId, {
-    name,
+    name: parsed.data.name,
+    isin: parsed.data.isin ?? null,
+    show_negative_returns: parsed.data.show_negative_returns ?? true,
     updated_at: new Date().toISOString(),
   });
 
@@ -219,10 +243,13 @@ export async function createContribution(formData: FormData) {
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
   const amount = parseFloat(formData.get("amount") as string) || 0;
+  const purchasePriceRaw = formData.get("purchase_price") as string;
+  const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
 
   const parsed = investmentContributionSchema.safeParse({
     fund_id: formData.get("fund_id"),
     amount,
+    purchase_price: purchasePrice && purchasePrice > 0 ? purchasePrice : null,
     contribution_date: formData.get("contribution_date"),
     notes: formData.get("notes") || null,
   });
@@ -260,6 +287,8 @@ export async function updateContribution(id: string, formData: FormData) {
   const newAmount = parseFloat(formData.get("amount") as string) || 0;
   const contributionDate = formData.get("contribution_date") as string;
   const notes = (formData.get("notes") as string) || null;
+  const purchasePriceRaw = formData.get("purchase_price") as string;
+  const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
 
   if (newAmount <= 0) return { error: "El importe debe ser positivo" };
   if (!contributionDate) return { error: "La fecha es obligatoria" };
@@ -273,6 +302,7 @@ export async function updateContribution(id: string, formData: FormData) {
 
   const { error } = await db.investments.updateContribution(id, accountId, {
     amount: newAmount,
+    purchase_price: purchasePrice && purchasePrice > 0 ? purchasePrice : null,
     contribution_date: contributionDate,
     notes,
   });
@@ -316,6 +346,44 @@ export async function deleteContribution(id: string, fundId: string, amount: num
 
   revalidateAll();
   return { success: true };
+}
+
+// ─── Manual NAV refresh (same logic as cron, scoped to current account) ───
+
+export async function refreshInvestmentNav(): Promise<{
+  updated: number;
+  skipped: number;
+  error?: string;
+}> {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { updated: 0, skipped: 0, error: "No hay cuenta seleccionada" };
+
+  const db = await getDb();
+  const funds = await db.investments.findFundsForNavByAccount(accountId);
+
+  if (funds.length === 0) return { updated: 0, skipped: 0 };
+
+  let updated = 0;
+  let skipped = 0;
+
+  for (const fund of funds) {
+    const nav = await fetchNavByIsin(fund.isin);
+    if (nav === null) { skipped++; continue; }
+
+    const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
+    if (newCurrentValue === null) { skipped++; continue; }
+
+    const { error } = await db.investments.updateFund(fund.id, accountId, {
+      current_value: Math.round(newCurrentValue * 100) / 100,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) skipped++;
+    else updated++;
+  }
+
+  revalidateAll();
+  return { updated, skipped };
 }
 
 // ─── Investment Summary (for dashboard) ───

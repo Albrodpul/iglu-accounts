@@ -52,7 +52,7 @@ export default function RootLayout({
       >
         <ServiceWorkerRegister />
         {children}
-        <Toaster richColors position="top-center" />
+        <Toaster richColors position="top-center" closeButton />
       </body>
     </html>
   );

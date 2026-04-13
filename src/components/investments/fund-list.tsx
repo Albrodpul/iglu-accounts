@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   createInvestmentFund,
   updateInvestmentFund,
@@ -10,6 +11,7 @@ import {
   updateContribution,
   getContributions,
   deleteContribution,
+  refreshInvestmentNav,
 } from "@/actions/investments";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent } from "lucide-react";
+import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
@@ -40,6 +42,7 @@ type Props = {
 };
 
 export function FundList({ types, funds }: Props) {
+  const router = useRouter();
   const [fundOpen, setFundOpen] = useState(false);
   const [editingFund, setEditingFund] = useState<InvestmentFundWithType | null>(null);
   const [profitOpen, setProfitOpen] = useState(false);
@@ -51,7 +54,11 @@ export function FundList({ types, funds }: Props) {
   const [contributions, setContributions] = useState<InvestmentContribution[]>([]);
   const [editingContrib, setEditingContrib] = useState<InvestmentContribution | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showNegative, setShowNegative] = useState(true);
   const { confirm, ConfirmDialog } = useConfirm();
+
+  const hasIsinFunds = funds.some((f) => f.isin);
 
   // Group funds by type
   const fundsByType = new Map<string, { type: InvestmentType; funds: InvestmentFundWithType[] }>();
@@ -65,11 +72,13 @@ export function FundList({ types, funds }: Props) {
 
   function openCreateFund() {
     setEditingFund(null);
+    setShowNegative(true);
     setFundOpen(true);
   }
 
   function openEditFund(fund: InvestmentFundWithType) {
     setEditingFund(fund);
+    setShowNegative(fund.show_negative_returns);
     setFundOpen(true);
   }
 
@@ -88,6 +97,24 @@ export function FundList({ types, funds }: Props) {
     setHistoryOpen(true);
     const data = await getContributions(fund.id);
     setContributions(data);
+  }
+
+  async function handleRefreshNav() {
+    setRefreshing(true);
+    const result = await refreshInvestmentNav();
+    if (result.error) {
+      toast.error(result.error);
+    } else if (result.updated === 0 && result.skipped > 0) {
+      toast.error("No se pudo obtener el valor liquidativo de ningún fondo");
+    } else {
+      toast.success(
+        result.updated === 1
+          ? "Rentabilidad actualizada (1 fondo)"
+          : `Rentabilidad actualizada (${result.updated} fondos)`,
+      );
+      router.refresh();
+    }
+    setRefreshing(false);
   }
 
   async function handleFundSubmit(formData: FormData) {
@@ -189,18 +216,39 @@ export function FundList({ types, funds }: Props) {
     return ((current - invested) / invested) * 100;
   }
 
+  // Apply show_negative_returns setting: if false and return < 0, clamp to 0
+  function getDisplayReturn(fund: InvestmentFundWithType): number {
+    const ret = fund.current_value - fund.invested_amount;
+    if (!fund.show_negative_returns && ret < 0) return 0;
+    return ret;
+  }
+
   const today = new Date().toISOString().split("T")[0];
 
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold md:text-xl">Fondos de inversión</h2>
-          {types.length > 0 && (
-            <Button size="sm" onClick={openCreateFund}>
-              <Plus className="h-4 w-4 mr-1" /> Añadir fondo
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {hasIsinFunds && (
+              <button
+                type="button"
+                onClick={handleRefreshNav}
+                disabled={refreshing}
+                title="Actualizar rentabilidades via NAV"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                <span className="hidden sm:inline">Actualizar NAV</span>
+              </button>
+            )}
+            {types.length > 0 && (
+              <Button size="sm" onClick={openCreateFund}>
+                <Plus className="h-4 w-4 mr-1" /> Añadir fondo
+              </Button>
+            )}
+          </div>
         </div>
 
         {types.length === 0 ? (
@@ -216,9 +264,12 @@ export function FundList({ types, funds }: Props) {
             .filter((group) => group.funds.length > 0)
             .map(({ type, funds: typeFunds }) => {
               const totalInvested = typeFunds.reduce((s, f) => s + f.invested_amount, 0);
-              const totalValue = typeFunds.reduce((s, f) => s + f.current_value, 0);
-              const totalReturnAmt = totalValue - totalInvested;
-              const totalReturnPct = getReturnPct(totalInvested, totalValue);
+              const totalDisplayValue = typeFunds.reduce((s, f) => {
+                const displayRet = getDisplayReturn(f);
+                return s + f.invested_amount + displayRet;
+              }, 0);
+              const totalReturnAmt = totalDisplayValue - totalInvested;
+              const totalReturnPct = getReturnPct(totalInvested, totalDisplayValue);
 
               return (
                 <div key={type.id} className="space-y-3">
@@ -232,7 +283,7 @@ export function FundList({ types, funds }: Props) {
                         Inv: <Amount value={totalInvested} className="font-semibold text-foreground tabular-nums" />
                       </span>
                       <span className="text-muted-foreground">
-                        Val: <Amount value={totalValue} className="font-semibold text-foreground tabular-nums" />
+                        Val: <Amount value={totalDisplayValue} className="font-semibold text-foreground tabular-nums" />
                       </span>
                       <span className={`font-semibold tabular-nums ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                         <Amount value={totalReturnAmt} prefix={totalReturnAmt >= 0 ? "+" : ""} suffix={` (${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}%)`} />
@@ -243,10 +294,11 @@ export function FundList({ types, funds }: Props) {
                   {/* Fund items */}
                   <div className="space-y-1">
                     {typeFunds.map((fund) => {
-                      const returnAmt = fund.current_value - fund.invested_amount;
-                      const returnPct = getReturnPct(fund.invested_amount, fund.current_value);
-                      const weight = totalValue > 0
-                        ? ((fund.current_value / totalValue) * 100).toFixed(1)
+                      const displayReturn = getDisplayReturn(fund);
+                      const displayValue = fund.invested_amount + displayReturn;
+                      const returnPct = getReturnPct(fund.invested_amount, displayValue);
+                      const weight = totalDisplayValue > 0
+                        ? ((displayValue / totalDisplayValue) * 100).toFixed(1)
                         : "0.0";
 
                       return (
@@ -256,7 +308,7 @@ export function FundList({ types, funds }: Props) {
                         >
                           {/* Icon */}
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
-                            {returnAmt >= 0 ? (
+                            {displayReturn >= 0 ? (
                               <TrendingUp className="h-4 w-4 text-emerald-500" />
                             ) : (
                               <TrendingDown className="h-4 w-4 text-rose-500" />
@@ -270,16 +322,17 @@ export function FundList({ types, funds }: Props) {
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Inv: <Amount value={fund.invested_amount} /> · Peso: {weight}%
+                              {fund.isin && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.isin}</span>}
                             </p>
                           </div>
 
                           {/* Values — aligned */}
                           <div className="text-right shrink-0">
                             <p className="text-[15px] font-semibold tabular-nums">
-                              <Amount value={fund.current_value} />
+                              <Amount value={displayValue} />
                             </p>
-                            <p className={`text-xs font-medium tabular-nums ${returnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                              <Amount value={returnAmt} prefix={returnAmt >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
+                            <p className={`text-xs font-medium tabular-nums ${displayReturn >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                              <Amount value={displayReturn} prefix={displayReturn >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
                             </p>
                           </div>
 
@@ -324,32 +377,53 @@ export function FundList({ types, funds }: Props) {
             <DialogTitle>{editingFund ? "Editar fondo" : "Nuevo fondo"}</DialogTitle>
           </DialogHeader>
           <form key={editingFund?.id ?? "new"} action={handleFundSubmit} className="space-y-4 px-5 py-4">
+            {/* Pass show_negative_returns as hidden field; visual toggle updates state */}
+            <input type="hidden" name="show_negative_returns" value={showNegative ? "true" : "false"} />
+
             <div className="space-y-2">
               <Label htmlFor="fund_name">Nombre</Label>
               <Input
                 id="fund_name"
                 name="name"
                 defaultValue={editingFund?.name || ""}
-                placeholder="Ej: Trade Republic"
+                placeholder="Ej: MSCI World"
                 required
               />
             </div>
 
+            {!editingFund && (
+              <div className="space-y-2">
+                <Label htmlFor="type_id">Tipo de inversión</Label>
+                <select
+                  id="type_id"
+                  name="type_id"
+                  defaultValue={types.length === 1 ? types[0].id : ""}
+                  required
+                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="" disabled>Selecciona tipo</option>
+                  {types.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="type_id">Tipo de inversión</Label>
-              <select
-                id="type_id"
-                name="type_id"
-                defaultValue={editingFund?.type_id || (types.length === 1 ? types[0].id : "")}
-                required
-                disabled={!!editingFund}
-                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-              >
-                <option value="" disabled>Selecciona tipo</option>
-                {types.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <Label htmlFor="fund_isin">
+                ISIN <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="fund_isin"
+                name="isin"
+                defaultValue={editingFund?.isin ?? ""}
+                placeholder="Ej: IE00B4L5Y983"
+                maxLength={12}
+                className="font-mono uppercase"
+              />
+              <p className="text-xs text-muted-foreground">
+                Con ISIN, el cron actualizará la rentabilidad automáticamente
+              </p>
             </div>
 
             {!editingFund && (
@@ -379,6 +453,41 @@ export function FundList({ types, funds }: Props) {
                 </div>
               </div>
             )}
+
+            {!editingFund && (
+              <div className="space-y-2">
+                <Label htmlFor="initial_price">
+                  Precio de compra (€/participación) <span className="text-muted-foreground font-normal">(opcional)</span>
+                </Label>
+                <Input
+                  id="initial_price"
+                  name="purchase_price"
+                  type="number"
+                  step="0.000001"
+                  min="0.000001"
+                  defaultValue=""
+                  placeholder="Ej: 12.72"
+                />
+              </div>
+            )}
+
+            {/* show_negative_returns toggle */}
+            <label className="flex cursor-pointer items-center justify-between rounded-md border border-border/60 px-3 py-3 hover:bg-muted/20 transition-colors">
+              <div>
+                <p className="text-sm font-medium">Mostrar rentabilidad negativa</p>
+                <p className="text-xs text-muted-foreground">Desactivado → las pérdidas se muestran como 0€</p>
+              </div>
+              <div className="relative ml-4 shrink-0">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={showNegative}
+                  onChange={(e) => setShowNegative(e.target.checked)}
+                />
+                <div className="h-6 w-11 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-emerald-500" />
+                <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Guardando..." : editingFund ? "Actualizar" : "Crear"}
@@ -457,6 +566,23 @@ export function FundList({ types, funds }: Props) {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="contrib_price">
+                Precio de compra (€/participación) <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="contrib_price"
+                name="purchase_price"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                defaultValue={editingContrib?.purchase_price ?? ""}
+                placeholder="Ej: 12.72"
+              />
+              <p className="text-xs text-muted-foreground">
+                Necesario para que el cron calcule la rentabilidad por unidades
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="contrib_notes">Notas</Label>
               <Input
                 id="contrib_notes"
@@ -483,31 +609,42 @@ export function FundList({ types, funds }: Props) {
               <p className="text-center text-muted-foreground py-4">Sin aportaciones registradas</p>
             ) : (
               <div className="space-y-1">
-                {contributions.map((c) => (
-                  <div key={c.id} className="group flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/35">
-                    <div>
-                      <p className="text-sm font-medium tabular-nums"><Amount value={c.amount} /></p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(c.contribution_date).toLocaleDateString("es-ES")}
-                        {c.notes && ` · ${c.notes}`}
-                      </p>
+                {contributions.map((c) => {
+                  const units = c.purchase_price && c.purchase_price > 0
+                    ? c.amount / c.purchase_price
+                    : null;
+                  return (
+                    <div key={c.id} className="group flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/35">
+                      <div>
+                        <p className="text-sm font-medium tabular-nums"><Amount value={c.amount} /></p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(c.contribution_date).toLocaleDateString("es-ES")}
+                          {c.purchase_price && (
+                            <span className="ml-1 font-mono">@ {c.purchase_price}€</span>
+                          )}
+                          {units !== null && (
+                            <span className="ml-1 opacity-70">= {units.toFixed(4)} part.</span>
+                          )}
+                          {c.notes && ` · ${c.notes}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                        <button
+                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          onClick={() => historyFund && openEditContribution(c, historyFund)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors cursor-pointer"
+                          onClick={() => handleDeleteContribution(c)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100">
-                      <button
-                        className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        onClick={() => historyFund && openEditContribution(c, historyFund)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors cursor-pointer"
-                        onClick={() => handleDeleteContribution(c)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

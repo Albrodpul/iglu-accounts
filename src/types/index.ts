@@ -93,6 +93,8 @@ export type InvestmentFund = {
   account_id: string;
   type_id: string;
   name: string;
+  isin: string | null;
+  show_negative_returns: boolean;
   invested_amount: number;
   current_value: number;
   sort_order: number;
@@ -109,6 +111,7 @@ export type InvestmentContribution = {
   fund_id: string;
   account_id: string;
   amount: number;
+  purchase_price: number | null;
   contribution_date: string;
   notes: string | null;
   created_at: string;

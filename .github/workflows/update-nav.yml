@@ -1,0 +1,43 @@
+# Updates investment fund NAV-based returns 3 times per day.
+#
+# Schedule (UTC → Spain):
+#   00:00 UTC = 01:00 CET (winter) / 02:00 CEST (summer)
+#   08:00 UTC = 09:00 CET (winter) / 10:00 CEST (summer)
+#   16:00 UTC = 17:00 CET (winter) / 18:00 CEST (summer)
+#
+# No duplicate-cron risk: GitHub Actions reads this file on every push
+# and replaces the schedule automatically. No manual cleanup needed.
+#
+# Required repository secrets:
+#   APP_URL    - e.g. https://your-app.vercel.app
+#   CRON_SECRET - same value as CRON_SECRET env var in your deployment
+
+name: Update investment NAV
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # ~01:00 Spain
+    - cron: "0 8 * * *"   # ~09:00 Spain
+    - cron: "0 16 * * *"  # ~17:00 Spain
+  workflow_dispatch:       # allow manual trigger from GitHub UI
+
+jobs:
+  update-nav:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call update-nav cron endpoint
+        run: |
+          STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/update-nav")
+
+          echo "HTTP status: $STATUS"
+          echo "Response:"
+          cat /tmp/response.json
+
+          if [ "$STATUS" != "200" ]; then
+            echo "Cron endpoint returned non-200 status"
+            exit 1
+          fi

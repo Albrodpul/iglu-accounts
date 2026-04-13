@@ -30,6 +30,7 @@ export function getServiceDb() {
     categories: createCategoriesRepo(client),
     expenses: createExpensesRepo(client),
     recurring: createRecurringRepo(client),
+    investments: createInvestmentsRepo(client),
     notifications: createNotificationsRepo(client),
     passkeys: createPasskeysRepo(client),
   };

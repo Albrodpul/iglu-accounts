@@ -79,6 +79,8 @@ export const investmentFundSchema = z.object({
     .max(100, "Máximo 100 caracteres"),
   type_id: z.string().check(z.uuid({ error: "Selecciona un tipo de inversión" })),
   current_value: z.number().min(0, "El valor no puede ser negativo"),
+  isin: z.string().trim().max(12).optional().nullable(),
+  show_negative_returns: z.boolean().optional().default(true),
 });
 
 export const investmentFundCreateSchema = z.object({
@@ -89,6 +91,18 @@ export const investmentFundCreateSchema = z.object({
     .max(100, "Máximo 100 caracteres"),
   type_id: z.string().check(z.uuid({ error: "Selecciona un tipo de inversión" })),
   initial_amount: z.number().min(0, "El importe no puede ser negativo"),
+  isin: z.string().trim().max(12).optional().nullable(),
+  show_negative_returns: z.boolean().optional().default(true),
+});
+
+export const investmentFundUpdateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "El nombre es obligatorio")
+    .max(100, "Máximo 100 caracteres"),
+  isin: z.string().trim().max(12).optional().nullable(),
+  show_negative_returns: z.boolean().optional().default(true),
 });
 
 export const investmentContributionSchema = z.object({
@@ -96,6 +110,11 @@ export const investmentContributionSchema = z.object({
   amount: z
     .number({ error: "El importe es obligatorio" })
     .refine((v) => v > 0, "El importe debe ser positivo"),
+  purchase_price: z
+    .number()
+    .positive("El precio debe ser positivo")
+    .optional()
+    .nullable(),
   contribution_date: z
     .string()
     .min(1, "La fecha es obligatoria")
@@ -109,4 +128,5 @@ export type CategoryFormData = z.infer<typeof categorySchema>;
 export type InvestmentTypeFormData = z.infer<typeof investmentTypeSchema>;
 export type InvestmentFundFormData = z.infer<typeof investmentFundSchema>;
 export type InvestmentFundCreateFormData = z.infer<typeof investmentFundCreateSchema>;
+export type InvestmentFundUpdateFormData = z.infer<typeof investmentFundUpdateSchema>;
 export type InvestmentContributionFormData = z.infer<typeof investmentContributionSchema>;

@@ -149,7 +149,7 @@ describe("getDb()", () => {
 // ─── Service DB Factory ───────────────────────────────────────────────────────
 
 describe("getServiceDb()", () => {
-  it("returns service repositories without investments", () => {
+  it("returns service repositories including investments", () => {
     mocks.createServiceClient.mockReturnValue(createSupabaseMock());
 
     const db = getServiceDb();
@@ -160,7 +160,7 @@ describe("getServiceDb()", () => {
     expect(db).toHaveProperty("recurring");
     expect(db).toHaveProperty("notifications");
     expect(db).toHaveProperty("passkeys");
-    expect(db).not.toHaveProperty("investments");
+    expect(db).toHaveProperty("investments");
   });
 
   it("is synchronous — no await needed", () => {

@@ -122,6 +122,11 @@
   --sidebar-ring: #38bdf8;
 }
 
+.dark select option {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

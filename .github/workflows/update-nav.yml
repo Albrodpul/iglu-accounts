@@ -35,32 +35,40 @@ jobs:
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured — skipping NAV update"
-            exit 0
+            echo "SECRETS_OK=false" >> $GITHUB_ENV
+          else
+            echo "Secrets OK"
+            echo "SECRETS_OK=true" >> $GITHUB_ENV
           fi
-          echo "Secrets OK"
 
       - name: Checkout repository
+        if: env.SECRETS_OK == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: env.SECRETS_OK == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
+        if: env.SECRETS_OK == 'true'
         run: npm ci
 
       - name: Cache Playwright Chromium
+        if: env.SECRETS_OK == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright Chromium
+        if: env.SECRETS_OK == 'true'
         run: npx playwright install chromium --with-deps
 
       - name: Update NAV
+        if: env.SECRETS_OK == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

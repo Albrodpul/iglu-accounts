@@ -16,8 +16,11 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
-import { chromium } from "playwright";
+import { chromium } from "playwright-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { createClient } from "@supabase/supabase-js";
+
+chromium.use(StealthPlugin());
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -370,6 +370,9 @@ export async function refreshInvestmentNav(): Promise<{
     const nav = await fetchNavByIsin(fund.isin);
     if (nav === null) { skipped++; continue; }
 
+    // Funds with show_negative_returns=false are managed manually — skip NAV update
+    if (!fund.show_negative_returns) { skipped++; continue; }
+
     const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
     if (newCurrentValue === null) { skipped++; continue; }
 

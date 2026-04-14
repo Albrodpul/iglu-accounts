@@ -35,6 +35,12 @@ export async function GET(request: Request) {
         continue;
       }
 
+      // Funds with show_negative_returns=false are managed manually — skip NAV update
+      if (!fund.show_negative_returns) {
+        results.push({ id: fund.id, isin: fund.isin, nav, updated: false, reason: "manual_only" });
+        continue;
+      }
+
       const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
 
       if (newCurrentValue === null) {

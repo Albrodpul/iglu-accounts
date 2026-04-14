@@ -1,9 +1,9 @@
 # Updates investment fund NAV-based returns 3 times per day.
 #
 # Schedule (UTC → Spain):
-#   00:00 UTC = 01:00 CET (winter) / 02:00 CEST (summer)
-#   08:00 UTC = 09:00 CET (winter) / 10:00 CEST (summer)
-#   16:00 UTC = 17:00 CET (winter) / 18:00 CEST (summer)
+#   02:00 UTC = 03:00 CET (winter) / 04:00 CEST (summer)
+#   10:00 UTC = 11:00 CET (winter) / 12:00 CEST (summer)
+#   18:00 UTC = 19:00 CET (winter) / 20:00 CEST (summer)
 #
 # No duplicate-cron risk: GitHub Actions reads this file on every push
 # and replaces the schedule automatically. No manual cleanup needed.
@@ -19,22 +19,46 @@ on:
     branches:
       - main
   schedule:
-    - cron: "0 0 * * *"   # ~01:00 Spain
-    - cron: "0 8 * * *"   # ~09:00 Spain
-    - cron: "0 16 * * *"  # ~17:00 Spain
+    - cron: "0 2 * * *"   # ~03:00 Spain
+    - cron: "0 10 * * *"   # ~11:00 Spain
+    - cron: "0 18 * * *"  # ~19:00 Spain
   workflow_dispatch:       # allow manual trigger from GitHub UI
 
 jobs:
   update-nav:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
-      - name: Call update-nav cron endpoint
+      - name: Check secrets are configured
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL or CRON_SECRET not configured — skipping NAV update"
+            exit 0
+          fi
+          echo "Secrets OK"
+
+      - name: Wait for Vercel deployment (push only)
+        if: github.event_name == 'push'
+        run: |
+          echo "Waiting 3 minutes for Vercel to finish deploying..."
+          sleep 180
+
+      - name: Call update-nav cron endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            exit 0
+          fi
+
           STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/update-nav")
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/update-nav")
 
           echo "HTTP status: $STATUS"
           echo "Response:"

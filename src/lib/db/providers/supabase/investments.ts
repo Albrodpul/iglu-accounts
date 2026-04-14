@@ -115,6 +115,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           account_id,
           isin,
           invested_amount,
+          show_negative_returns,
           investment_contributions(id, amount, purchase_price)
         `)
         .eq("account_id", accountId)
@@ -126,6 +127,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         account_id: string;
         isin: string;
         invested_amount: number;
+        show_negative_returns: boolean;
         investment_contributions: Array<{
           id: string;
           amount: number;
@@ -144,6 +146,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           account_id,
           isin,
           invested_amount,
+          show_negative_returns,
           investment_contributions(id, amount, purchase_price)
         `)
         .not("isin", "is", null)
@@ -154,6 +157,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         account_id: string;
         isin: string;
         invested_amount: number;
+        show_negative_returns: boolean;
         investment_contributions: Array<{
           id: string;
           amount: number;

@@ -97,11 +97,11 @@ const { data: funds, error: fetchError } = await supabase
     account_id,
     isin,
     show_negative_returns,
+    invested_amount,
     investment_contributions(amount, purchase_price)
   `)
   .not("isin", "is", null)
-  .neq("isin", "")
-  .eq("show_negative_returns", true);
+  .neq("isin", "");
 
 if (fetchError) {
   console.error("[update-nav] Failed to fetch funds:", fetchError.message);
@@ -135,7 +135,11 @@ const results = await Promise.all(
       return { isin: fund.isin, updated: false, reason: "no_priced_contributions" };
     }
 
-    const rounded = Math.round(newValue * 100) / 100;
+    const effectiveValue = (!fund.show_negative_returns && newValue < fund.invested_amount)
+      ? fund.invested_amount
+      : newValue;
+
+    const rounded = Math.round(effectiveValue * 100) / 100;
 
     const { error: updateError } = await supabase
       .from("investment_funds")

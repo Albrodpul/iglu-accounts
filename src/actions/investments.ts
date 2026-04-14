@@ -348,51 +348,6 @@ export async function deleteContribution(id: string, fundId: string, amount: num
   return { success: true };
 }
 
-// ─── Trigger GitHub Actions workflow_dispatch ───────────────────────────────
-//
-// Kicks off the update-nav.yml workflow via the GitHub REST API.
-// Requires GH_PAT (Personal Access Token with actions:write scope) and
-// optionally GH_REPO (defaults to the known repo). Returns immediately with
-// 204 — the actual update runs in the background (~2 min).
-//
-// Falls back to quefondos-based refresh if GH_PAT is not configured.
-
-export async function triggerNavUpdate(): Promise<{
-  triggered?: boolean;
-  fallback?: boolean;
-  updated?: number;
-  skipped?: number;
-  error?: string;
-}> {
-  const ghPat = process.env.GH_PAT;
-  const ghRepo = process.env.GH_REPO ?? "Albrodpul/iglu-accounts";
-
-  if (!ghPat) {
-    const result = await refreshInvestmentNav();
-    return { ...result, fallback: true };
-  }
-
-  const res = await fetch(
-    `https://api.github.com/repos/${ghRepo}/actions/workflows/update-nav.yml/dispatches`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${ghPat}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ref: "main" }),
-    },
-  );
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    return { error: `GitHub API ${res.status}: ${text.substring(0, 100)}` };
-  }
-
-  return { triggered: true };
-}
-
 // ─── Manual NAV refresh (same logic as cron, scoped to current account) ───
 
 export async function refreshInvestmentNav(): Promise<{
@@ -415,14 +370,15 @@ export async function refreshInvestmentNav(): Promise<{
     const nav = await fetchNavByIsin(fund.isin);
     if (nav === null) { skipped++; continue; }
 
-    // Funds with show_negative_returns=false are managed manually — skip NAV update
-    if (!fund.show_negative_returns) { skipped++; continue; }
-
     const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
     if (newCurrentValue === null) { skipped++; continue; }
 
+    const effectiveValue = (!fund.show_negative_returns && newCurrentValue < fund.invested_amount)
+      ? fund.invested_amount
+      : newCurrentValue;
+
     const { error } = await db.investments.updateFund(fund.id, accountId, {
-      current_value: Math.round(newCurrentValue * 100) / 100,
+      current_value: Math.round(effectiveValue * 100) / 100,
       updated_at: new Date().toISOString(),
     });
 

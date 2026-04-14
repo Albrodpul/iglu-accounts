@@ -11,7 +11,7 @@ import {
   updateContribution,
   getContributions,
   deleteContribution,
-  triggerNavUpdate,
+  refreshInvestmentNav,
 } from "@/actions/investments";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -101,22 +101,18 @@ export function FundList({ types, funds }: Props) {
 
   async function handleRefreshNav() {
     setRefreshing(true);
-    const result = await triggerNavUpdate();
+    const result = await refreshInvestmentNav();
     if (result.error) {
       toast.error(result.error);
-    } else if (result.triggered) {
-      toast.success("Actualización iniciada en GitHub Actions (~2 min)");
-    } else if (result.fallback) {
-      if (result.updated === 0 && result.skipped && result.skipped > 0) {
-        toast.error("No se pudo obtener el valor liquidativo de ningún fondo");
-      } else {
-        toast.success(
-          result.updated === 1
-            ? "Rentabilidad actualizada (1 fondo)"
-            : `Rentabilidad actualizada (${result.updated} fondos)`,
-        );
-        router.refresh();
-      }
+    } else if (result.updated === 0) {
+      toast.error("No se actualizó ningún fondo");
+    } else {
+      toast.success(
+        result.updated === 1
+          ? "Rentabilidad actualizada (1 fondo)"
+          : `Rentabilidad actualizada (${result.updated} fondos)`,
+      );
+      router.refresh();
     }
     setRefreshing(false);
   }
@@ -240,7 +236,7 @@ export function FundList({ types, funds }: Props) {
                 type="button"
                 onClick={handleRefreshNav}
                 disabled={refreshing}
-                title="Actualizar rentabilidades via NAV"
+                title="Actualizar valor liquidativo (NAV)"
                 className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -478,8 +474,8 @@ export function FundList({ types, funds }: Props) {
             {/* show_negative_returns toggle */}
             <label className="flex cursor-pointer items-center justify-between rounded-md border border-border/60 px-3 py-3 hover:bg-muted/20 transition-colors">
               <div>
-                <p className="text-sm font-medium">Mostrar rentabilidad negativa</p>
-                <p className="text-xs text-muted-foreground">Desactivado → las pérdidas se muestran como 0€</p>
+                <p className="text-sm font-medium">Reflejar pérdidas</p>
+                <p className="text-xs text-muted-foreground">Desactivado → las pérdidas se guardan como 0 € (valor = aportado)</p>
               </div>
               <div className="relative ml-4 shrink-0">
                 <input

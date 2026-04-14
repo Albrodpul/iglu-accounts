@@ -26,6 +26,7 @@ jobs:
   update-nav:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: main
 
     steps:
       - name: Check secrets are configured

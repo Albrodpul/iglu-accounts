@@ -95,6 +95,20 @@ function extractNav(bodyText) {
 
 // ─── investing.com navigation helpers ────────────────────────────────────
 
+// Accept OneTrust cookie consent if present (investing.com shows this on fresh sessions
+// from non-EU IPs, e.g. GitHub Actions runners in US data centers).
+async function acceptCookiesIfPresent(page) {
+  try {
+    const btn = page.locator("#onetrust-accept-btn-handler");
+    if (await btn.isVisible({ timeout: 3000 })) {
+      await btn.click();
+      await page.waitForTimeout(1000);
+    }
+  } catch {
+    // No consent wall — continue
+  }
+}
+
 async function getNavForIsin(context, isin) {
   const page = await context.newPage();
 
@@ -103,6 +117,7 @@ async function getNavForIsin(context, isin) {
     const directUrl = `https://es.investing.com/funds/${isin.toLowerCase()}`;
     await page.goto(directUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
     await page.waitForTimeout(3000);
+    await acceptCookiesIfPresent(page);
 
     const title = await page.title();
     const isNotFound =
@@ -119,6 +134,7 @@ async function getNavForIsin(context, isin) {
         { waitUntil: "domcontentloaded", timeout: 20_000 },
       );
       await page.waitForTimeout(3000);
+      await acceptCookiesIfPresent(page);
 
       const link = await page.evaluate(() => {
         const anchors = document.querySelectorAll('a[href*="/funds/"], a[href*="/etfs/"]');
@@ -159,6 +175,7 @@ async function getNavForIsin(context, isin) {
       const fundUrl = `https://es.investing.com${link}`;
       await page.goto(fundUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
       await page.waitForTimeout(3000);
+      await acceptCookiesIfPresent(page);
     }
 
     // Step 3: extract NAV from body text
@@ -167,7 +184,11 @@ async function getNavForIsin(context, isin) {
     );
 
     const nav = extractNav(bodyText);
-    if (nav === null) return { nav: null, reason: "nav_not_found_in_page" };
+    if (nav === null) {
+      // Log first 300 chars to help diagnose what the page showed
+      console.log(`[${isin}] body preview: ${bodyText.substring(0, 300).replace(/\n/g, "\\n")}`);
+      return { nav: null, reason: "nav_not_found_in_page" };
+    }
 
     return { nav, reason: null };
   } catch (err) {

@@ -85,50 +85,10 @@ async function fetchMorningstarNav(isin: string): Promise<number | null> {
   }
 }
 
-// ─── Yahoo Finance (fallback) ─────────────────────────────────────────────────
-
-async function fetchYahooNav(isin: string): Promise<number | null> {
-  try {
-    // Step 1: resolve ISIN → Yahoo Finance ticker symbol
-    const searchRes = await fetch(
-      `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(isin)}&lang=en-US&region=US&quotesCount=1&newsCount=0`,
-      {
-        headers: { "User-Agent": "Mozilla/5.0" },
-        signal: AbortSignal.timeout(8000),
-      },
-    );
-    if (!searchRes.ok) return null;
-
-    const searchData = await searchRes.json();
-    const symbol: string | undefined = searchData?.quotes?.[0]?.symbol;
-    if (!symbol) return null;
-
-    // Step 2: fetch current price for that symbol
-    const quoteRes = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
-      {
-        headers: { "User-Agent": "Mozilla/5.0" },
-        signal: AbortSignal.timeout(8000),
-      },
-    );
-    if (!quoteRes.ok) return null;
-
-    const quoteData = await quoteRes.json();
-    const price: unknown = quoteData?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return typeof price === "number" && price > 0 ? price : null;
-  } catch {
-    return null;
-  }
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-// Fetches the NAV for a given ISIN. Tries Morningstar first (more accurate for
-// European UCITS funds), falls back to Yahoo Finance.
 export async function fetchNavByIsin(isin: string): Promise<number | null> {
-  const nav = await fetchMorningstarNav(isin);
-  if (nav !== null) return nav;
-  return fetchYahooNav(isin);
+  return fetchMorningstarNav(isin);
 }
 
 // Calculates the current market value of a fund given its contributions and a NAV.

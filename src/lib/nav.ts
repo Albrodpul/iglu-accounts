@@ -1,94 +1,38 @@
 // Shared NAV (Valor Liquidativo) utilities used by both the GitHub Actions cron
 // endpoint and the manual refresh server action.
+//
+// NAV data sourced from quefondos.com — scraping the public fund page by ISIN.
+// No authentication or API keys required.
 
-// ─── Morningstar ──────────────────────────────────────────────────────────────
-
-// Module-level token cache. Within a single serverless invocation (e.g. a cron
-// run processing N funds) this avoids fetching a new token per fund.
-let _msToken: { value: string; expiresAt: number } | null = null;
-
-async function getMorningstarToken(): Promise<string | null> {
-  const now = Date.now();
-  if (_msToken && _msToken.expiresAt > now + 60_000) return _msToken.value;
-
-  try {
-    const res = await fetch("https://global.morningstar.com/api/v1/es/oauth/token/", {
-      method: "POST",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const token = data.access_token as string | undefined;
-    if (!token) return null;
-    const expiresIn = (data.expires_in as number | undefined) ?? 86400;
-    _msToken = { value: token, expiresAt: now + expiresIn * 1000 };
-    return token;
-  } catch {
-    return null;
-  }
-}
-
-async function getMorningstarSecId(isin: string): Promise<string | null> {
-  try {
-    // Minimal query: match by ISIN, restrict to European fund types
-    const query =
-      `((isin ~= "${isin}") AND (` +
-      `(investmentType = "EQ") OR ` +
-      `(investmentType = "FE") AND (exchangeCountry in ("AUT","BEL","CHE","DEU","ESP","FRA","GBR","IRL","ITA","LUX","NLD","PRT","DNK","FIN","NOR","SWE")) OR ` +
-      `(investmentType = "FO") AND (countriesOfSale = "ESP") OR ` +
-      `(investmentType = "FM") AND (countriesOfSale = "ESP") OR ` +
-      `(investmentType = "FV") AND (countriesOfSale = "ESP") OR ` +
-      `(investmentType = "XI")))`;
-
-    const url = new URL("https://global.morningstar.com/api/v1/es/search/securities");
-    url.searchParams.set("fields", "isin,name");
-    url.searchParams.set("limit", "1");
-    url.searchParams.set("page", "1");
-    url.searchParams.set("query", query);
-    url.searchParams.set("sort", "_score");
-
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.results?.[0]?.meta?.securityID as string | undefined) ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchMorningstarNav(isin: string): Promise<number | null> {
-  const [token, secId] = await Promise.all([
-    getMorningstarToken(),
-    getMorningstarSecId(isin),
-  ]);
-  if (!token || !secId) return null;
-
-  try {
-    const url = new URL(
-      `https://api-global.morningstar.com/sal-service/v1/fund/quote/v7/${secId}/data`,
-    );
-    url.searchParams.set("region", "EEA");
-    url.searchParams.set("locale", "es");
-    url.searchParams.set("clientId", "INTLCOM");
-    url.searchParams.set("benchmarkId", "mstarorcat");
-    url.searchParams.set("version", "4.84.0");
-    url.searchParams.set("access_token", token);
-    url.searchParams.set("secId", secId);
-
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const price = data.latestPrice as number | undefined;
-    return typeof price === "number" && price > 0 ? price : null;
-  } catch {
-    return null;
-  }
-}
-
-// ─── Public API ───────────────────────────────────────────────────────────────
-
+// Fetches the NAV for a given ISIN from quefondos.com.
+// HTML pattern: Valor liquidativo: </span><span class="floatright">84,600000 EUR</span>
 export async function fetchNavByIsin(isin: string): Promise<number | null> {
-  return fetchMorningstarNav(isin);
+  try {
+    const res = await fetch(
+      `https://www.quefondos.com/es/fondos/ficha/index.html?isin=${encodeURIComponent(isin)}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "text/html",
+          "Accept-Language": "es-ES,es;q=0.9",
+        },
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Match the NAV value in Spanish decimal format (comma separator, 6 decimals)
+    const m = html.match(/Valor liquidativo:[^<]*<\/span><span[^>]*>([\d,]+)\s*EUR/);
+    if (!m) return null;
+
+    const nav = parseFloat(m[1].replace(",", "."));
+    return isNaN(nav) || nav <= 0 ? null : nav;
+  } catch {
+    return null;
+  }
 }
 
 // Calculates the current market value of a fund given its contributions and a NAV.

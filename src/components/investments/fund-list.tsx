@@ -11,7 +11,7 @@ import {
   updateContribution,
   getContributions,
   deleteContribution,
-  refreshInvestmentNav,
+  triggerNavUpdate,
 } from "@/actions/investments";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -101,18 +101,22 @@ export function FundList({ types, funds }: Props) {
 
   async function handleRefreshNav() {
     setRefreshing(true);
-    const result = await refreshInvestmentNav();
+    const result = await triggerNavUpdate();
     if (result.error) {
       toast.error(result.error);
-    } else if (result.updated === 0 && result.skipped > 0) {
-      toast.error("No se pudo obtener el valor liquidativo de ningún fondo");
-    } else {
-      toast.success(
-        result.updated === 1
-          ? "Rentabilidad actualizada (1 fondo)"
-          : `Rentabilidad actualizada (${result.updated} fondos)`,
-      );
-      router.refresh();
+    } else if (result.triggered) {
+      toast.success("Actualización iniciada en GitHub Actions (~2 min)");
+    } else if (result.fallback) {
+      if (result.updated === 0 && result.skipped && result.skipped > 0) {
+        toast.error("No se pudo obtener el valor liquidativo de ningún fondo");
+      } else {
+        toast.success(
+          result.updated === 1
+            ? "Rentabilidad actualizada (1 fondo)"
+            : `Rentabilidad actualizada (${result.updated} fondos)`,
+        );
+        router.refresh();
+      }
     }
     setRefreshing(false);
   }
@@ -417,7 +421,7 @@ export function FundList({ types, funds }: Props) {
                 id="fund_isin"
                 name="isin"
                 defaultValue={editingFund?.isin ?? ""}
-                placeholder="Ej: IE00B4L5Y983"
+                placeholder="Ej: LU0080237943"
                 maxLength={12}
                 className="font-mono uppercase"
               />

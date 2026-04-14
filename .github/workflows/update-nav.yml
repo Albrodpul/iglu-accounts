@@ -1,4 +1,4 @@
-# Updates investment fund NAV-based returns via Playwright + investing.com.
+# Updates investment fund NAV-based returns via fundinfo.com JSON API.
 # Runs 3 times per day and on every push to main.
 #
 # Schedule (UTC → Spain):
@@ -6,7 +6,7 @@
 #   10:00 UTC = 11:00 CET (winter) / 12:00 CEST (summer)
 #   18:00 UTC = 19:00 CET (winter) / 20:00 CEST (summer)
 #
-# Required repository secrets:
+# Required repository secrets (in "main" environment):
 #   SUPABASE_URL              — e.g. https://xxx.supabase.co
 #   SUPABASE_SERVICE_ROLE_KEY — service role key (bypasses RLS)
 
@@ -55,22 +55,11 @@ jobs:
 
       - name: Install dependencies
         if: env.SECRETS_OK == 'true'
-        run: npm ci
-
-      - name: Cache Playwright Chromium
-        if: env.SECRETS_OK == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright Chromium
-        if: env.SECRETS_OK == 'true'
-        run: npx playwright install chromium --with-deps
+        run: npm ci --omit=dev
 
       - name: Update NAV
         if: env.SECRETS_OK == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/update-nav-playwright.mjs
+        run: node scripts/update-nav.mjs

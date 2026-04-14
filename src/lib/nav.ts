@@ -1,34 +1,29 @@
 // Shared NAV (Valor Liquidativo) utilities used by both the GitHub Actions cron
-// endpoint and the manual refresh server action.
+// script and the manual refresh server action.
 //
-// NAV data sourced from quefondos.com — scraping the public fund page by ISIN.
-// No authentication or API keys required.
+// NAV data sourced from fundinfo.com — plain JSON API, no browser required.
+// Field OFDY901035 format: "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
 
-// Fetches the NAV for a given ISIN from quefondos.com.
-// HTML pattern: Valor liquidativo: </span><span class="floatright">84,600000 EUR</span>
+// Fetches the NAV for a given ISIN from fundinfo.com.
 export async function fetchNavByIsin(isin: string): Promise<number | null> {
   try {
-    const res = await fetch(
-      `https://www.quefondos.com/es/fondos/ficha/index.html?isin=${encodeURIComponent(isin)}`,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          "Accept": "text/html",
-          "Accept-Language": "es-ES,es;q=0.9",
-        },
-        signal: AbortSignal.timeout(10000),
+    const url = `https://www.fundinfo.com/es/ES-priv/LandingPage/Data?skip=0&query=${encodeURIComponent(isin)}&orderdirection=`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.fundinfo.com/",
       },
-    );
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) return null;
 
-    const html = await res.text();
+    const data = await res.json();
+    const navField = data.Data?.[0]?.S?.OFDY901035 as string | undefined;
+    if (!navField) return null;
 
-    // Match the NAV value in Spanish decimal format (comma separator, 6 decimals)
-    const m = html.match(/Valor liquidativo:[^<]*<\/span><span[^>]*>([\d,]+)\s*EUR/);
-    if (!m) return null;
-
-    const nav = parseFloat(m[1].replace(",", "."));
+    const nav = parseFloat(navField.split("|")[0]);
     return isNaN(nav) || nav <= 0 ? null : nav;
   } catch {
     return null;

@@ -112,6 +112,7 @@ export type InvestmentContribution = {
   account_id: string;
   amount: number;
   purchase_price: number | null;
+  units: number | null;
   contribution_date: string;
   notes: string | null;
   created_at: string;

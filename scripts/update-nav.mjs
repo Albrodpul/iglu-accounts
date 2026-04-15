@@ -30,18 +30,18 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 function calculateCurrentValue(contributions, nav) {
   const priced = contributions.filter(
-    (c) => c.purchase_price != null && c.purchase_price > 0,
+    (c) => (c.units != null && c.units > 0) || (c.purchase_price != null && c.purchase_price > 0),
   );
   if (priced.length === 0) return null;
 
   const unpriced = contributions.filter(
-    (c) => c.purchase_price == null || c.purchase_price <= 0,
+    (c) => (c.units == null || c.units <= 0) && (c.purchase_price == null || c.purchase_price <= 0),
   );
 
-  const totalUnits = priced.reduce(
-    (sum, c) => sum + c.amount / c.purchase_price,
-    0,
-  );
+  const totalUnits = priced.reduce((sum, c) => {
+    if (c.units != null && c.units > 0) return sum + c.units;
+    return sum + c.amount / c.purchase_price;
+  }, 0);
 
   return totalUnits * nav + unpriced.reduce((sum, c) => sum + c.amount, 0);
 }
@@ -98,7 +98,7 @@ const { data: funds, error: fetchError } = await supabase
     isin,
     show_negative_returns,
     invested_amount,
-    investment_contributions(amount, purchase_price)
+    investment_contributions(amount, purchase_price, units)
   `)
   .not("isin", "is", null)
   .neq("isin", "");

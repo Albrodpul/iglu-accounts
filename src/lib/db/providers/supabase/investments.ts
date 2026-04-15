@@ -116,7 +116,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           isin,
           invested_amount,
           show_negative_returns,
-          investment_contributions(id, amount, purchase_price)
+          investment_contributions(id, amount, purchase_price, units)
         `)
         .eq("account_id", accountId)
         .not("isin", "is", null)
@@ -132,6 +132,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           id: string;
           amount: number;
           purchase_price: number | null;
+          units: number | null;
         }>;
       }>;
     },
@@ -147,7 +148,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           isin,
           invested_amount,
           show_negative_returns,
-          investment_contributions(id, amount, purchase_price)
+          investment_contributions(id, amount, purchase_price, units)
         `)
         .not("isin", "is", null)
         .neq("isin", "");
@@ -162,6 +163,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           id: string;
           amount: number;
           purchase_price: number | null;
+          units: number | null;
         }>;
       }>;
     },
@@ -218,7 +220,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
     async findContributionsForBackup(fundIds: string[]) {
       const { data, error } = await client
         .from("investment_contributions")
-        .select("id, fund_id, amount, purchase_price, contribution_date, notes")
+        .select("id, fund_id, amount, purchase_price, units, contribution_date, notes")
         .in("fund_id", fundIds)
         .order("contribution_date", { ascending: true });
       if (error) return null;
@@ -236,7 +238,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
     async findContributionById(id: string, accountId: string) {
       const { data } = await client
         .from("investment_contributions")
-        .select("amount, fund_id, purchase_price")
+        .select("amount, fund_id, purchase_price, units")
         .eq("id", id)
         .eq("account_id", accountId)
         .single();
@@ -248,6 +250,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
       account_id: string;
       amount: number;
       purchase_price?: number | null;
+      units?: number | null;
       contribution_date: string;
       notes?: string | null;
     }) {
@@ -261,6 +264,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         account_id: string;
         amount: number;
         purchase_price?: number | null;
+        units?: number | null;
         contribution_date: string;
         notes?: string | null;
       }>,

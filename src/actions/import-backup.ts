@@ -235,6 +235,7 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
             account_id: accountId,
             amount: c.amount,
             purchase_price: c.purchase_price ?? null,
+            units: c.units ?? null,
             contribution_date: c.contribution_date,
             notes: c.notes,
           }));

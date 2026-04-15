@@ -59,6 +59,7 @@ export type BackupData = {
     fund_id: string;
     amount: number;
     purchase_price: number | null;
+    units: number | null;
     contribution_date: string;
     notes: string | null;
   }>;

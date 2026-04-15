@@ -32,29 +32,30 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
 
 // Calculates the current market value of a fund given its contributions and a NAV.
 //
-// - Contributions WITH purchase_price → units = amount / purchase_price
-//   current value = units × nav
-// - Contributions WITHOUT purchase_price → treated at cost (no mark-to-market)
+// Priority for unit count (per contribution):
+//   1. `units` field — exact broker-reported participations
+//   2. `amount / purchase_price` — derived fallback
 //
-// Returns null if no contribution has a purchase_price
-// (fund should be skipped to avoid zeroing out a manual return).
+// Contributions without units AND without purchase_price are treated at cost.
+// Returns null if no contribution can be marked to market
+// (fund skipped to avoid zeroing out a manual return).
 export function calculateCurrentValue(
-  contributions: Array<{ amount: number; purchase_price: number | null }>,
+  contributions: Array<{ amount: number; purchase_price: number | null; units?: number | null }>,
   nav: number,
 ): number | null {
   const priced = contributions.filter(
-    (c) => c.purchase_price != null && c.purchase_price > 0,
+    (c) => (c.units != null && c.units > 0) || (c.purchase_price != null && c.purchase_price > 0),
   );
   if (priced.length === 0) return null;
 
   const unpriced = contributions.filter(
-    (c) => c.purchase_price == null || c.purchase_price <= 0,
+    (c) => (c.units == null || c.units <= 0) && (c.purchase_price == null || c.purchase_price <= 0),
   );
 
-  const totalUnits = priced.reduce(
-    (sum, c) => sum + c.amount / c.purchase_price!,
-    0,
-  );
+  const totalUnits = priced.reduce((sum, c) => {
+    if (c.units != null && c.units > 0) return sum + c.units;
+    return sum + c.amount / c.purchase_price!;
+  }, 0);
 
   return totalUnits * nav + unpriced.reduce((sum, c) => sum + c.amount, 0);
 }

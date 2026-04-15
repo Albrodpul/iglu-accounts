@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, RefreshCw, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
@@ -55,6 +55,7 @@ export function FundList({ types, funds }: Props) {
   const [editingContrib, setEditingContrib] = useState<InvestmentContribution | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [showNegative, setShowNegative] = useState(true);
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -94,9 +95,12 @@ export function FundList({ types, funds }: Props) {
 
   async function openHistory(fund: InvestmentFundWithType) {
     setHistoryFund(fund);
+    setContributions([]);
+    setHistoryLoading(true);
     setHistoryOpen(true);
     const data = await getContributions(fund.id);
     setContributions(data);
+    setHistoryLoading(false);
   }
 
   async function handleRefreshNav() {
@@ -156,8 +160,12 @@ export function FundList({ types, funds }: Props) {
       } else {
         toast.success("Aportación actualizada");
         setContribOpen(false);
-        setContribFund(null);
         setEditingContrib(null);
+        // Refresh history list in background
+        if (historyFund) {
+          const data = await getContributions(historyFund.id);
+          setContributions(data);
+        }
       }
     } else {
       const result = await createContribution(formData);
@@ -176,7 +184,7 @@ export function FundList({ types, funds }: Props) {
     setEditingContrib(contrib);
     setContribFund(fund);
     setContribOpen(true);
-    setHistoryOpen(false);
+    // Keep historyOpen — edit dialog stacks on top
   }
 
   async function handleDeleteFund(fund: InvestmentFundWithType) {
@@ -237,7 +245,7 @@ export function FundList({ types, funds }: Props) {
                 onClick={handleRefreshNav}
                 disabled={refreshing}
                 title="Actualizar valor liquidativo (NAV)"
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Actualizar NAV</span>
@@ -455,19 +463,35 @@ export function FundList({ types, funds }: Props) {
             )}
 
             {!editingFund && (
-              <div className="space-y-2">
-                <Label htmlFor="initial_price">
-                  Precio de compra (€/participación) <span className="text-muted-foreground font-normal">(opcional)</span>
-                </Label>
-                <Input
-                  id="initial_price"
-                  name="purchase_price"
-                  type="number"
-                  step="0.000001"
-                  min="0.000001"
-                  defaultValue=""
-                  placeholder="Ej: 12.72"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="initial_units">
+                    Participaciones <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="initial_units"
+                    name="units"
+                    type="number"
+                    step="0.000001"
+                    min="0.000001"
+                    defaultValue=""
+                    placeholder="Ej: 471.549"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="initial_price">
+                    Precio compra (€/part.) <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="initial_price"
+                    name="purchase_price"
+                    type="number"
+                    step="0.000001"
+                    min="0.000001"
+                    defaultValue=""
+                    placeholder="Ej: 12.72"
+                  />
+                </div>
               </div>
             )}
 
@@ -566,6 +590,23 @@ export function FundList({ types, funds }: Props) {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="contrib_units">
+                Participaciones <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="contrib_units"
+                name="units"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                defaultValue={editingContrib?.units ?? ""}
+                placeholder="Ej: 471.549"
+              />
+              <p className="text-xs text-muted-foreground">
+                Número exacto de participaciones según el broker
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="contrib_price">
                 Precio de compra (€/participación) <span className="text-muted-foreground font-normal">(opcional)</span>
               </Label>
@@ -579,7 +620,7 @@ export function FundList({ types, funds }: Props) {
                 placeholder="Ej: 12.72"
               />
               <p className="text-xs text-muted-foreground">
-                Necesario para que el cron calcule la rentabilidad por unidades
+                Precio NAV en la fecha de compra. Si introduces participaciones, se usa directamente ese valor
               </p>
             </div>
             <div className="space-y-2">
@@ -605,14 +646,26 @@ export function FundList({ types, funds }: Props) {
             <DialogTitle>Historial · {historyFund?.name}</DialogTitle>
           </DialogHeader>
           <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
-            {contributions.length === 0 ? (
+            {historyLoading ? (
+              <div className="space-y-2 py-1">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between px-2 py-2">
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                      <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                    </div>
+                    <div className="h-3 w-8 animate-pulse rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : contributions.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">Sin aportaciones registradas</p>
             ) : (
               <div className="space-y-1">
                 {contributions.map((c) => {
-                  const units = c.purchase_price && c.purchase_price > 0
-                    ? c.amount / c.purchase_price
-                    : null;
+                  const displayUnits = c.units && c.units > 0
+                    ? c.units
+                    : (c.purchase_price && c.purchase_price > 0 ? c.amount / c.purchase_price : null);
                   return (
                     <div key={c.id} className="group flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/35">
                       <div>
@@ -622,8 +675,8 @@ export function FundList({ types, funds }: Props) {
                           {c.purchase_price && (
                             <span className="ml-1 font-mono">@ {c.purchase_price}€</span>
                           )}
-                          {units !== null && (
-                            <span className="ml-1 opacity-70">= {units.toFixed(4)} part.</span>
+                          {displayUnits !== null && (
+                            <span className="ml-1 opacity-70">= {displayUnits.toFixed(4)} part.</span>
                           )}
                           {c.notes && ` · ${c.notes}`}
                         </p>

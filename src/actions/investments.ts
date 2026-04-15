@@ -143,11 +143,14 @@ export async function createInvestmentFund(formData: FormData) {
   if (initial_amount > 0 && fund) {
     const contribDate =
       (formData.get("contribution_date") as string) || new Date().toISOString().split("T")[0];
+    const unitsRaw = formData.get("units") as string;
+    const units = unitsRaw ? parseFloat(unitsRaw) : null;
     await db.investments.createContribution({
       fund_id: fund.id,
       account_id: accountId,
       amount: initial_amount,
       purchase_price: purchasePrice && purchasePrice > 0 ? purchasePrice : null,
+      units: units && units > 0 ? units : null,
       contribution_date: contribDate,
       notes: "Aportación inicial",
     });
@@ -245,6 +248,8 @@ export async function createContribution(formData: FormData) {
   const amount = parseFloat(formData.get("amount") as string) || 0;
   const purchasePriceRaw = formData.get("purchase_price") as string;
   const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
+  const unitsRaw = formData.get("units") as string;
+  const units = unitsRaw ? parseFloat(unitsRaw) : null;
 
   const parsed = investmentContributionSchema.safeParse({
     fund_id: formData.get("fund_id"),
@@ -262,6 +267,7 @@ export async function createContribution(formData: FormData) {
   const { error: contribError } = await db.investments.createContribution({
     ...parsed.data,
     account_id: accountId,
+    units: units && units > 0 ? units : null,
   });
 
   if (contribError) return { error: contribError };
@@ -289,6 +295,8 @@ export async function updateContribution(id: string, formData: FormData) {
   const notes = (formData.get("notes") as string) || null;
   const purchasePriceRaw = formData.get("purchase_price") as string;
   const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
+  const unitsRaw = formData.get("units") as string;
+  const units = unitsRaw ? parseFloat(unitsRaw) : null;
 
   if (newAmount <= 0) return { error: "El importe debe ser positivo" };
   if (!contributionDate) return { error: "La fecha es obligatoria" };
@@ -303,6 +311,7 @@ export async function updateContribution(id: string, formData: FormData) {
   const { error } = await db.investments.updateContribution(id, accountId, {
     amount: newAmount,
     purchase_price: purchasePrice && purchasePrice > 0 ? purchasePrice : null,
+    units: units && units > 0 ? units : null,
     contribution_date: contributionDate,
     notes,
   });

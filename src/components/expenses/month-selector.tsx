@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,6 +17,7 @@ type View = "closed" | "months" | "years";
 
 export function MonthSelector({ month, year, basePath = "/expenses", availablePeriods }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [view, setView] = useState<View>("closed");
   const [browsingYear, setBrowsingYear] = useState(year);
   const ref = useRef<HTMLDivElement>(null);
@@ -50,11 +51,11 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
       newMonth = 1;
       newYear++;
     }
-    router.push(`${basePath}?month=${newMonth}&year=${newYear}`);
+    startTransition(() => router.push(`${basePath}?month=${newMonth}&year=${newYear}`));
   }
 
   function goTo(m: number, y: number) {
-    router.push(`${basePath}?month=${m}&year=${y}`);
+    startTransition(() => router.push(`${basePath}?month=${m}&year=${y}`));
     setView("closed");
   }
 
@@ -73,7 +74,7 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
   }
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className={`relative shrink-0 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
         <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(-1)}>
           <ChevronLeft className="h-4 w-4" />

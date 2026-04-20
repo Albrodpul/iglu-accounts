@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,6 +12,7 @@ type Props = {
 
 export function YearSelector({ year, availableYears }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -28,12 +29,12 @@ export function YearSelector({ year, availableYears }: Props) {
     : [year - 1, year, year + 1];
 
   function goTo(y: number) {
-    router.push(`/summary?year=${y}`);
+    startTransition(() => router.push(`/summary?year=${y}`));
     setOpen(false);
   }
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className={`relative shrink-0 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
       <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
         <Button
           variant="outline"

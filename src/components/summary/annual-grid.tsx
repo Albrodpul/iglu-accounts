@@ -37,9 +37,11 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
   const monthAbbr = MONTHS.map((m) => m.substring(0, 3));
 
   // Build matrix: category × month
-  const usedCategories = categories.filter((cat) =>
-    expenses.some((e) => e.category_id === cat.id)
-  );
+  const usedCategories = categories.filter((cat) => {
+    if (transferCategoryId && cat.id === transferCategoryId) return false;
+    if (cat.name.toLowerCase() === "traspaso") return false;
+    return expenses.some((e) => e.category_id === cat.id);
+  });
 
   const grid = usedCategories.map((cat) => {
     const monthlyTotals = Array.from({ length: 12 }, (_, i) => {

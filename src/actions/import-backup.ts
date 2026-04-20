@@ -254,6 +254,12 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
     }
   }
 
+  if (backup.user_preferences !== undefined) {
+    await db.userPreferences.upsert(user.id, {
+      discrete_mode: backup.user_preferences.discrete_mode,
+    });
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
   revalidatePath("/summary");

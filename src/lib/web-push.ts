@@ -45,10 +45,8 @@ export function formatWeeklySummaryBody(params: {
   monthName: string;
 }): string {
   const lines = [`Semana del ${params.weekStart} al ${params.weekEnd}`];
-  lines.push(`Gastos: ${currencyFmt.format(params.totalExpenses)}`);
-  if (params.totalIncome > 0) {
-    lines.push(`Ingresos: ${currencyFmt.format(params.totalIncome)}`);
-  }
+  if (params.totalExpenses < 0) lines.push(`Gastos: ${currencyFmt.format(Math.abs(params.totalExpenses))}`);
+  if (params.totalIncome > 0) lines.push(`Ingresos: ${currencyFmt.format(params.totalIncome)}`);
   lines.push(`Neto ${params.monthName}: ${currencyFmt.format(params.monthNet)}`);
   return lines.join("\n");
 }

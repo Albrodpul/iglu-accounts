@@ -158,6 +158,47 @@ export async function createTransfer(formData: FormData) {
   return { success: true };
 }
 
+export async function updateTransfer(id: string, formData: FormData) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  const rawAmount = Math.abs(parseFloat(formData.get("amount") as string));
+  if (!rawAmount || rawAmount <= 0) return { error: "Importe inválido" };
+
+  const direction = formData.get("transfer_direction") as string;
+  const expenseDate = formData.get("expense_date") as string;
+  const concept = (formData.get("concept") as string) || "";
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!expenseDate) return { error: "Fecha requerida" };
+
+  const sourceMethod = direction === "bank_to_cash" ? "bank" : "cash";
+  const destMethod = direction === "bank_to_cash" ? "cash" : "bank";
+
+  const db = await getDb();
+  const expense = await db.expenses.findTransferPair(id, user.id);
+  if (!expense?.transfer_pair_id) return { error: "Traspaso no encontrado" };
+
+  const both = await db.expenses.findByTransferPair(expense.transfer_pair_id, user.id);
+  const sourceLeg = both.find((e) => e.amount < 0);
+  const destLeg = both.find((e) => e.amount > 0);
+  if (!sourceLeg || !destLeg) return { error: "Traspaso incompleto" };
+
+  const common = { concept, expense_date: expenseDate, notes, updated_at: new Date().toISOString() };
+  const [r1, r2] = await Promise.all([
+    db.expenses.update(sourceLeg.id, user.id, { ...common, amount: -rawAmount, payment_method: sourceMethod }),
+    db.expenses.update(destLeg.id, user.id, { ...common, amount: rawAmount, payment_method: destMethod }),
+  ]);
+
+  if (r1.error) return { error: r1.error };
+  if (r2.error) return { error: r2.error };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/expenses");
+  revalidatePath("/summary");
+  return { success: true };
+}
+
 export async function updateExpense(id: string, formData: FormData) {
   const user = await getAuthUser();
   if (!user) redirect("/login");

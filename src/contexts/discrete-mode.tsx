@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
+import { setDiscreteMode } from "@/actions/accounts";
 
 type DiscreteModeContextType = {
   discrete: boolean;
@@ -8,26 +9,24 @@ type DiscreteModeContextType = {
 };
 
 const DiscreteModeContext = createContext<DiscreteModeContextType>({
-  discrete: false,
+  discrete: true,
   toggle: () => {},
 });
 
-const STORAGE_KEY = "iglu-discrete-mode";
+export function DiscreteModeProvider({
+  children,
+  initialDiscrete,
+}: {
+  children: React.ReactNode;
+  initialDiscrete: boolean;
+}) {
+  const [discrete, setDiscrete] = useState(initialDiscrete);
 
-export function DiscreteModeProvider({ children }: { children: React.ReactNode }) {
-  const [discrete, setDiscrete] = useState(false);
-
-  useEffect(() => {
-    setDiscrete(localStorage.getItem(STORAGE_KEY) === "1");
-  }, []);
-
-  const toggle = useCallback(() => {
-    setDiscrete((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      return next;
-    });
-  }, []);
+  const toggle = useCallback(async () => {
+    const next = !discrete;
+    setDiscrete(next);
+    await setDiscreteMode(next);
+  }, [discrete]);
 
   return (
     <DiscreteModeContext value={{ discrete, toggle }}>

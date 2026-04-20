@@ -146,6 +146,15 @@ export function createExpensesRepo(client: SupabaseClient) {
       return data ?? null;
     },
 
+    async findByTransferPair(pairId: string, userId: string) {
+      const { data } = await client
+        .from("expenses")
+        .select("id, amount, payment_method")
+        .eq("transfer_pair_id", pairId)
+        .eq("user_id", userId);
+      return data ?? [];
+    },
+
     async findForBackup(accountId: string) {
       const { data, error } = await client
         .from("expenses")

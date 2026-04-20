@@ -7,6 +7,7 @@ import { createRecurringRepo } from "./recurring";
 import { createInvestmentsRepo } from "./investments";
 import { createNotificationsRepo } from "./notifications";
 import { createPasskeysRepo } from "./passkeys";
+import { createUserPreferencesRepo } from "./user-preferences";
 
 export async function getDb() {
   const client = await createClient();
@@ -18,6 +19,7 @@ export async function getDb() {
     investments: createInvestmentsRepo(client),
     notifications: createNotificationsRepo(client),
     passkeys: createPasskeysRepo(client),
+    userPreferences: createUserPreferencesRepo(client),
   };
 }
 
@@ -33,6 +35,7 @@ export function getServiceDb() {
     investments: createInvestmentsRepo(client),
     notifications: createNotificationsRepo(client),
     passkeys: createPasskeysRepo(client),
+    userPreferences: createUserPreferencesRepo(client),
   };
 }
 

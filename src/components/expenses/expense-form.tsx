@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createExpense, updateExpense, createTransfer, checkDuplicate, suggestCategory } from "@/actions/expenses";
+import { createExpense, updateExpense, createTransfer, updateTransfer, checkDuplicate, suggestCategory } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +22,17 @@ type Props = {
 
 function detectExpenseType(expense: Expense | undefined, categories: Category[]): ExpenseType {
   if (!expense) return "expense";
-  if (expense.amount <= 0) return "expense";
   const cat = categories.find((c) => c.id === expense.category_id);
+  if (cat?.name.toLowerCase() === "traspaso") return "transfer";
+  if (expense.amount <= 0) return "expense";
   if (cat?.name.toLowerCase() === "deuda") return "debt";
   return "income";
+}
+
+function detectTransferDirection(expense: Expense | undefined): "bank_to_cash" | "cash_to_bank" {
+  if (!expense) return "bank_to_cash";
+  if (expense.amount < 0) return expense.payment_method === "bank" ? "bank_to_cash" : "cash_to_bank";
+  return expense.payment_method === "bank" ? "cash_to_bank" : "bank_to_cash";
 }
 
 export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = false }: Props) {
@@ -33,7 +40,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<ExpenseType>(() => detectExpenseType(expense, categories));
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(expense?.payment_method || "bank");
-  const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">("bank_to_cash");
+  const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(expense));
   const [formKey, setFormKey] = useState(0);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
   const categoryManual = useRef(false);
@@ -53,7 +60,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
 
     if (isTransfer) {
       formData.set("transfer_direction", transferDirection);
-      result = await createTransfer(formData);
+      result = expense
+        ? await updateTransfer(expense.id, formData)
+        : await createTransfer(formData);
     } else {
       formData.set("is_income", String(type === "income"));
       formData.set("is_debt", String(type === "debt"));
@@ -119,11 +128,15 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
     }
   }
 
+  const isExistingTransfer = expense
+    ? categories.find((c) => c.id === expense.category_id)?.name.toLowerCase() === "traspaso"
+    : false;
+
   const typeButtons: { value: ExpenseType; label: string; activeClass: string }[] = [
     { value: "expense", label: "Gasto", activeClass: "bg-red-500 hover:bg-red-600 text-white" },
     { value: "income", label: "Ingreso", activeClass: "bg-emerald-500 hover:bg-emerald-600 text-white" },
     { value: "debt", label: "Deuda", activeClass: "bg-amber-500 hover:bg-amber-600 text-white" },
-    ...(hasInvestments && !expense ? [{ value: "transfer" as ExpenseType, label: "Traspaso", activeClass: "bg-violet-500 hover:bg-violet-600 text-white" }] : []),
+    ...((hasInvestments && !expense) || isExistingTransfer ? [{ value: "transfer" as ExpenseType, label: "Traspaso", activeClass: "bg-violet-500 hover:bg-violet-600 text-white" }] : []),
   ];
 
   const submitLabel = isTransfer ? "Añadir traspaso" : type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";

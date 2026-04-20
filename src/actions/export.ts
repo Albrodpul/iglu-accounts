@@ -63,6 +63,9 @@ export type BackupData = {
     contribution_date: string;
     notes: string | null;
   }>;
+  user_preferences?: {
+    discrete_mode: boolean;
+  };
 };
 
 export async function exportAccountData(): Promise<{ data?: BackupData; error?: string }> {
@@ -74,7 +77,11 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
 
   const db = await getDb();
 
-  const account = await db.accounts.findById(accountId);
+  const [account, userPrefs] = await Promise.all([
+    db.accounts.findById(accountId),
+    db.userPreferences.get(user.id),
+  ]);
+
   if (!account) return { error: "No se pudo obtener la cuenta" };
 
   const categories = await db.categories.findAll(accountId);
@@ -142,6 +149,9 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
     investment_types: investmentTypes,
     investment_funds: investmentFunds,
     investment_contributions: investmentContributions,
+    user_preferences: {
+      discrete_mode: userPrefs?.discrete_mode ?? true,
+    },
   };
 
   return { data: backup };

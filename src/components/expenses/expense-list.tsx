@@ -53,19 +53,22 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
     sortAsc ? a.localeCompare(b) : b.localeCompare(a)
   );
 
-  async function handleDelete(id: string) {
+  async function handleDelete(expense: ExpenseWithCategory) {
+    const isTransfer = !!(transferCategoryId && expense.category_id === transferCategoryId);
     const ok = await confirm({
-      title: "Eliminar movimiento",
-      description: "¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.",
+      title: isTransfer ? "Eliminar traspaso" : "Eliminar movimiento",
+      description: isTransfer
+        ? "Este traspaso está vinculado a dos movimientos. Se eliminarán ambos. Esta acción no se puede deshacer."
+        : "¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.",
       confirmLabel: "Eliminar",
       variant: "destructive",
     });
     if (ok) {
-      const result = await deleteExpense(id);
+      const result = await deleteExpense(expense.id);
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success("Movimiento eliminado");
+        toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
       }
     }
   }
@@ -149,17 +152,15 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
                         <Amount value={expense.amount} />
                       </span>
                       <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                        {!(transferCategoryId && expense.category_id === transferCategoryId) && (
-                          <button
-                            className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={() => setEditingExpense(expense)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => setEditingExpense(expense)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors"
-                          onClick={() => handleDelete(expense.id)}
+                          onClick={() => handleDelete(expense)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

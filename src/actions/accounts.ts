@@ -56,6 +56,23 @@ export async function toggleInvestments(enabled: boolean) {
   return { success: true };
 }
 
+export async function getDiscreteMode(): Promise<boolean> {
+  const user = await getAuthUser();
+  if (!user) return true;
+  const db = await getDb();
+  const prefs = await db.userPreferences.get(user.id);
+  return prefs?.discrete_mode ?? true;
+}
+
+export async function setDiscreteMode(value: boolean) {
+  const user = await getAuthUser();
+  if (!user) return { error: "No autenticado" };
+  const db = await getDb();
+  const { error } = await db.userPreferences.upsert(user.id, { discrete_mode: value });
+  if (error) return { error };
+  return { success: true };
+}
+
 export async function notificationsEnabled(): Promise<boolean> {
   const accountId = await getSelectedAccountId();
   if (!accountId) return false;

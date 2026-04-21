@@ -31,8 +31,8 @@ export function NavRefreshButton() {
 
   return (
     <Button variant="outline" size="sm" onClick={handleRefreshNav} disabled={refreshing}>
-      <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
-      Actualizar NAV
+      <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+      <span className="hidden sm:inline ml-1">Actualizar NAV</span>
     </Button>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createInvestmentFund,
   updateInvestmentFund,
@@ -11,7 +10,6 @@ import {
   updateContribution,
   getContributions,
   deleteContribution,
-  refreshInvestmentNav,
 } from "@/actions/investments";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -30,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
@@ -42,7 +40,7 @@ type Props = {
 };
 
 export function FundList({ types, funds }: Props) {
-  const router = useRouter();
+
   const [fundOpen, setFundOpen] = useState(false);
   const [editingFund, setEditingFund] = useState<InvestmentFundWithType | null>(null);
   const [profitOpen, setProfitOpen] = useState(false);
@@ -54,12 +52,11 @@ export function FundList({ types, funds }: Props) {
   const [contributions, setContributions] = useState<InvestmentContribution[]>([]);
   const [editingContrib, setEditingContrib] = useState<InvestmentContribution | null>(null);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showNegative, setShowNegative] = useState(true);
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const hasIsinFunds = funds.some((f) => f.isin);
+
 
   // Group funds by type
   const fundsByType = new Map<string, { type: InvestmentType; funds: InvestmentFundWithType[] }>();
@@ -101,24 +98,6 @@ export function FundList({ types, funds }: Props) {
     const data = await getContributions(fund.id);
     setContributions(data);
     setHistoryLoading(false);
-  }
-
-  async function handleRefreshNav() {
-    setRefreshing(true);
-    const result = await refreshInvestmentNav();
-    if (result.error) {
-      toast.error(result.error);
-    } else if (result.updated === 0) {
-      toast.error("No se actualizó ningún fondo");
-    } else {
-      toast.success(
-        result.updated === 1
-          ? "Rentabilidad actualizada (1 fondo)"
-          : `Rentabilidad actualizada (${result.updated} fondos)`,
-      );
-      router.refresh();
-    }
-    setRefreshing(false);
   }
 
   async function handleFundSubmit(formData: FormData) {
@@ -239,18 +218,6 @@ export function FundList({ types, funds }: Props) {
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold md:text-xl">Fondos de inversión</h2>
           <div className="flex items-center gap-2 shrink-0">
-            {hasIsinFunds && (
-              <button
-                type="button"
-                onClick={handleRefreshNav}
-                disabled={refreshing}
-                title="Actualizar valor liquidativo (NAV)"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">Actualizar NAV</span>
-              </button>
-            )}
             {types.length > 0 && (
               <Button size="sm" onClick={openCreateFund}>
                 <Plus className="h-4 w-4 mr-1" /> Añadir fondo

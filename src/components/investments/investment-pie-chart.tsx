@@ -108,9 +108,10 @@ export function InvestmentPieChart({ funds }: Props) {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number, _name: string, entry: { payload: { name: string } }) => {
-                  const pct = ((value / total) * 100).toFixed(1);
-                  return [`${currencyFormatter(value)} (${pct}%)`, entry.payload.name];
+                formatter={(value, _name, entry) => {
+                  const v = Number(value);
+                  const pct = ((v / total) * 100).toFixed(1);
+                  return [`${currencyFormatter(v)} (${pct}%)`, (entry.payload as { name: string }).name];
                 }}
                 {...tooltipProps}
               />

@@ -60,14 +60,21 @@ export function InvestmentPieChart({ funds }: Props) {
 
   const total = data.reduce((s, d) => s + d.value, 0);
 
-  const legendItems = data.map((d, i) => (
+  const desktopLegendItems = data.map((d, i) => (
     <div key={i} className="flex items-center gap-1.5 min-w-0">
-      <span
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{ backgroundColor: COLORS[i % COLORS.length] }}
-      />
-      <span className="truncate text-[14px] md:text-[14px] text-white/80">{d.name}</span>
-      <span className="ml-auto shrink-0 pl-2 text-[14px] md:text-[14px] font-semibold text-white/60">
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+      <span className="truncate text-[13px] text-white/80">{d.name}</span>
+      <span className="ml-auto shrink-0 pl-2 text-[13px] font-semibold text-white/60">
+        {((d.value / total) * 100).toFixed(0)}%
+      </span>
+    </div>
+  ));
+
+  const mobileLegendItems = data.map((d, i) => (
+    <div key={i} className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+      <span className="truncate text-[11px] text-white/80">{d.name}</span>
+      <span className="shrink-0 pl-1 text-[11px] font-semibold text-white/60">
         {((d.value / total) * 100).toFixed(0)}%
       </span>
     </div>
@@ -94,7 +101,7 @@ export function InvestmentPieChart({ funds }: Props) {
             />
           </PieChart>
         </div>
-        <div className="flex-1 space-y-1.5 min-w-0">{legendItems}</div>
+        <div className="flex-1 space-y-1.5 min-w-0">{desktopLegendItems}</div>
       </div>
 
       {/* Mobile: collapsible chart + legend */}
@@ -107,17 +114,9 @@ export function InvestmentPieChart({ funds }: Props) {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={(value, _name, entry) => {
-                  const v = Number(value);
-                  const pct = ((v / total) * 100).toFixed(1);
-                  return [`${currencyFormatter(v)} (${pct}%)`, (entry.payload as { name: string }).name];
-                }}
-                {...tooltipProps}
-              />
             </PieChart>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">{legendItems}</div>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5">{mobileLegendItems}</div>
         </CollapsibleSection>
       </div>
     </div>

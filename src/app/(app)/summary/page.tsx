@@ -1,6 +1,8 @@
 import { getExpensesByYear, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
+import { hasInvestmentsEnabled } from "@/actions/accounts";
+import { getInvestmentMonthlyReturns } from "@/actions/investments";
 import { MONTHS } from "@/lib/format";
 import { YearSelector } from "@/components/summary/year-selector";
 import { MonthlyChart } from "@/components/summary/monthly-chart";
@@ -8,6 +10,8 @@ import { CategoryBreakdown } from "@/components/summary/category-breakdown";
 import { AnnualGrid } from "@/components/summary/annual-grid";
 import { YearComparison } from "@/components/summary/year-comparison";
 import { BalanceYear } from "@/components/shared/balance-year";
+import { InvestmentReturnsTab } from "@/components/investments/investment-returns-tab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildBalanceYearKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
 
 type Props = {
@@ -18,14 +22,18 @@ export default async function SummaryPage({ searchParams }: Props) {
   const params = await searchParams;
   const year = params.year ? parseInt(params.year) : new Date().getFullYear();
 
-  const [expenses, categories, availablePeriods, debtCategoryId, recurring, transferCategoryId] = await Promise.all([
-    getExpensesByYear(year),
-    getCategories(),
-    getAvailablePeriods(),
-    getDebtCategoryId(),
-    getRecurringExpenses(),
-    getTransferCategoryId(),
-  ]);
+  const [expenses, categories, availablePeriods, debtCategoryId, recurring, transferCategoryId, hasInvestments] =
+    await Promise.all([
+      getExpensesByYear(year),
+      getCategories(),
+      getAvailablePeriods(),
+      getDebtCategoryId(),
+      getRecurringExpenses(),
+      getTransferCategoryId(),
+      hasInvestmentsEnabled(),
+    ]);
+
+  const monthlyReturns = hasInvestments ? await getInvestmentMonthlyReturns() : [];
 
   // Monthly totals (including debts as separate bar)
   const monthlyData = MONTHS.map((name, i) => {
@@ -89,15 +97,12 @@ export default async function SummaryPage({ searchParams }: Props) {
 
   const totals = calculateFinancialTotals(expenses, debtCategoryId, transferCategoryId);
 
-  // Average monthly expenses
   const now = new Date();
   const monthsElapsed = year === now.getFullYear() ? now.getMonth() + 1 : 12;
   const avgMonthlyExpense = totals.totalExpenses / monthsElapsed;
 
-  // Fixed monthly totals
   const fixedExpenses = recurring.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
 
-  // Build KPIs
   const kpis = buildBalanceYearKpis({
     totalIncome: totals.totalIncome,
     totalExpenses: totals.totalExpenses,
@@ -107,41 +112,64 @@ export default async function SummaryPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-5 md:space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold md:text-3xl">Resumen anual</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">Resumen</h1>
         <YearSelector year={year} availableYears={availablePeriods.map((p) => p.year)} />
       </div>
 
-      <BalanceYear year={year} neto={totals.net} kpis={kpis} />
+      <Tabs defaultValue="resumen">
+        <TabsList className="h-auto w-full overflow-x-auto justify-start rounded-lg p-1">
+          <TabsTrigger value="resumen">Resumen Anual</TabsTrigger>
+          <TabsTrigger value="mensual">Evolución Mensual</TabsTrigger>
+          <TabsTrigger value="anual">Tabla Anual</TabsTrigger>
+          <TabsTrigger value="categorias">Categorías</TabsTrigger>
+          <TabsTrigger value="comparar">Comparar</TabsTrigger>
+          {hasInvestments && (
+            <TabsTrigger value="inversiones">Inversiones</TabsTrigger>
+          )}
+        </TabsList>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold md:text-xl">Gastos vs Ingresos por mes</h2>
-        <div className="glass-panel p-5 md:p-6">
-          <MonthlyChart data={monthlyData} showDebts={hasAnyDebts} />
-        </div>
-      </section>
+        <TabsContent value="resumen" className="mt-4">
+          <BalanceYear year={year} neto={totals.net} kpis={kpis} />
+        </TabsContent>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold md:text-xl">Vista anual por categoría</h2>
-        <div className="rounded-lg border border-border/80 bg-card shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] p-5 md:p-6">
-          <AnnualGrid expenses={expenses} categories={categories} year={year} debtCategoryId={debtCategoryId} transferCategoryId={transferCategoryId} />
-        </div>
-      </section>
+        <TabsContent value="mensual" className="mt-4">
+          <div className="glass-panel p-5 md:p-6">
+            <MonthlyChart data={monthlyData} showDebts={hasAnyDebts} />
+          </div>
+        </TabsContent>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold md:text-xl">Desglose por categoría</h2>
-        <div className="glass-panel p-5 md:p-6">
-          <CategoryBreakdown data={categoryTotals} />
-        </div>
-      </section>
+        <TabsContent value="anual" className="mt-4">
+          <div className="rounded-lg border border-border/80 bg-card shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] p-5 md:p-6">
+            <AnnualGrid
+              expenses={expenses}
+              categories={categories}
+              year={year}
+              debtCategoryId={debtCategoryId}
+              transferCategoryId={transferCategoryId}
+            />
+          </div>
+        </TabsContent>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold md:text-xl">Comparar periodos</h2>
-        <div className="glass-panel p-5 md:p-6">
-          <YearComparison availableYears={availablePeriods.map((p) => p.year)} />
-        </div>
-      </section>
+        <TabsContent value="categorias" className="mt-4">
+          <div className="glass-panel p-5 md:p-6">
+            <CategoryBreakdown data={categoryTotals} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="comparar" className="mt-4">
+          <div className="glass-panel p-5 md:p-6">
+            <YearComparison availableYears={availablePeriods.map((p) => p.year)} />
+          </div>
+        </TabsContent>
+
+        {hasInvestments && (
+          <TabsContent value="inversiones" className="mt-4">
+            <InvestmentReturnsTab returns={monthlyReturns} />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

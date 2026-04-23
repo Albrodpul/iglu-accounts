@@ -48,6 +48,14 @@ export function createAccountsRepo(client: SupabaseClient) {
       return data ?? [];
     },
 
+    async findWithInvestments() {
+      const { data } = await client
+        .from("accounts")
+        .select("id")
+        .eq("has_investments", true);
+      return data ?? [];
+    },
+
     async update(id: string, data: Record<string, unknown>) {
       const { error } = await client.from("accounts").update(data).eq("id", id);
       return { error: error?.message ?? null };

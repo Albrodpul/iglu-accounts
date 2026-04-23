@@ -449,3 +449,44 @@ export async function getInvestmentSummary() {
     totalReturn,
   };
 }
+
+// ─── Monthly Returns ───
+
+export async function getInvestmentMonthlyReturns() {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return [];
+
+  const db = await getDb();
+  return db.investments.findMonthlyReturns(accountId);
+}
+
+export async function recordMonthlyReturnSnapshot(year: number, month: number) {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const db = await getDb();
+  const funds = await db.investments.findFunds(accountId);
+
+  if (funds.length === 0) return { error: "No hay fondos registrados" };
+
+  const totalInvested = funds.reduce((s, f) => s + Number(f.invested_amount), 0);
+  const currentValue = funds.reduce((s, f) => s + Number(f.current_value), 0);
+  const returnAmount = currentValue - totalInvested;
+  const returnPct =
+    totalInvested > 0 ? Math.round((returnAmount / totalInvested) * 10000) / 100 : 0;
+
+  const { error } = await db.investments.upsertMonthlyReturn({
+    account_id: accountId,
+    year,
+    month,
+    total_invested: Math.round(totalInvested * 100) / 100,
+    current_value: Math.round(currentValue * 100) / 100,
+    return_amount: Math.round(returnAmount * 100) / 100,
+    return_pct: returnPct,
+  });
+
+  if (error) return { error };
+
+  revalidatePath("/summary");
+  return { success: true };
+}

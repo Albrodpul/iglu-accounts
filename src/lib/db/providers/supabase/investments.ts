@@ -290,6 +290,41 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         .eq("account_id", accountId);
       return { error: error?.message ?? null };
     },
+
+    // ─── Monthly Returns ───
+
+    async findMonthlyReturns(accountId: string) {
+      const { data, error } = await client
+        .from("investment_monthly_returns")
+        .select("year, month, total_invested, current_value, return_amount, return_pct")
+        .eq("account_id", accountId)
+        .order("year", { ascending: true })
+        .order("month", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        year: number;
+        month: number;
+        total_invested: number;
+        current_value: number;
+        return_amount: number;
+        return_pct: number;
+      }>;
+    },
+
+    async upsertMonthlyReturn(data: {
+      account_id: string;
+      year: number;
+      month: number;
+      total_invested: number;
+      current_value: number;
+      return_amount: number;
+      return_pct: number;
+    }) {
+      const { error } = await client
+        .from("investment_monthly_returns")
+        .upsert(data, { onConflict: "account_id,year,month" });
+      return { error: error?.message ?? null };
+    },
   };
 }
 

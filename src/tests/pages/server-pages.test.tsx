@@ -65,6 +65,7 @@ vi.mock("@/actions/investments", () => ({
   getInvestmentTypes: mocks.getInvestmentTypes,
   getInvestmentFunds: mocks.getInvestmentFunds,
   getInvestmentSummary: mocks.getInvestmentSummary,
+  getInvestmentMonthlyReturns: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -144,6 +145,10 @@ vi.mock("@/components/settings/accounts-settings", () => ({
 
 vi.mock("@/components/investments/investment-type-manager", () => ({
   InvestmentTypeManager: () => <div data-testid="investment-type-manager" />,
+}));
+
+vi.mock("@/components/investments/investment-returns-tab", () => ({
+  InvestmentReturnsTab: () => <div data-testid="investment-returns-tab" />,
 }));
 
 vi.mock("@/components/investments/fund-list", () => ({
@@ -263,8 +268,9 @@ describe("app pages", () => {
     });
     render(element);
 
-    expect(screen.getByText("Resumen anual")).toBeInTheDocument();
-    expect(screen.getByTestId("monthly-chart")).toBeInTheDocument();
+    expect(screen.getByText("Resumen")).toBeInTheDocument();
+    expect(screen.getByTestId("year-selector")).toBeInTheDocument();
+    expect(screen.getByTestId("balance-year")).toBeInTheDocument();
   });
 
   it("renders settings page", async () => {

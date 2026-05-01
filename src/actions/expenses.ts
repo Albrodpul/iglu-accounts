@@ -18,6 +18,26 @@ export async function getExpenses(params: {
   return db.expenses.findWithCategoryByMonth(accountId, params.month, params.year);
 }
 
+export async function getExpensesPaginated(params: {
+  page: number;
+  limit?: number;
+  ascending?: boolean;
+  search?: string;
+  categoryId?: string;
+}) {
+  const accountId = await getSelectedAccountId();
+  const db = await getDb();
+  const limit = params.limit ?? 50;
+  const data = await db.expenses.findPaginated(accountId, {
+    page: params.page,
+    limit,
+    ascending: params.ascending ?? false,
+    search: params.search,
+    categoryId: params.categoryId,
+  });
+  return { data, hasMore: data.length === limit };
+}
+
 export async function suggestCategory(concept: string) {
   const accountId = await getSelectedAccountId();
 
@@ -343,8 +363,33 @@ export async function getMonthProjection(params: {
   const pendingRecurringNet = pendingRecurring.reduce((s, r) => s + r.amount, 0);
 
   // 3. Historical monthly nets (real months with ≥5 transactions)
-  const historicalNets: number[] = [];
+  // Fetch the full 12-month window in a single query, then bucket per month.
+  const historyStartMonth = month - 12;
+  const historyStartYear = historyStartMonth <= 0 ? year - 1 : year;
+  const historyStartMonthNorm = historyStartMonth <= 0 ? historyStartMonth + 12 : historyStartMonth;
+  const historyStart = `${historyStartYear}-${String(historyStartMonthNorm).padStart(2, "0")}-01`;
+  const historyEnd = startDate; // exclusive end = current month start
 
+  const historyRows = await db.expenses.findDatedAmountsByDateRange(
+    accountId,
+    historyStart,
+    historyEnd,
+  );
+
+  // Bucket: key `YYYY-MM` -> { count, net }
+  const buckets = new Map<string, { count: number; net: number }>();
+  for (const row of historyRows) {
+    const key = row.expense_date.slice(0, 7);
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { count: 0, net: 0 };
+      buckets.set(key, bucket);
+    }
+    bucket.count++;
+    if (!isExcluded(row.category_id)) bucket.net += row.amount;
+  }
+
+  const historicalNets: number[] = [];
   for (let i = 1; i <= 12; i++) {
     let hMonth = month - i;
     let hYear = year;
@@ -352,20 +397,10 @@ export async function getMonthProjection(params: {
       hMonth += 12;
       hYear -= 1;
     }
-
-    const hStart = `${hYear}-${String(hMonth).padStart(2, "0")}-01`;
-    const hEnd =
-      hMonth === 12
-        ? `${hYear + 1}-01-01`
-        : `${hYear}-${String(hMonth + 1).padStart(2, "0")}-01`;
-
-    const hExpenses = await db.expenses.findAmountsByDateRange(accountId, hStart, hEnd);
-    if (hExpenses.length < 5) continue;
-
-    const net = hExpenses
-      .filter((e) => !isExcluded(e.category_id))
-      .reduce((s, e) => s + e.amount, 0);
-    historicalNets.push(net);
+    const key = `${hYear}-${String(hMonth).padStart(2, "0")}`;
+    const bucket = buckets.get(key);
+    if (!bucket || bucket.count < 5) continue;
+    historicalNets.push(bucket.net);
   }
 
   // 4. Calculate projection

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ExpenseList } from "./expense-list";
-import { Search, X } from "lucide-react";
+import { Search, X, ArrowUpDown, Loader2 } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
@@ -17,6 +17,8 @@ type Props = {
 export function ExpenseListFiltered({ expenses, categories, initialCategoryFilter = "", hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
   const [conceptFilter, setConceptFilter] = useState("");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const filtered = expenses.filter((e) => {
     if (categoryFilter && e.category_id !== categoryFilter) return false;
@@ -34,18 +36,28 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
     <>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          {isPending ? (
+            <Loader2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground animate-spin" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          )}
           <input
             type="text"
             placeholder="Buscar concepto..."
             value={conceptFilter}
-            onChange={(e) => setConceptFilter(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              startTransition(() => setConceptFilter(val));
+            }}
             className="h-9 w-full rounded-lg border border-border/70 bg-transparent pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
         </div>
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            startTransition(() => setCategoryFilter(val));
+          }}
           className="h-9 rounded-lg border border-border/70 bg-transparent px-3 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring"
         >
           <option value="">Todas las categorías</option>
@@ -55,9 +67,16 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
             </option>
           ))}
         </select>
+        <button
+          onClick={() => startTransition(() => setSortAsc((s) => !s))}
+          className="flex h-9 items-center gap-1.5 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
+        >
+          <ArrowUpDown className="h-3.5 w-3.5" />
+          {sortAsc ? "Más antiguo primero" : "Más reciente primero"}
+        </button>
         {hasFilters && (
           <button
-            onClick={() => { setCategoryFilter(""); setConceptFilter(""); }}
+            onClick={() => startTransition(() => { setCategoryFilter(""); setConceptFilter(""); })}
             className="flex h-9 items-center gap-1 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="h-3.5 w-3.5" />
@@ -66,7 +85,17 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
         )}
       </div>
 
-      <ExpenseList expenses={filtered} categories={categories} hasInvestments={hasInvestments} debtCategoryId={debtCategoryId} transferCategoryId={transferCategoryId} />
+      <div className={isPending ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <ExpenseList
+          expenses={filtered}
+          categories={categories}
+          sortable={false}
+          externalSortAsc={sortAsc}
+          hasInvestments={hasInvestments}
+          debtCategoryId={debtCategoryId}
+          transferCategoryId={transferCategoryId}
+        />
+      </div>
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/db/auth";
 import { categorySchema } from "@/lib/validators/expense";
@@ -7,10 +8,20 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 
-export async function getCategories() {
-  const accountId = await getSelectedAccountId();
+const findCategoriesCached = cache(async (accountId: string | null) => {
   const db = await getDb();
   return db.categories.findAll(accountId);
+});
+
+const findCategoryByNameCached = cache(async (accountId: string | null, name: string) => {
+  if (!accountId) return null;
+  const db = await getDb();
+  return db.categories.findByNameIlike(accountId, name);
+});
+
+export async function getCategories() {
+  const accountId = await getSelectedAccountId();
+  return findCategoriesCached(accountId);
 }
 
 export async function createCategory(formData: FormData) {
@@ -117,10 +128,7 @@ export async function getOrCreateDebtCategory(): Promise<string | null> {
 /** Returns the debt category ID for the current account, if it exists. */
 export async function getDebtCategoryId(): Promise<string | null> {
   const accountId = await getSelectedAccountId();
-  if (!accountId) return null;
-
-  const db = await getDb();
-  const data = await db.categories.findByNameIlike(accountId, "deuda");
+  const data = await findCategoryByNameCached(accountId, "deuda");
   return data?.id ?? null;
 }
 
@@ -147,10 +155,7 @@ export async function getOrCreateTransferCategory(): Promise<string | null> {
 /** Returns the transfer category ID for the current account, if it exists. */
 export async function getTransferCategoryId(): Promise<string | null> {
   const accountId = await getSelectedAccountId();
-  if (!accountId) return null;
-
-  const db = await getDb();
-  const data = await db.categories.findByNameIlike(accountId, "traspaso");
+  const data = await findCategoryByNameCached(accountId, "traspaso");
   return data?.id ?? null;
 }
 

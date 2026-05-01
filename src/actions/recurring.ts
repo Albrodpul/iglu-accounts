@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/db/auth";
 import { recurringExpenseSchema } from "@/lib/validators/expense";
@@ -10,10 +11,14 @@ import { getSelectedAccountId } from "./accounts";
 import { getOrCreateIncomeCategory } from "./categories";
 import { getScheduledDay } from "@/lib/recurring";
 
-export async function getRecurringExpenses() {
-  const accountId = await getSelectedAccountId();
+const findRecurringCached = cache(async (accountId: string | null) => {
   const db = await getDb();
   return db.recurring.findActive(accountId);
+});
+
+export async function getRecurringExpenses() {
+  const accountId = await getSelectedAccountId();
+  return findRecurringCached(accountId);
 }
 
 export async function createRecurringExpense(formData: FormData) {

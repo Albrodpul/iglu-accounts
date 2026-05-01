@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { deleteExpense } from "@/actions/expenses";
-import { formatDateShort } from "@/lib/format";
+import { formatDateShort, formatDateWithYear } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import {
@@ -20,14 +20,17 @@ type Props = {
   expenses: ExpenseWithCategory[];
   categories: Category[];
   sortable?: boolean;
+  externalSortAsc?: boolean;
+  showYear?: boolean;
   hasInvestments?: boolean;
   debtCategoryId?: string | null;
   transferCategoryId?: string | null;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
-  const [sortAsc, setSortAsc] = useState(false);
+  const [internalSortAsc, setInternalSortAsc] = useState(false);
+  const sortAsc = sortable ? internalSortAsc : (externalSortAsc ?? false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   if (expenses.length === 0) {
@@ -78,11 +81,11 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
       {sortable && (
         <div className="mb-4 flex justify-end">
           <button
-            onClick={() => setSortAsc(!sortAsc)}
+            onClick={() => setInternalSortAsc(!internalSortAsc)}
             className="flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
           >
             <ArrowUpDown className="h-3.5 w-3.5" />
-            {sortAsc ? "Más antiguo primero" : "Más reciente primero"}
+            {internalSortAsc ? "Más antiguo primero" : "Más reciente primero"}
           </button>
         </div>
       )}
@@ -102,7 +105,7 @@ export function ExpenseList({ expenses, categories, sortable = true, hasInvestme
               )}
               <div className="mb-2 mt-3 flex items-center justify-between px-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {formatDateShort(date)}
+                  {showYear ? formatDateWithYear(date) : formatDateShort(date)}
                 </span>
                 <span
                   className={`text-xs font-bold tabular-nums ${dayTotal >= 0 ? "text-income" : "text-expense"}`}

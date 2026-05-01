@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getAllTimeBalance: vi.fn(),
   getAvailablePeriods: vi.fn(),
   getMonthProjection: vi.fn(),
+  getExpensesPaginated: vi.fn(),
   getRecurringExpenses: vi.fn(),
   getUserPasskeys: vi.fn(),
   getInvestmentTypes: vi.fn(),
@@ -51,6 +52,7 @@ vi.mock("@/actions/expenses", () => ({
   getAllTimeBalance: mocks.getAllTimeBalance,
   getAvailablePeriods: mocks.getAvailablePeriods,
   getMonthProjection: mocks.getMonthProjection,
+  getExpensesPaginated: mocks.getExpensesPaginated,
 }));
 
 vi.mock("@/actions/recurring", () => ({
@@ -200,6 +202,7 @@ beforeEach(() => {
     historicalMonths: 0,
   });
   mocks.getRecurringExpenses.mockResolvedValue([{ amount: -50 }, { amount: 100 }]);
+  mocks.getExpensesPaginated.mockResolvedValue({ data: sampleExpenses, hasMore: false });
   mocks.hasInvestmentsEnabled.mockResolvedValue(false);
   mocks.getUserPasskeys.mockResolvedValue([]);
   mocks.getInvestmentSummary.mockResolvedValue({

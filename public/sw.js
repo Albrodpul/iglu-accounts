@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "iglu-v1";
+const CACHE_NAME = "iglu-v2";
 
 const PRECACHE_ASSETS = [
   "/pwa-icon-192.svg",
@@ -63,18 +63,33 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Pages (HTML): network-first, fallback to cache
+  // Pages (HTML): stale-while-revalidate with 3s network timeout
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request)),
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request);
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => null);
+
+        if (cached) {
+          // Serve cache immediately, refresh in background
+          networkFetch.catch(() => {});
+          return cached;
+        }
+
+        // No cache: race network against 3s timeout
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
+        const winner = await Promise.race([networkFetch, timeout]);
+        if (winner) return winner;
+
+        // Timed out — wait a bit more for the actual network result
+        const fallback = await networkFetch;
+        return fallback || new Response("Offline", { status: 503 });
+      }),
     );
     return;
   }

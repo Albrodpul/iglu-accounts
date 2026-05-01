@@ -77,6 +77,17 @@ export function createExpensesRepo(client: SupabaseClient) {
       return data ?? [];
     },
 
+    async findDatedAmountsByDateRange(accountId: string | null, start: string, end: string) {
+      let q = client
+        .from("expenses")
+        .select("expense_date, amount, category_id")
+        .gte("expense_date", start)
+        .lt("expense_date", end);
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data } = await q;
+      return data ?? [];
+    },
+
     async findRecurringNotesInRange(accountId: string | null, start: string, end: string) {
       let q = client
         .from("expenses")
@@ -163,6 +174,28 @@ export function createExpensesRepo(client: SupabaseClient) {
         .order("expense_date", { ascending: true });
       if (error) return null;
       return data;
+    },
+
+    async findPaginated(
+      accountId: string | null,
+      opts: { page: number; limit: number; ascending: boolean; search?: string; categoryId?: string },
+    ) {
+      const { page, limit, ascending, search, categoryId } = opts;
+      const from = page * limit;
+      const to = from + limit - 1;
+
+      let q = client
+        .from("expenses")
+        .select("*, category:categories(*)")
+        .order("expense_date", { ascending })
+        .range(from, to);
+      if (accountId) q = q.eq("account_id", accountId);
+      if (search) q = q.ilike("concept", `%${search}%`);
+      if (categoryId) q = q.eq("category_id", categoryId);
+
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
     },
 
     async findForDedup(accountId: string) {

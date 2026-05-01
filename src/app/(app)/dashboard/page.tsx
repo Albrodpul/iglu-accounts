@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getExpenses, getExpensesByYear, getAllTimeBalance, getMonthProjection } from "@/actions/expenses";
+import { getExpenses, getExpensesByYear, getExpensesPaginated, getAllTimeBalance, getMonthProjection } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     getTransferCategoryId(),
   ]);
 
-  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection] =
+  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection, recentPage] =
     await Promise.all([
       getExpenses({ month, year }),
       getExpensesByYear(year),
@@ -39,6 +39,7 @@ export default async function DashboardPage() {
       hasInvestmentsEnabled(),
       getInvestmentSummary(),
       getMonthProjection({ month, year, debtCategoryId, transferCategoryId }),
+      getExpensesPaginated({ page: 0, limit: 5, ascending: false }),
     ]);
 
   const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId, transferCategoryId);
@@ -51,10 +52,7 @@ export default async function DashboardPage() {
   // Fixed monthly totals
   const fixedExpenses = recurring.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
 
-  // Recent expenses (last 5)
-  const recentExpenses = [...monthExpenses]
-    .sort((a, b) => b.expense_date.localeCompare(a.expense_date))
-    .slice(0, 5);
+  const recentExpenses = recentPage.data as typeof monthExpenses;
 
   // Build KPIs for Balance year card
   const balanceKpis = buildBalanceYearKpis({
@@ -259,7 +257,7 @@ export default async function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold md:text-2xl">Últimos movimientos</h2>
                 <Link
-                  href={`/expenses?month=${month}&year=${year}`}
+                  href="/expenses"
                   className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
                   Ver todo

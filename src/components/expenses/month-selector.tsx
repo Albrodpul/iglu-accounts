@@ -2,24 +2,27 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { MONTHS } from "@/lib/format";
 
 type Props = {
-  month: number;
-  year: number;
+  month?: number | null;
+  year?: number | null;
+  nullable?: boolean;
   basePath?: string;
   availablePeriods?: { year: number; months: number[] }[];
 };
 
 type View = "closed" | "months" | "years";
 
-export function MonthSelector({ month, year, basePath = "/expenses", availablePeriods }: Props) {
+export function MonthSelector({ month, year, nullable = false, basePath = "/expenses", availablePeriods }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [view, setView] = useState<View>("closed");
-  const [browsingYear, setBrowsingYear] = useState(year);
+  const now = new Date();
+  const [browsingYear, setBrowsingYear] = useState(year ?? now.getFullYear());
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,10 +33,12 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const currentYear = year ?? now.getFullYear();
+
   // Build available years list
   const years = availablePeriods
-    ? [...new Set([...availablePeriods.map((p) => p.year), year])].sort((a, b) => b - a)
-    : [year];
+    ? [...new Set([...availablePeriods.map((p) => p.year), currentYear])].sort((a, b) => b - a)
+    : [currentYear];
 
   function hasMonth(y: number, m: number): boolean {
     if (!availablePeriods) return true;
@@ -42,6 +47,7 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
   }
 
   function navigate(direction: -1 | 1) {
+    if (!month || !year) return;
     let newMonth = month + direction;
     let newYear = year;
     if (newMonth < 1) {
@@ -59,9 +65,14 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
     setView("closed");
   }
 
+  function clearMonth() {
+    startTransition(() => router.push(basePath));
+    setView("closed");
+  }
+
   function toggleDropdown() {
     if (view === "closed") {
-      setBrowsingYear(year);
+      setBrowsingYear(currentYear);
       setView("months");
     } else {
       setView("closed");
@@ -73,22 +84,41 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
     setView("months");
   }
 
+  const hasSelection = nullable && month != null && year != null;
+  const noSelection = nullable && (month == null || year == null);
+
   return (
+    <>
+    {isPending && typeof document !== "undefined" && createPortal(
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[9999] h-0.5 overflow-hidden bg-border/40">
+        <div className="absolute h-full w-1/3 bg-primary [animation:nav-progress_1s_ease-in-out_infinite]" />
+      </div>,
+      document.body,
+    )}
     <div ref={ref} className={`relative shrink-0 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+        {!noSelection && (
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
         <button
           onClick={toggleDropdown}
           className="flex min-w-[110px] items-center justify-center gap-1 text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
         >
-          {MONTHS[month - 1].substring(0, 3)} {year}
+          {noSelection ? "Todos los meses" : `${MONTHS[month! - 1].substring(0, 3)} ${year}`}
           <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${view !== "closed" ? "rotate-90" : ""}`} />
         </button>
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        {hasSelection && (
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={clearMonth} title="Ver todos">
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        {!noSelection && (
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {view !== "closed" && (
@@ -118,6 +148,16 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
           <div className="p-2">
             {view === "months" ? (
               <div className="grid grid-cols-3 gap-1">
+                {nullable && (
+                  <button
+                    onClick={clearMonth}
+                    className={`col-span-3 mb-1 rounded-md px-2 py-2 text-xs font-medium transition-colors cursor-pointer ${
+                      noSelection ? "bg-primary text-primary-foreground" : "hover:bg-muted/60 text-muted-foreground"
+                    }`}
+                  >
+                    Todos los meses
+                  </button>
+                )}
                 {MONTHS.map((m, i) => {
                   const available = hasMonth(browsingYear, i + 1);
                   const isCurrent = i + 1 === month && browsingYear === year;
@@ -160,5 +200,6 @@ export function MonthSelector({ month, year, basePath = "/expenses", availablePe
         </div>
       )}
     </div>
+    </>
   );
 }

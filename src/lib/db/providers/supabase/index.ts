@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createAccountsRepo } from "./accounts";
@@ -9,7 +10,7 @@ import { createNotificationsRepo } from "./notifications";
 import { createPasskeysRepo } from "./passkeys";
 import { createUserPreferencesRepo } from "./user-preferences";
 
-export async function getDb() {
+export const getDb = cache(async () => {
   const client = await createClient();
   return {
     accounts: createAccountsRepo(client),
@@ -21,7 +22,7 @@ export async function getDb() {
     passkeys: createPasskeysRepo(client),
     userPreferences: createUserPreferencesRepo(client),
   };
-}
+});
 
 export type Db = Awaited<ReturnType<typeof getDb>>;
 

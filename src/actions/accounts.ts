@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { getAuthUser, authUpdateUser } from "@/lib/db/auth";
 import { cookies } from "next/headers";
@@ -18,6 +19,11 @@ export async function getSelectedAccountId(): Promise<string | null> {
   return cookieStore.get(ACCOUNT_COOKIE)?.value ?? null;
 }
 
+const findAccountSettingsCached = cache(async (accountId: string) => {
+  const db = await getDb();
+  return db.accounts.findSettings(accountId);
+});
+
 /** Sets the cookie without redirect — used internally by the layout for auto-selection */
 export async function setSelectedAccount(accountId: string) {
   const cookieStore = await cookies();
@@ -33,9 +39,7 @@ export async function setSelectedAccount(accountId: string) {
 export async function getAccountSettings() {
   const accountId = await getSelectedAccountId();
   if (!accountId) return null;
-
-  const db = await getDb();
-  return db.accounts.findSettings(accountId);
+  return findAccountSettingsCached(accountId);
 }
 
 export async function hasInvestmentsEnabled(): Promise<boolean> {

@@ -49,14 +49,16 @@ export default async function ExpensesPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
-        <MonthSelector
-          month={hasMonth ? month : null}
-          year={hasMonth ? year : null}
-          availablePeriods={availablePeriods}
-          nullable
-        />
+        <div className="ml-auto w-fit">
+          <MonthSelector
+            month={hasMonth ? month : null}
+            year={hasMonth ? year : null}
+            availablePeriods={availablePeriods}
+            nullable
+          />
+        </div>
       </div>
 
       {hasMonth && totals && (

@@ -5,9 +5,11 @@ import type { InvestmentFundWithType } from "@/types";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 
 const COLORS = [
-  "#a78bfa", "#67e8f9", "#6ee7b7", "#fcd34d",
-  "#f9a8d4", "#93c5fd", "#fb923c", "#86efac",
-  "#e879f9", "#fde68a",
+  "#a78bfa", "#34d399", "#f97316", "#38bdf8",
+  "#f472b6", "#facc15", "#4ade80", "#c084fc",
+  "#fb7185", "#2dd4bf", "#e879f9", "#a3e635",
+  "#60a5fa", "#fbbf24", "#f43f5e", "#67e8f9",
+  "#86efac", "#d946ef", "#fdba74", "#818cf8",
 ];
 
 const currencyFormatter = (value: number) =>

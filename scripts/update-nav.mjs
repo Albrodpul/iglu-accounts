@@ -86,7 +86,23 @@ async function getNavForIsin(isin) {
   }
 }
 
-// ─── Yahoo Finance price fetch ─────────────────────────────────────────────
+// ─── Yahoo Finance exchange rate fetch ────────────────────────────────────
+
+async function getExchangeRateToEur(fromCurrency) {
+  const pair = `${fromCurrency}EUR=X`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(pair)}?interval=1d&range=1d`;
+  try {
+    const res = await fetch(url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const rate = data.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof rate === "number" && rate > 0 ? rate : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Yahoo Finance price fetch (returns price in EUR) ─────────────────────
 
 async function getPriceForTicker(ticker) {
   const url =
@@ -104,10 +120,26 @@ async function getPriceForTicker(ticker) {
     const meta = data.chart?.result?.[0]?.meta;
     if (!meta) return { price: null, date: null, reason: "no_data" };
 
-    const price = meta.regularMarketPrice;
+    let price = meta.regularMarketPrice;
+    const currency = meta.currency;
+
     if (typeof price !== "number" || price <= 0) return { price: null, date: null, reason: "invalid_price" };
 
     const date = new Date(meta.regularMarketTime * 1000).toISOString().split("T")[0];
+
+    if (currency && currency !== "EUR") {
+      // GBp/GBX = pence → convert to GBP first
+      const isGBX = currency === "GBp" || currency === "GBX";
+      const normalizedPrice = isGBX ? price / 100 : price;
+      const fromCurrency = isGBX ? "GBP" : currency;
+
+      const rate = await getExchangeRateToEur(fromCurrency);
+      if (rate === null) return { price: null, date: null, reason: `no_exchange_rate_${fromCurrency}` };
+
+      console.log(`  [fx] ${fromCurrency}→EUR rate=${rate}  raw=${price}  eur=${(normalizedPrice * rate).toFixed(4)}`);
+      return { price: normalizedPrice * rate, date, reason: null };
+    }
+
     return { price, date, reason: null };
   } catch (err) {
     return { price: null, date: null, reason: err.message };

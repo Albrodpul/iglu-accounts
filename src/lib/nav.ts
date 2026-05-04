@@ -33,8 +33,10 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
   }
 }
 
-// Fetches the current price for a stock ticker from Yahoo Finance.
+// Fetches the current price for a stock ticker from Yahoo Finance, always in EUR.
 // ticker must be the Yahoo Finance symbol including exchange suffix (e.g. ITX.MC, SAN.MC, AAPL).
+// If the stock trades in a non-EUR currency (e.g. USD), fetches the exchange rate from
+// Yahoo Finance (e.g. USDEUR=X) and converts automatically.
 export async function fetchPriceByTicker(ticker: string): Promise<number | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
@@ -45,8 +47,41 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
     if (!res.ok) return null;
 
     const data = await res.json();
-    const price = data.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
-    return typeof price === "number" && price > 0 ? price : null;
+    const meta = data.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice as number | undefined;
+    const currency = meta?.currency as string | undefined;
+
+    if (typeof price !== "number" || price <= 0) return null;
+
+    if (!currency || currency === "EUR") return price;
+
+    // GBp/GBX = pence, convert to GBP first
+    const normalizedPrice = (currency === "GBp" || currency === "GBX") ? price / 100 : price;
+    const fromCurrency = (currency === "GBp" || currency === "GBX") ? "GBP" : currency;
+
+    const rate = await fetchExchangeRateToEur(fromCurrency);
+    if (rate === null) return null;
+
+    return normalizedPrice * rate;
+  } catch {
+    return null;
+  }
+}
+
+// Fetches the conversion rate from a given currency to EUR via Yahoo Finance (e.g. USDEUR=X).
+async function fetchExchangeRateToEur(fromCurrency: string): Promise<number | null> {
+  try {
+    const pair = `${fromCurrency}EUR=X`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(pair)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: BROWSER_HEADERS,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const rate = data.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
+    return typeof rate === "number" && rate > 0 ? rate : null;
   } catch {
     return null;
   }

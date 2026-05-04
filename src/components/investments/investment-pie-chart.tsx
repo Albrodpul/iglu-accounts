@@ -4,12 +4,29 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import type { InvestmentFundWithType } from "@/types";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 
+// Ordered to maximise hue distance between adjacent entries.
+// Each step jumps ~180° around the colour wheel so consecutive slices never look alike.
 const COLORS = [
-  "#a78bfa", "#34d399", "#f97316", "#38bdf8",
-  "#f472b6", "#facc15", "#4ade80", "#c084fc",
-  "#fb7185", "#2dd4bf", "#e879f9", "#a3e635",
-  "#60a5fa", "#fbbf24", "#f43f5e", "#67e8f9",
-  "#86efac", "#d946ef", "#fdba74", "#818cf8",
+  "#f43f5e", // red
+  "#38bdf8", // sky blue
+  "#facc15", // yellow
+  "#a78bfa", // violet
+  "#34d399", // emerald
+  "#f97316", // orange
+  "#818cf8", // indigo
+  "#e879f9", // fuchsia
+  "#4ade80", // bright green
+  "#fb7185", // coral
+  "#2dd4bf", // teal
+  "#fbbf24", // amber
+  "#67e8f9", // cyan
+  "#c084fc", // purple
+  "#fdba74", // peach
+  "#60a5fa", // blue
+  "#f472b6", // pink
+  "#d946ef", // orchid
+  "#a3e635", // lime
+  "#fde68a", // pale yellow
 ];
 
 const currencyFormatter = (value: number) =>

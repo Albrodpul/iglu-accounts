@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceDb } from "@/lib/db/service";
-import { fetchNavByIsin, calculateCurrentValue } from "@/lib/nav";
+import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue } from "@/lib/nav";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   const db = getServiceDb();
   const results: Array<{
     id: string;
-    isin: string;
+    symbol: string;
+    source: "isin" | "ticker";
     nav: number | null;
     updated: boolean;
     reason?: string;
@@ -28,34 +29,45 @@ export async function GET(request: Request) {
     const funds = await db.investments.findFundsForNav();
 
     for (const fund of funds) {
-      const nav = await fetchNavByIsin(fund.isin);
+      const usesTicker = !!fund.ticker;
+      const symbol = fund.ticker ?? fund.isin ?? "unknown";
+      const source = usesTicker ? "ticker" : "isin";
+
+      const nav = usesTicker
+        ? await fetchPriceByTicker(fund.ticker!)
+        : await fetchNavByIsin(fund.isin!);
 
       if (nav === null) {
-        results.push({ id: fund.id, isin: fund.isin, nav: null, updated: false, reason: "nav_not_found" });
+        results.push({ id: fund.id, symbol, source, nav: null, updated: false, reason: "price_not_found" });
         continue;
       }
 
       // Funds with show_negative_returns=false are managed manually — skip NAV update
       if (!fund.show_negative_returns) {
-        results.push({ id: fund.id, isin: fund.isin, nav, updated: false, reason: "manual_only" });
+        results.push({ id: fund.id, symbol, source, nav, updated: false, reason: "manual_only" });
         continue;
       }
 
       const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
 
       if (newCurrentValue === null) {
-        results.push({ id: fund.id, isin: fund.isin, nav, updated: false, reason: "no_priced_contributions" });
+        results.push({ id: fund.id, symbol, source, nav, updated: false, reason: "no_priced_contributions" });
         continue;
       }
 
+      const effectiveValue = newCurrentValue < fund.invested_amount && !fund.show_negative_returns
+        ? fund.invested_amount
+        : newCurrentValue;
+
       const { error } = await db.investments.updateFund(fund.id, fund.account_id, {
-        current_value: Math.round(newCurrentValue * 100) / 100,
+        current_value: Math.round(effectiveValue * 100) / 100,
         updated_at: new Date().toISOString(),
       });
 
       results.push({
         id: fund.id,
-        isin: fund.isin,
+        symbol,
+        source,
         nav,
         updated: !error,
         reason: error ?? undefined,

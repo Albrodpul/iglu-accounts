@@ -199,6 +199,7 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
             type_id: mappedTypeId,
             name: fund.name,
             isin: fund.isin ?? null,
+            ticker: fund.ticker ?? null,
             show_negative_returns: fund.show_negative_returns ?? true,
             invested_amount: fund.invested_amount,
             current_value: fund.current_value,

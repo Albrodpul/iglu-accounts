@@ -1,11 +1,12 @@
 /**
- * NAV update via fundinfo.com JSON API — runs inside GitHub Actions.
+ * Price update script — runs inside GitHub Actions.
  *
- * For each investment fund with an ISIN set (and show_negative_returns=true),
- * fetches the latest NAV from fundinfo.com and updates current_value in Supabase.
+ * For each investment fund with an ISIN or ticker set (and show_negative_returns=true),
+ * fetches the latest price and updates current_value in Supabase.
  *
- * fundinfo.com returns a plain JSON response — no browser, no Cloudflare.
- * NAV field: OFDY901035 → "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
+ * Data sources:
+ *   - ticker set → Yahoo Finance (individual stocks, e.g. ITX.MC, AAPL)
+ *   - isin set   → fundinfo.com (investment funds/ETFs)
  *
  * Required env vars:
  *   SUPABASE_URL            — e.g. https://xxx.supabase.co
@@ -26,7 +27,13 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
-// ─── NAV calculation (mirrors src/lib/nav.ts) ──────────────────────────────
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+};
+
+// ─── Price calculation (mirrors src/lib/nav.ts) ────────────────────────────
 
 function calculateCurrentValue(contributions, nav) {
   const priced = contributions.filter(
@@ -54,33 +61,56 @@ async function getNavForIsin(isin) {
 
   try {
     const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Referer": "https://www.fundinfo.com/",
-      },
+      headers: { ...BROWSER_HEADERS, "Referer": "https://www.fundinfo.com/" },
       signal: AbortSignal.timeout(15_000),
     });
 
-    if (!res.ok) return { nav: null, reason: `http_${res.status}` };
+    if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
 
     const data = await res.json();
     const fund = data.Data?.[0];
-    if (!fund) return { nav: null, reason: "not_found" };
+    if (!fund) return { price: null, date: null, reason: "not_found" };
 
     // OFDY901035 = "84.600000|2026-04-13|EUR"
     const navField = fund.S?.OFDY901035;
-    if (!navField) return { nav: null, reason: "no_nav_field" };
+    if (!navField) return { price: null, date: null, reason: "no_nav_field" };
 
     const [navStr, date] = navField.split("|");
-    const nav = parseFloat(navStr);
+    const price = parseFloat(navStr);
 
-    if (isNaN(nav) || nav <= 0) return { nav: null, reason: "invalid_nav" };
+    if (isNaN(price) || price <= 0) return { price: null, date: null, reason: "invalid_nav" };
 
-    return { nav, date, reason: null };
+    return { price, date, reason: null };
   } catch (err) {
-    return { nav: null, reason: err.message };
+    return { price: null, date: null, reason: err.message };
+  }
+}
+
+// ─── Yahoo Finance price fetch ─────────────────────────────────────────────
+
+async function getPriceForTicker(ticker) {
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+
+  try {
+    const res = await fetch(url, {
+      headers: BROWSER_HEADERS,
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
+
+    const data = await res.json();
+    const meta = data.chart?.result?.[0]?.meta;
+    if (!meta) return { price: null, date: null, reason: "no_data" };
+
+    const price = meta.regularMarketPrice;
+    if (typeof price !== "number" || price <= 0) return { price: null, date: null, reason: "invalid_price" };
+
+    const date = new Date(meta.regularMarketTime * 1000).toISOString().split("T")[0];
+    return { price, date, reason: null };
+  } catch (err) {
+    return { price: null, date: null, reason: err.message };
   }
 }
 
@@ -96,12 +126,12 @@ const { data: funds, error: fetchError } = await supabase
     id,
     account_id,
     isin,
+    ticker,
     show_negative_returns,
     invested_amount,
     investment_contributions(amount, purchase_price, units)
   `)
-  .not("isin", "is", null)
-  .neq("isin", "");
+  .or("isin.not.is.null,ticker.not.is.null");
 
 if (fetchError) {
   console.error("[update-nav] Failed to fetch funds:", fetchError.message);
@@ -109,7 +139,7 @@ if (fetchError) {
 }
 
 if (!funds || funds.length === 0) {
-  console.log("[update-nav] No funds with ISIN found. Nothing to update.");
+  console.log("[update-nav] No funds with ISIN or ticker found. Nothing to update.");
   process.exit(0);
 }
 
@@ -118,21 +148,27 @@ console.log(`[update-nav] Found ${funds.length} fund(s) to update.`);
 const results = await Promise.all(
   funds.map(async (fund) => {
     const start = Date.now();
-    console.log(`[${fund.isin}] Fetching NAV...`);
+    const usesTicker = !!fund.ticker;
+    const symbol = fund.ticker ?? fund.isin;
+    const source = usesTicker ? "ticker" : "isin";
 
-    const { nav, date, reason } = await getNavForIsin(fund.isin);
+    console.log(`[${symbol}] Fetching price (${source})...`);
 
-    if (nav === null) {
-      console.log(`[${fund.isin}] ✗ Skipped (${reason})`);
-      return { isin: fund.isin, updated: false, reason };
+    const { price, date, reason } = usesTicker
+      ? await getPriceForTicker(fund.ticker)
+      : await getNavForIsin(fund.isin);
+
+    if (price === null) {
+      console.log(`[${symbol}] ✗ Skipped (${reason})`);
+      return { symbol, source, updated: false, reason };
     }
 
     const contributions = fund.investment_contributions ?? [];
-    const newValue = calculateCurrentValue(contributions, nav);
+    const newValue = calculateCurrentValue(contributions, price);
 
     if (newValue === null) {
-      console.log(`[${fund.isin}] ✗ Skipped — no priced contributions (nav=${nav})`);
-      return { isin: fund.isin, updated: false, reason: "no_priced_contributions" };
+      console.log(`[${symbol}] ✗ Skipped — no priced contributions (price=${price})`);
+      return { symbol, source, updated: false, reason: "no_priced_contributions" };
     }
 
     const effectiveValue = (!fund.show_negative_returns && newValue < fund.invested_amount)
@@ -151,12 +187,12 @@ const results = await Promise.all(
       .eq("account_id", fund.account_id);
 
     if (updateError) {
-      console.log(`[${fund.isin}] ✗ DB update failed: ${updateError.message}`);
-      return { isin: fund.isin, updated: false, reason: updateError.message };
+      console.log(`[${symbol}] ✗ DB update failed: ${updateError.message}`);
+      return { symbol, source, updated: false, reason: updateError.message };
     }
 
-    console.log(`[${fund.isin}] ✓ nav=${nav} (${date})  new_value=${rounded}  (${Date.now() - start}ms)`);
-    return { isin: fund.isin, updated: true, nav, newValue: rounded, date };
+    console.log(`[${symbol}] ✓ price=${price} (${date})  new_value=${rounded}  (${Date.now() - start}ms)`);
+    return { symbol, source, updated: true, price, newValue: rounded, date };
   }),
 );
 

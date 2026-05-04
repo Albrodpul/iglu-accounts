@@ -297,7 +297,8 @@ export function FundList({ types, funds }: Props) {
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Inv: <Amount value={fund.invested_amount} /> · Peso: {weight}%
-                              {fund.isin && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.isin}</span>}
+                              {fund.ticker && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.ticker}</span>}
+                              {!fund.ticker && fund.isin && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.isin}</span>}
                             </p>
                           </div>
 
@@ -396,8 +397,22 @@ export function FundList({ types, funds }: Props) {
                 maxLength={12}
                 className="font-mono uppercase"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fund_ticker">
+                Ticker <span className="text-muted-foreground font-normal">(opcional — para acciones)</span>
+              </Label>
+              <Input
+                id="fund_ticker"
+                name="ticker"
+                defaultValue={editingFund?.ticker ?? ""}
+                placeholder="Ej: ITX.MC, AAPL, SAN.MC"
+                maxLength={20}
+                className="font-mono uppercase"
+              />
               <p className="text-xs text-muted-foreground">
-                Con ISIN, el cron actualizará la rentabilidad automáticamente
+                Símbolo Yahoo Finance. Si hay ticker, se usa en vez del ISIN para actualizar el precio
               </p>
             </div>
 

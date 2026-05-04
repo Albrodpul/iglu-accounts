@@ -1,20 +1,23 @@
-// Shared NAV (Valor Liquidativo) utilities used by both the GitHub Actions cron
-// script and the manual refresh server action.
+// Shared price utilities used by both the GitHub Actions cron script and manual refresh.
 //
-// NAV data sourced from fundinfo.com — plain JSON API, no browser required.
-// Field OFDY901035 format: "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
+// Two data sources:
+//   - fundinfo.com  → investment funds, keyed by ISIN
+//   - Yahoo Finance → individual stocks, keyed by ticker (e.g. ITX.MC, AAPL)
+//
+// fundinfo NAV field OFDY901035 format: "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
+
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+};
 
 // Fetches the NAV for a given ISIN from fundinfo.com.
 export async function fetchNavByIsin(isin: string): Promise<number | null> {
   try {
     const url = `https://www.fundinfo.com/es/ES-priv/LandingPage/Data?skip=0&query=${encodeURIComponent(isin)}&orderdirection=`;
     const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Referer": "https://www.fundinfo.com/",
-      },
+      headers: { ...BROWSER_HEADERS, "Referer": "https://www.fundinfo.com/" },
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return null;
@@ -30,7 +33,26 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
   }
 }
 
-// Calculates the current market value of a fund given its contributions and a NAV.
+// Fetches the current price for a stock ticker from Yahoo Finance.
+// ticker must be the Yahoo Finance symbol including exchange suffix (e.g. ITX.MC, SAN.MC, AAPL).
+export async function fetchPriceByTicker(ticker: string): Promise<number | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: BROWSER_HEADERS,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const price = data.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
+    return typeof price === "number" && price > 0 ? price : null;
+  } catch {
+    return null;
+  }
+}
+
+// Calculates the current market value of a fund given its contributions and a price/NAV.
 //
 // Priority for unit count (per contribution):
 //   1. `units` field — exact broker-reported participations

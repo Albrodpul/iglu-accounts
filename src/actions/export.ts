@@ -49,6 +49,7 @@ export type BackupData = {
     type_id: string;
     name: string;
     isin: string | null;
+    ticker: string | null;
     show_negative_returns: boolean;
     invested_amount: number;
     current_value: number;

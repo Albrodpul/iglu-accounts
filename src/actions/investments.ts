@@ -7,7 +7,7 @@ import {
   investmentFundUpdateSchema,
   investmentContributionSchema,
 } from "@/lib/validators/expense";
-import { fetchNavByIsin, calculateCurrentValue } from "@/lib/nav";
+import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue } from "@/lib/nav";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
 
@@ -112,6 +112,7 @@ export async function createInvestmentFund(formData: FormData) {
   const purchasePrice = purchasePriceRaw ? parseFloat(purchasePriceRaw) : null;
 
   const isinRaw = (formData.get("isin") as string)?.trim() || null;
+  const tickerRaw = (formData.get("ticker") as string)?.trim().toUpperCase() || null;
   const showNegativeReturns = formData.get("show_negative_returns") !== "false";
 
   const parsed = investmentFundCreateSchema.safeParse({
@@ -119,6 +120,7 @@ export async function createInvestmentFund(formData: FormData) {
     type_id: formData.get("type_id"),
     initial_amount: initialAmount,
     isin: isinRaw || null,
+    ticker: tickerRaw || null,
     show_negative_returns: showNegativeReturns,
   });
 
@@ -126,12 +128,13 @@ export async function createInvestmentFund(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const { initial_amount, isin, show_negative_returns, ...fundData } = parsed.data;
+  const { initial_amount, isin, ticker, show_negative_returns, ...fundData } = parsed.data;
 
   const db = await getDb();
   const { data: fund, error } = await db.investments.createFund({
     ...fundData,
     isin: isin ?? null,
+    ticker: ticker ?? null,
     show_negative_returns: show_negative_returns ?? true,
     invested_amount: initial_amount,
     current_value: initial_amount,
@@ -165,11 +168,13 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   if (!accountId) return { error: "No hay cuenta seleccionada" };
 
   const isinRaw = (formData.get("isin") as string)?.trim() || null;
+  const tickerRaw = (formData.get("ticker") as string)?.trim().toUpperCase() || null;
   const showNegativeReturns = formData.get("show_negative_returns") !== "false";
 
   const parsed = investmentFundUpdateSchema.safeParse({
     name: formData.get("name"),
     isin: isinRaw || null,
+    ticker: tickerRaw || null,
     show_negative_returns: showNegativeReturns,
   });
 
@@ -181,6 +186,7 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   const { error } = await db.investments.updateFund(id, accountId, {
     name: parsed.data.name,
     isin: parsed.data.isin ?? null,
+    ticker: parsed.data.ticker ?? null,
     show_negative_returns: parsed.data.show_negative_returns ?? true,
     updated_at: new Date().toISOString(),
   });
@@ -376,7 +382,11 @@ export async function refreshInvestmentNav(): Promise<{
   let skipped = 0;
 
   for (const fund of funds) {
-    const nav = await fetchNavByIsin(fund.isin);
+    const nav = fund.ticker
+      ? await fetchPriceByTicker(fund.ticker)
+      : fund.isin
+        ? await fetchNavByIsin(fund.isin)
+        : null;
     if (nav === null) { skipped++; continue; }
 
     const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);

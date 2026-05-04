@@ -98,14 +98,14 @@ export function createInvestmentsRepo(client: SupabaseClient) {
     async findFundsForBackup(accountId: string) {
       const { data, error } = await client
         .from("investment_funds")
-        .select("id, type_id, name, isin, show_negative_returns, invested_amount, current_value, sort_order")
+        .select("id, type_id, name, isin, ticker, show_negative_returns, invested_amount, current_value, sort_order")
         .eq("account_id", accountId)
         .order("sort_order", { ascending: true });
       if (error) return null;
       return data;
     },
 
-    // Returns funds with ISIN for a specific account, with contributions.
+    // Returns funds with ISIN or ticker for a specific account, with contributions.
     // Used by the manual refresh server action.
     async findFundsForNavByAccount(accountId: string) {
       const { data, error } = await client
@@ -114,18 +114,19 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           id,
           account_id,
           isin,
+          ticker,
           invested_amount,
           show_negative_returns,
           investment_contributions(id, amount, purchase_price, units)
         `)
         .eq("account_id", accountId)
-        .not("isin", "is", null)
-        .neq("isin", "");
+        .or("isin.not.is.null,ticker.not.is.null");
       if (error) throw error;
       return (data ?? []) as Array<{
         id: string;
         account_id: string;
-        isin: string;
+        isin: string | null;
+        ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
         investment_contributions: Array<{
@@ -137,7 +138,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
       }>;
     },
 
-    // Returns all funds that have an ISIN set, across ALL accounts, with their contributions.
+    // Returns all funds that have an ISIN or ticker set, across ALL accounts, with their contributions.
     // Used by the NAV cron (service role required).
     async findFundsForNav() {
       const { data, error } = await client
@@ -146,17 +147,18 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           id,
           account_id,
           isin,
+          ticker,
           invested_amount,
           show_negative_returns,
           investment_contributions(id, amount, purchase_price, units)
         `)
-        .not("isin", "is", null)
-        .neq("isin", "");
+        .or("isin.not.is.null,ticker.not.is.null");
       if (error) throw error;
       return (data ?? []) as Array<{
         id: string;
         account_id: string;
-        isin: string;
+        isin: string | null;
+        ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
         investment_contributions: Array<{
@@ -172,6 +174,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
       name: string;
       type_id: string;
       isin?: string | null;
+      ticker?: string | null;
       show_negative_returns?: boolean;
       invested_amount: number;
       current_value: number;

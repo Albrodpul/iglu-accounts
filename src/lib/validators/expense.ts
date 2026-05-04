@@ -80,6 +80,7 @@ export const investmentFundSchema = z.object({
   type_id: z.string().check(z.uuid({ error: "Selecciona un tipo de inversión" })),
   current_value: z.number().min(0, "El valor no puede ser negativo"),
   isin: z.string().trim().max(12).optional().nullable(),
+  ticker: z.string().trim().max(20).optional().nullable(),
   show_negative_returns: z.boolean().optional().default(true),
 });
 
@@ -92,6 +93,7 @@ export const investmentFundCreateSchema = z.object({
   type_id: z.string().check(z.uuid({ error: "Selecciona un tipo de inversión" })),
   initial_amount: z.number().min(0, "El importe no puede ser negativo"),
   isin: z.string().trim().max(12).optional().nullable(),
+  ticker: z.string().trim().max(20).optional().nullable(),
   show_negative_returns: z.boolean().optional().default(true),
 });
 
@@ -102,6 +104,7 @@ export const investmentFundUpdateSchema = z.object({
     .min(1, "El nombre es obligatorio")
     .max(100, "Máximo 100 caracteres"),
   isin: z.string().trim().max(12).optional().nullable(),
+  ticker: z.string().trim().max(20).optional().nullable(),
   show_negative_returns: z.boolean().optional().default(true),
 });
 

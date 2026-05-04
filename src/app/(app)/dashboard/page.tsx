@@ -18,6 +18,7 @@ import { MonthSummary } from "@/components/shared/month-summary";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 import { MonthProjection } from "@/components/shared/month-projection";
 import { ArrowRight } from "lucide-react";
+import { AssetPieChart } from "@/components/investments/asset-pie-chart";
 
 export default async function DashboardPage() {
   const now = new Date();
@@ -123,31 +124,49 @@ export default async function DashboardPage() {
             {/* Asset breakdown — collapsible */}
             {assetBreakdown.length > 0 && (
               <CollapsibleSection label="Desglose de activos">
-                <div className="space-y-1.5">
-                  {assetBreakdown.map((item) => (
-                    <div
-                      key={item.label}
-                      className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${
-                        item.highlight ? "bg-white/10" : ""
-                      }`}
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                        {item.label}
-                      </span>
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${
-                          item.highlight
-                            ? item.value >= 0
-                              ? "text-emerald-300"
-                              : "text-rose-300"
-                            : "text-white/90"
-                        }`}
-                      >
-                        <Amount value={item.value} />
-                      </span>
+                {(() => {
+                  const PIE_COLORS = [
+                    "#f43f5e","#38bdf8","#facc15","#a78bfa",
+                    "#34d399","#f97316","#818cf8","#e879f9",
+                    "#4ade80","#fb7185","#2dd4bf","#fbbf24",
+                    "#67e8f9","#c084fc","#fdba74","#60a5fa",
+                    "#f472b6","#d946ef","#a3e635","#fde68a",
+                  ];
+                  const total = assetBreakdown.filter((i) => !i.highlight && i.value > 0).reduce((s, i) => s + i.value, 0);
+                  let pieIndex = 0;
+                  return (
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                      <div className="shrink-0 flex justify-center">
+                        <AssetPieChart items={assetBreakdown.filter((i) => !i.highlight)} />
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        {assetBreakdown.map((item) => {
+                          const isAsset = !item.highlight;
+                          const color = isAsset ? PIE_COLORS[pieIndex % PIE_COLORS.length] : null;
+                          const pct = isAsset && total > 0 ? ((item.value / total) * 100).toFixed(0) : null;
+                          if (isAsset) pieIndex++;
+                          return (
+                            <div
+                              key={item.label}
+                              className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${item.highlight ? "bg-white/10" : ""}`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />}
+                                <span className="text-xs font-semibold uppercase tracking-wider text-white/70 truncate">
+                                  {item.label}
+                                </span>
+                                {pct && <span className="text-[11px] text-white/40 shrink-0">{pct}%</span>}
+                              </div>
+                              <span className={`text-sm font-semibold tabular-nums shrink-0 pl-2 ${item.highlight ? item.value >= 0 ? "text-emerald-300" : "text-rose-300" : "text-white/90"}`}>
+                                <Amount value={item.value} />
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </CollapsibleSection>
             )}
 

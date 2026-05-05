@@ -4,13 +4,45 @@
 //   - fundinfo.com  → investment funds, keyed by ISIN
 //   - Yahoo Finance → individual stocks, keyed by ticker (e.g. ITX.MC, AAPL)
 //
+// Yahoo Finance requires a session crumb obtained dynamically at runtime.
+// Flow: fc.yahoo.com → cookie → /v1/test/getcrumb → crumb → /v7/finance/quote
+//
 // fundinfo NAV field OFDY901035 format: "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
 
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
 const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "User-Agent": USER_AGENT,
   "Accept": "application/json, text/plain, */*",
 };
+
+// Obtains a Yahoo Finance session (cookie + crumb) required for the v7 quote API.
+async function getYahooSession(): Promise<{ cookie: string; crumb: string } | null> {
+  try {
+    const cookieRes = await fetch("https://fc.yahoo.com", {
+      headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(10000),
+      redirect: "follow",
+    });
+    const cookie = cookieRes.headers.getSetCookie?.()
+      .map((c) => c.split(";")[0])
+      .join("; ") ?? "";
+
+    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
+      headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!crumbRes.ok) return null;
+
+    const crumb = await crumbRes.text();
+    if (!crumb || crumb.includes("<")) return null;
+
+    return { cookie, crumb };
+  } catch {
+    return null;
+  }
+}
 
 // Fetches the NAV for a given ISIN from fundinfo.com.
 export async function fetchNavByIsin(isin: string): Promise<number | null> {
@@ -34,10 +66,61 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
 }
 
 // Fetches the current price for a stock ticker from Yahoo Finance, always in EUR.
-// ticker must be the Yahoo Finance symbol including exchange suffix (e.g. ITX.MC, SAN.MC, AAPL).
-// If the stock trades in a non-EUR currency (e.g. USD), fetches the exchange rate from
-// Yahoo Finance (e.g. USDEUR=X) and converts automatically.
+// Uses v7/finance/quote with session crumb to get marketState + pre/post-market prices.
+// Falls back to v8/finance/chart if session cannot be obtained.
 export async function fetchPriceByTicker(ticker: string): Promise<number | null> {
+  const session = await getYahooSession();
+  const raw = session
+    ? await fetchQuoteWithSession(ticker, session)
+    : await fetchQuoteFallback(ticker);
+
+  if (raw === null) return null;
+  const { price, currency } = raw;
+
+  if (!currency || currency === "EUR") return price;
+
+  // GBp/GBX = pence → convert to GBP first
+  const normalizedPrice = (currency === "GBp" || currency === "GBX") ? price / 100 : price;
+  const fromCurrency = (currency === "GBp" || currency === "GBX") ? "GBP" : currency;
+
+  const rate = await fetchExchangeRateToEur(fromCurrency);
+  if (rate === null) return null;
+
+  return normalizedPrice * rate;
+}
+
+// v7/finance/quote — returns marketState so we can use pre/post-market prices.
+async function fetchQuoteWithSession(
+  ticker: string,
+  { cookie, crumb }: { cookie: string; crumb: string },
+): Promise<{ price: number; currency: string } | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(crumb)}&formatted=false&region=US`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, "Cookie": cookie, "Accept": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const q = data?.quoteResponse?.result?.[0];
+    if (!q) return null;
+
+    const state: string = q.marketState ?? "";
+    const price: number =
+      state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :
+      state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
+      q.regularMarketPrice;
+
+    if (typeof price !== "number" || price <= 0) return null;
+    return { price, currency: q.currency ?? "" };
+  } catch {
+    return null;
+  }
+}
+
+// v8/finance/chart — fallback when session unavailable. No pre/post-market.
+async function fetchQuoteFallback(ticker: string): Promise<{ price: number; currency: string } | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
     const res = await fetch(url, {
@@ -48,27 +131,9 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
 
     const data = await res.json();
     const meta = data.chart?.result?.[0]?.meta;
-    const currency = meta?.currency as string | undefined;
-    const state = meta?.marketState as string | undefined;
-
-    const raw: number =
-      state === "PRE"  && meta?.preMarketPrice  > 0 ? meta.preMarketPrice  :
-      state === "POST" && meta?.postMarketPrice > 0 ? meta.postMarketPrice :
-      meta?.regularMarketPrice;
-
-    if (typeof raw !== "number" || raw <= 0) return null;
-    const price = raw;
-
-    if (!currency || currency === "EUR") return price;
-
-    // GBp/GBX = pence, convert to GBP first
-    const normalizedPrice = (currency === "GBp" || currency === "GBX") ? price / 100 : price;
-    const fromCurrency = (currency === "GBp" || currency === "GBX") ? "GBP" : currency;
-
-    const rate = await fetchExchangeRateToEur(fromCurrency);
-    if (rate === null) return null;
-
-    return normalizedPrice * rate;
+    const price = meta?.regularMarketPrice as number | undefined;
+    if (typeof price !== "number" || price <= 0) return null;
+    return { price, currency: meta?.currency ?? "" };
   } catch {
     return null;
   }

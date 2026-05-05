@@ -27,11 +27,40 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
-const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Accept": "application/json, text/plain, */*",
-};
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+const BROWSER_HEADERS = { "User-Agent": USER_AGENT, "Accept": "application/json, text/plain, */*" };
+
+// ─── Yahoo Finance session (cookie + crumb) ────────────────────────────────
+
+async function getYahooSession() {
+  try {
+    const cookieRes = await fetch("https://fc.yahoo.com", {
+      headers: { "User-Agent": USER_AGENT },
+      redirect: "follow",
+      signal: AbortSignal.timeout(10_000),
+    });
+    const cookie = cookieRes.headers.getSetCookie?.()
+      .map((c) => c.split(";")[0])
+      .join("; ") ?? "";
+
+    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
+      headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!crumbRes.ok) return null;
+
+    const crumb = await crumbRes.text();
+    if (!crumb || crumb.includes("<")) return null;
+
+    console.log(`[yahoo] Session OK  crumb=${crumb}`);
+    return { cookie, crumb };
+  } catch (err) {
+    console.warn(`[yahoo] Session failed: ${err.message}`);
+    return null;
+  }
+}
 
 // ─── Price calculation (mirrors src/lib/nav.ts) ────────────────────────────
 
@@ -104,47 +133,56 @@ async function getExchangeRateToEur(fromCurrency) {
 
 // ─── Yahoo Finance price fetch (returns price in EUR) ─────────────────────
 
-async function getPriceForTicker(ticker) {
-  const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-
+async function getPriceForTicker(ticker, session) {
   try {
-    const res = await fetch(url, {
-      headers: BROWSER_HEADERS,
-      signal: AbortSignal.timeout(15_000),
-    });
+    let rawPrice, currency, state, date;
 
-    if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
+    if (session) {
+      // v7/quote with crumb → marketState + pre/post prices
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, "Cookie": session.cookie, "Accept": "application/json" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
+      const data = await res.json();
+      const q = data?.quoteResponse?.result?.[0];
+      if (!q) return { price: null, date: null, reason: "no_data" };
+      state = q.marketState ?? "";
+      currency = q.currency ?? "";
+      rawPrice =
+        state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :
+        state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
+        q.regularMarketPrice;
+      date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
+    } else {
+      // v8/chart fallback — no pre/post market
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+      const res = await fetch(url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) });
+      if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
+      const data = await res.json();
+      const meta = data.chart?.result?.[0]?.meta;
+      if (!meta) return { price: null, date: null, reason: "no_data" };
+      state = "REGULAR";
+      currency = meta.currency ?? "";
+      rawPrice = meta.regularMarketPrice;
+      date = new Date(meta.regularMarketTime * 1000).toISOString().split("T")[0];
+    }
 
-    const data = await res.json();
-    const meta = data.chart?.result?.[0]?.meta;
-    if (!meta) return { price: null, date: null, reason: "no_data" };
-
-    const currency = meta.currency;
-    const state = meta.marketState;
-    const price =
-      state === "PRE"  && meta.preMarketPrice  > 0 ? meta.preMarketPrice  :
-      state === "POST" && meta.postMarketPrice > 0 ? meta.postMarketPrice :
-      meta.regularMarketPrice;
-
-    if (typeof price !== "number" || price <= 0) return { price: null, date: null, reason: "invalid_price" };
-
-    const date = new Date(meta.regularMarketTime * 1000).toISOString().split("T")[0];
+    if (typeof rawPrice !== "number" || rawPrice <= 0) return { price: null, date: null, reason: "invalid_price" };
+    if (state) console.log(`  [${ticker}] marketState=${state}`);
 
     if (currency && currency !== "EUR") {
-      // GBp/GBX = pence → convert to GBP first
       const isGBX = currency === "GBp" || currency === "GBX";
-      const normalizedPrice = isGBX ? price / 100 : price;
+      const normalizedPrice = isGBX ? rawPrice / 100 : rawPrice;
       const fromCurrency = isGBX ? "GBP" : currency;
-
       const rate = await getExchangeRateToEur(fromCurrency);
       if (rate === null) return { price: null, date: null, reason: `no_exchange_rate_${fromCurrency}` };
-
-      console.log(`  [fx] ${fromCurrency}→EUR rate=${rate}  raw=${price}  eur=${(normalizedPrice * rate).toFixed(4)}`);
+      console.log(`  [fx] ${fromCurrency}→EUR rate=${rate}  raw=${rawPrice}  eur=${(normalizedPrice * rate).toFixed(4)}`);
       return { price: normalizedPrice * rate, date, reason: null };
     }
 
-    return { price, date, reason: null };
+    return { price: rawPrice, date, reason: null };
   } catch (err) {
     return { price: null, date: null, reason: err.message };
   }
@@ -181,6 +219,9 @@ if (!funds || funds.length === 0) {
 
 console.log(`[update-nav] Found ${funds.length} fund(s) to update.`);
 
+// Obtain Yahoo session once, reuse for all ticker-based funds
+const yahooSession = funds.some((f) => !!f.ticker) ? await getYahooSession() : null;
+
 const results = await Promise.all(
   funds.map(async (fund) => {
     const start = Date.now();
@@ -191,7 +232,7 @@ const results = await Promise.all(
     console.log(`[${symbol}] Fetching price (${source})...`);
 
     const { price, date, reason } = usesTicker
-      ? await getPriceForTicker(fund.ticker)
+      ? await getPriceForTicker(fund.ticker, yahooSession)
       : await getNavForIsin(fund.isin);
 
     if (price === null) {

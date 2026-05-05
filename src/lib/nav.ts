@@ -8,6 +8,9 @@
 // Flow: fc.yahoo.com → cookie → /v1/test/getcrumb → crumb → /v7/finance/quote
 //
 // fundinfo NAV field OFDY901035 format: "{nav}|{date}|{currency}"  e.g. "84.600000|2026-04-13|EUR"
+//
+// All fetch calls use cache: "no-store" — Next.js caches fetch by default, which would
+// return stale price data and suppress pre/post-market fields.
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -24,6 +27,7 @@ async function getYahooSession(): Promise<{ cookie: string; crumb: string } | nu
       headers: { "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(10000),
       redirect: "follow",
+      cache: "no-store",
     });
     console.log(`[yahoo] fc.yahoo.com status=${cookieRes.status}`);
 
@@ -34,6 +38,7 @@ async function getYahooSession(): Promise<{ cookie: string; crumb: string } | nu
     const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
       headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
       signal: AbortSignal.timeout(10000),
+      cache: "no-store",
     });
     console.log(`[yahoo] getcrumb status=${crumbRes.status}`);
     if (!crumbRes.ok) return null;
@@ -57,6 +62,7 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
     const res = await fetch(url, {
       headers: { ...BROWSER_HEADERS, "Referer": "https://www.fundinfo.com/" },
       signal: AbortSignal.timeout(10000),
+      cache: "no-store",
     });
     if (!res.ok) return null;
 
@@ -106,6 +112,7 @@ async function fetchQuoteWithSession(
     const res = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Cookie": cookie, "Accept": "application/json" },
       signal: AbortSignal.timeout(10000),
+      cache: "no-store",
     });
     if (!res.ok) return null;
 
@@ -134,6 +141,7 @@ async function fetchQuoteFallback(ticker: string): Promise<{ price: number; curr
     const res = await fetch(url, {
       headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(10000),
+      cache: "no-store",
     });
     if (!res.ok) return null;
 
@@ -155,6 +163,7 @@ async function fetchExchangeRateToEur(fromCurrency: string): Promise<number | nu
     const res = await fetch(url, {
       headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(10000),
+      cache: "no-store",
     });
     if (!res.ok) return null;
 

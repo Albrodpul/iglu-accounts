@@ -32,36 +32,6 @@ const USER_AGENT =
 
 const BROWSER_HEADERS = { "User-Agent": USER_AGENT, "Accept": "application/json, text/plain, */*" };
 
-// ─── Yahoo Finance session (cookie + crumb) ────────────────────────────────
-
-async function getYahooSession() {
-  try {
-    const cookieRes = await fetch("https://fc.yahoo.com", {
-      headers: { "User-Agent": USER_AGENT },
-      redirect: "follow",
-      signal: AbortSignal.timeout(10_000),
-    });
-    const cookie = cookieRes.headers.getSetCookie?.()
-      .map((c) => c.split(";")[0])
-      .join("; ") ?? "";
-
-    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
-      headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!crumbRes.ok) return null;
-
-    const crumb = await crumbRes.text();
-    if (!crumb || crumb.includes("<")) return null;
-
-    console.log(`[yahoo] Session OK  crumb=${crumb}`);
-    return { cookie, crumb };
-  } catch (err) {
-    console.warn(`[yahoo] Session failed: ${err.message}`);
-    return null;
-  }
-}
-
 // ─── Price calculation (mirrors src/lib/nav.ts) ────────────────────────────
 
 function calculateCurrentValue(contributions, nav) {
@@ -131,6 +101,38 @@ async function getExchangeRateToEur(fromCurrency) {
   }
 }
 
+// ─── Yahoo Finance session (cookie + crumb) ────────────────────────────────
+// Uses finance.yahoo.com as cookie source (same as a real browser) to get a
+// crumb with extended hours data access.
+
+async function getYahooSession() {
+  try {
+    const cookieRes = await fetch("https://finance.yahoo.com", {
+      headers: { "User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,*/*" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(10_000),
+    });
+    const cookie = cookieRes.headers.getSetCookie?.()
+      .map((c) => c.split(";")[0])
+      .join("; ") ?? "";
+
+    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
+      headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!crumbRes.ok) return null;
+
+    const crumb = await crumbRes.text();
+    if (!crumb || crumb.includes("<")) return null;
+
+    console.log(`[yahoo] Session OK  crumb=${crumb}`);
+    return { cookie, crumb };
+  } catch (err) {
+    console.warn(`[yahoo] Session failed: ${err.message}`);
+    return null;
+  }
+}
+
 // ─── Yahoo Finance price fetch (returns price in EUR) ─────────────────────
 
 async function getPriceForTicker(ticker, session) {
@@ -138,7 +140,6 @@ async function getPriceForTicker(ticker, session) {
     let rawPrice, currency, state, date;
 
     if (session) {
-      // v7/quote with crumb → marketState + pre/post prices
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT, "Cookie": session.cookie, "Accept": "application/json" },
@@ -156,7 +157,6 @@ async function getPriceForTicker(ticker, session) {
         q.regularMarketPrice;
       date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
     } else {
-      // v8/chart fallback — no pre/post market
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
       const res = await fetch(url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) });
       if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
@@ -219,7 +219,6 @@ if (!funds || funds.length === 0) {
 
 console.log(`[update-nav] Found ${funds.length} fund(s) to update.`);
 
-// Obtain Yahoo session once, reuse for all ticker-based funds
 const yahooSession = funds.some((f) => !!f.ticker) ? await getYahooSession() : null;
 
 const results = await Promise.all(

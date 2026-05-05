@@ -139,7 +139,7 @@ async function getPriceForTicker(ticker, session) {
 
     if (session) {
       // v7/quote with crumb → marketState + pre/post prices
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US&fields=regularMarketPrice,preMarketPrice,postMarketPrice,marketState,currency,regularMarketTime`;
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT, "Cookie": session.cookie, "Accept": "application/json" },
         signal: AbortSignal.timeout(15_000),

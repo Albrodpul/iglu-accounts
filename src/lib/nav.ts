@@ -108,7 +108,7 @@ async function fetchQuoteWithSession(
   { cookie, crumb }: { cookie: string; crumb: string },
 ): Promise<{ price: number; currency: string } | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(crumb)}&formatted=false&region=US&fields=regularMarketPrice,preMarketPrice,postMarketPrice,marketState,currency,regularMarketTime`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(crumb)}&formatted=false&region=US`;
     const res = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Cookie": cookie, "Accept": "application/json" },
       signal: AbortSignal.timeout(10000),
@@ -120,7 +120,7 @@ async function fetchQuoteWithSession(
     const q = data?.quoteResponse?.result?.[0];
     if (!q) return null;
 
-    console.log(`[yahoo] ${ticker} raw keys: ${Object.keys(q).filter(k => k.toLowerCase().includes("market") || k.toLowerCase().includes("pre") || k.toLowerCase().includes("post")).join(", ")}`);
+    console.log(`[yahoo] ${ticker} raw keys: ${Object.keys(q).filter(k => k.toLowerCase().includes("market") || k.toLowerCase().includes("pre") || k.toLowerCase().includes("post")).join(", ")} | hasPrePostMarketData=${q.hasPrePostMarketData}`);
     console.log(`[yahoo] ${ticker} raw pre/post: preMarketPrice=${q.preMarketPrice} preMarketChange=${q.preMarketChange} preMarketTime=${q.preMarketTime}`);
 
     const state: string = q.marketState ?? "";

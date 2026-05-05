@@ -120,8 +120,12 @@ async function getPriceForTicker(ticker) {
     const meta = data.chart?.result?.[0]?.meta;
     if (!meta) return { price: null, date: null, reason: "no_data" };
 
-    let price = meta.regularMarketPrice;
     const currency = meta.currency;
+    const state = meta.marketState;
+    const price =
+      state === "PRE"  && meta.preMarketPrice  > 0 ? meta.preMarketPrice  :
+      state === "POST" && meta.postMarketPrice > 0 ? meta.postMarketPrice :
+      meta.regularMarketPrice;
 
     if (typeof price !== "number" || price <= 0) return { price: null, date: null, reason: "invalid_price" };
 

@@ -48,10 +48,16 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
 
     const data = await res.json();
     const meta = data.chart?.result?.[0]?.meta;
-    const price = meta?.regularMarketPrice as number | undefined;
     const currency = meta?.currency as string | undefined;
+    const state = meta?.marketState as string | undefined;
 
-    if (typeof price !== "number" || price <= 0) return null;
+    const raw: number =
+      state === "PRE"  && meta?.preMarketPrice  > 0 ? meta.preMarketPrice  :
+      state === "POST" && meta?.postMarketPrice > 0 ? meta.postMarketPrice :
+      meta?.regularMarketPrice;
+
+    if (typeof raw !== "number" || raw <= 0) return null;
+    const price = raw;
 
     if (!currency || currency === "EUR") return price;
 

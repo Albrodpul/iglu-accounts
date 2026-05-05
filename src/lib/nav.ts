@@ -102,7 +102,7 @@ async function fetchQuoteWithSession(
   { cookie, crumb }: { cookie: string; crumb: string },
 ): Promise<{ price: number; currency: string } | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(crumb)}&formatted=false&region=US`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(crumb)}&formatted=false&region=US&fields=regularMarketPrice,preMarketPrice,postMarketPrice,marketState,currency,regularMarketTime`;
     const res = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Cookie": cookie, "Accept": "application/json" },
       signal: AbortSignal.timeout(10000),

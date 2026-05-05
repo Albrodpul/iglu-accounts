@@ -151,9 +151,9 @@ async function getPriceForTicker(ticker, session) {
       state = q.marketState ?? "";
       currency = q.currency ?? "";
       rawPrice =
-        state === "PRE" && q.preMarketPrice > 0 ? q.preMarketPrice :
-          state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
-            q.regularMarketPrice;
+        state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :
+        state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
+        q.regularMarketPrice;
       date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
     } else {
       // v8/chart fallback — no pre/post market

@@ -120,6 +120,9 @@ async function fetchQuoteWithSession(
     const q = data?.quoteResponse?.result?.[0];
     if (!q) return null;
 
+    console.log(`[yahoo] ${ticker} raw keys: ${Object.keys(q).filter(k => k.toLowerCase().includes("market") || k.toLowerCase().includes("pre") || k.toLowerCase().includes("post")).join(", ")}`);
+    console.log(`[yahoo] ${ticker} raw pre/post: preMarketPrice=${q.preMarketPrice} preMarketChange=${q.preMarketChange} preMarketTime=${q.preMarketTime}`);
+
     const state: string = q.marketState ?? "";
     const price: number =
       state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :

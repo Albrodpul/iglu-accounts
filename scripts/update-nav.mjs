@@ -107,8 +107,8 @@ async function getExchangeRateToEur(fromCurrency) {
 
 async function getYahooSession() {
   try {
-    const cookieRes = await fetch("https://finance.yahoo.com", {
-      headers: { "User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,*/*" },
+    const cookieRes = await fetch("https://fc.yahoo.com", {
+      headers: { "User-Agent": USER_AGENT },
       redirect: "follow",
       signal: AbortSignal.timeout(10_000),
     });

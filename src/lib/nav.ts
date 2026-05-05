@@ -25,21 +25,27 @@ async function getYahooSession(): Promise<{ cookie: string; crumb: string } | nu
       signal: AbortSignal.timeout(10000),
       redirect: "follow",
     });
-    const cookie = cookieRes.headers.getSetCookie?.()
-      .map((c) => c.split(";")[0])
-      .join("; ") ?? "";
+    console.log(`[yahoo] fc.yahoo.com status=${cookieRes.status}`);
+
+    const rawSetCookie = cookieRes.headers.getSetCookie?.() ?? [];
+    console.log(`[yahoo] set-cookie count=${rawSetCookie.length}`);
+    const cookie = rawSetCookie.map((c) => c.split(";")[0]).join("; ");
 
     const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
       headers: { "User-Agent": USER_AGENT, "Cookie": cookie },
       signal: AbortSignal.timeout(10000),
     });
+    console.log(`[yahoo] getcrumb status=${crumbRes.status}`);
     if (!crumbRes.ok) return null;
 
     const crumb = await crumbRes.text();
+    console.log(`[yahoo] crumb="${crumb.substring(0, 30)}" is_html=${crumb.includes("<")}`);
     if (!crumb || crumb.includes("<")) return null;
 
+    console.log(`[yahoo] session OK crumb=${crumb}`);
     return { cookie, crumb };
-  } catch {
+  } catch (err) {
+    console.warn(`[yahoo] session failed: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
 }
@@ -70,6 +76,7 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
 // Falls back to v8/finance/chart if session cannot be obtained.
 export async function fetchPriceByTicker(ticker: string): Promise<number | null> {
   const session = await getYahooSession();
+  console.log(`[yahoo] fetchPriceByTicker ticker=${ticker} session=${session ? "ok" : "null→fallback"}`);
   const raw = session
     ? await fetchQuoteWithSession(ticker, session)
     : await fetchQuoteFallback(ticker);

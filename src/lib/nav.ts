@@ -119,6 +119,7 @@ async function fetchQuoteWithSession(
       state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
       q.regularMarketPrice;
 
+    console.log(`[yahoo] ${ticker} marketState=${state} regular=${q.regularMarketPrice} pre=${q.preMarketPrice} post=${q.postMarketPrice} → price=${price} currency=${q.currency}`);
     if (typeof price !== "number" || price <= 0) return null;
     return { price, currency: q.currency ?? "" };
   } catch {

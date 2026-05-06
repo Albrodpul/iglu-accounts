@@ -152,8 +152,8 @@ async function getPriceForTicker(ticker, session) {
       state = q.marketState ?? "";
       currency = q.currency ?? "";
       rawPrice =
-        state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :
-        state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
+        state === "PRE"                          && q.preMarketPrice  > 0 ? q.preMarketPrice  :
+        (state === "POST" || state === "PREPRE") && q.postMarketPrice > 0 ? q.postMarketPrice :
         q.regularMarketPrice;
       date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
     } else {

@@ -96,8 +96,8 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
 
       const state: string = q.marketState ?? "";
       rawPrice =
-        state === "PRE"  && q.preMarketPrice  > 0 ? q.preMarketPrice  :
-        state === "POST" && q.postMarketPrice > 0 ? q.postMarketPrice :
+        state === "PRE"                       && q.preMarketPrice  > 0 ? q.preMarketPrice  :
+        (state === "POST" || state === "PREPRE") && q.postMarketPrice > 0 ? q.postMarketPrice :
         q.regularMarketPrice;
       currency = q.currency ?? "";
       console.log(`[yahoo] ${ticker} marketState=${state} pre=${q.preMarketPrice} post=${q.postMarketPrice} → price=${rawPrice} currency=${currency}`);

@@ -114,6 +114,7 @@ describe("investment funds and contributions", () => {
 
     const formData = new FormData();
     formData.set("name", "MSCI World Core");
+    formData.set("type_id", TYPE_ID);
 
     const result = await updateInvestmentFund(FUND_ID, formData);
 

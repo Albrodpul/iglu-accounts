@@ -103,6 +103,7 @@ export const investmentFundUpdateSchema = z.object({
     .trim()
     .min(1, "El nombre es obligatorio")
     .max(100, "Máximo 100 caracteres"),
+  type_id: z.string().check(z.uuid({ error: "Selecciona un tipo válido" })),
   isin: z.string().trim().max(12).optional().nullable(),
   ticker: z.string().trim().max(20).optional().nullable(),
   show_negative_returns: z.boolean().optional().default(true),

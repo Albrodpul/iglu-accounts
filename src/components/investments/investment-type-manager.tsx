@@ -5,6 +5,7 @@ import {
   createInvestmentType,
   updateInvestmentType,
   deleteInvestmentType,
+  setInvestmentTypesOrder,
 } from "@/actions/investments";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Settings2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Settings2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import type { InvestmentType, InvestmentFundWithType } from "@/types";
 
@@ -26,10 +27,13 @@ type Props = {
 };
 
 export function InvestmentTypeManager({ types, funds }: Props) {
+  const [localTypes, setLocalTypes] = useState<InvestmentType[]>(types);
   const [listOpen, setListOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingType, setEditingType] = useState<InvestmentType | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
 
   function openCreate() {
@@ -83,6 +87,35 @@ export function InvestmentTypeManager({ types, funds }: Props) {
     }
   }
 
+  function handleDragStart(idx: number) {
+    setDragIdx(idx);
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    setDragOverIdx(idx);
+  }
+
+  async function handleDrop(targetIdx: number) {
+    if (dragIdx === null || dragIdx === targetIdx) {
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    const next = [...localTypes];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(targetIdx, 0, moved);
+    setLocalTypes(next);
+    setDragIdx(null);
+    setDragOverIdx(null);
+    await setInvestmentTypesOrder(next.map((t) => t.id));
+  }
+
+  function handleDragEnd() {
+    setDragIdx(null);
+    setDragOverIdx(null);
+  }
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setListOpen(true)}>
@@ -96,20 +129,31 @@ export function InvestmentTypeManager({ types, funds }: Props) {
             <DialogTitle>Tipos de inversión</DialogTitle>
           </DialogHeader>
           <div className="px-5 py-4 space-y-4">
-            {types.length === 0 ? (
+            {localTypes.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">
                 No hay tipos de inversión. Crea uno para empezar.
               </p>
             ) : (
               <div className="space-y-1">
-                {types.map((type) => {
+                {localTypes.map((type, idx) => {
                   const fundCount = funds.filter((f) => f.type_id === type.id).length;
+                  const isDragging = dragIdx === idx;
+                  const isOver = dragOverIdx === idx && dragIdx !== idx;
                   return (
                     <div
                       key={type.id}
-                      className="group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors hover:bg-muted/35"
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDrop={() => handleDrop(idx)}
+                      onDragEnd={handleDragEnd}
+                      className={`group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors cursor-grab active:cursor-grabbing
+                        ${isDragging ? "opacity-40" : ""}
+                        ${isOver ? "bg-muted/60 ring-1 ring-border" : "hover:bg-muted/35"}
+                      `}
                     >
                       <div className="flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                         <span className="text-sm font-medium">{type.name}</span>
                         <span className="text-xs text-muted-foreground">
                           {fundCount} {fundCount === 1 ? "fondo" : "fondos"}

@@ -42,9 +42,11 @@ export async function createInvestmentType(formData: FormData) {
   }
 
   const db = await getDb();
+  const existingTypes = await db.investments.findTypes(accountId);
   const { error } = await db.investments.createType({
     ...parsed.data,
     account_id: accountId,
+    sort_order: existingTypes.length,
   });
 
   if (error) return { error };
@@ -88,6 +90,44 @@ export async function deleteInvestmentType(id: string) {
   const { error } = await db.investments.deleteType(id, accountId);
 
   if (error) return { error };
+
+  revalidateAll();
+  return { success: true };
+}
+
+export async function setInvestmentTypesOrder(orderedIds: string[]) {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const db = await getDb();
+  await Promise.all(
+    orderedIds.map((id, i) => db.investments.updateType(id, accountId, { sort_order: i }))
+  );
+
+  revalidateAll();
+  return { success: true };
+}
+
+export async function reorderInvestmentType(id: string, direction: "up" | "down") {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const db = await getDb();
+  const types = await db.investments.findTypes(accountId);
+  const idx = types.findIndex((t) => t.id === id);
+  if (idx === -1) return { error: "Tipo no encontrado" };
+
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= types.length) return { success: true };
+
+  // Build new order after swap, then assign sort_order = index to all.
+  // This normalises existing data (e.g. all sort_order=0) in one go.
+  const reordered = [...types];
+  [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+
+  await Promise.all(
+    reordered.map((t, i) => db.investments.updateType(t.id, accountId, { sort_order: i }))
+  );
 
   revalidateAll();
   return { success: true };
@@ -173,6 +213,7 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
 
   const parsed = investmentFundUpdateSchema.safeParse({
     name: formData.get("name"),
+    type_id: formData.get("type_id"),
     isin: isinRaw || null,
     ticker: tickerRaw || null,
     show_negative_returns: showNegativeReturns,
@@ -185,6 +226,7 @@ export async function updateInvestmentFund(id: string, formData: FormData) {
   const db = await getDb();
   const { error } = await db.investments.updateFund(id, accountId, {
     name: parsed.data.name,
+    type_id: parsed.data.type_id,
     isin: parsed.data.isin ?? null,
     ticker: parsed.data.ticker ?? null,
     show_negative_returns: parsed.data.show_negative_returns ?? true,

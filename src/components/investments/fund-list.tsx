@@ -367,23 +367,21 @@ export function FundList({ types, funds }: Props) {
               />
             </div>
 
-            {!editingFund && (
-              <div className="space-y-2">
-                <Label htmlFor="type_id">Tipo de inversión</Label>
-                <select
-                  id="type_id"
-                  name="type_id"
-                  defaultValue={types.length === 1 ? types[0].id : ""}
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="" disabled>Selecciona tipo</option>
-                  {types.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="type_id">Tipo de inversión</Label>
+              <select
+                id="type_id"
+                name="type_id"
+                defaultValue={editingFund?.type_id ?? (types.length === 1 ? types[0].id : "")}
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="" disabled>Selecciona tipo</option>
+                {types.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="fund_isin">

@@ -82,6 +82,21 @@ export function ExpenseListAll({
     });
   }, [debouncedSearch, categoryFilter, sortAsc]);
 
+  const reload = useCallback(async () => {
+    setFilterLoading(true);
+    const result = await getExpensesPaginated({
+      page: 0,
+      limit: PAGE_SIZE,
+      ascending: sortAsc,
+      search: debouncedSearch || undefined,
+      categoryId: categoryFilter || undefined,
+    });
+    setExpenses(result.data as ExpenseWithCategory[]);
+    setHasMore(result.hasMore);
+    setNextPage(1);
+    setFilterLoading(false);
+  }, [sortAsc, debouncedSearch, categoryFilter]);
+
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
     setLoading(true);
@@ -97,6 +112,15 @@ export function ExpenseListAll({
     setNextPage((p) => p + 1);
     setLoading(false);
   }, [loading, hasMore, nextPage, sortAsc, debouncedSearch, categoryFilter]);
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    reload();
+  }, [initialExpenses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -176,6 +200,7 @@ export function ExpenseListAll({
             hasInvestments={hasInvestments}
             debtCategoryId={debtCategoryId}
             transferCategoryId={transferCategoryId}
+            onMutated={reload}
           />
 
           </div>

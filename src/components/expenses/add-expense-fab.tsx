@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ type Props = {
 
 export function AddExpenseFab({ categories, hasInvestments = false }: Props) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -42,7 +44,7 @@ export function AddExpenseFab({ categories, hasInvestments = false }: Props) {
           <div className="px-5 py-4">
             <ExpenseForm
               categories={categories}
-              onSuccess={() => setOpen(false)}
+              onSuccess={() => { setOpen(false); router.refresh(); }}
               hasInvestments={hasInvestments}
             />
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { deleteExpense } from "@/actions/expenses";
 import { formatDateShort, formatDateWithYear } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ExpenseForm } from "./expense-form";
-import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
@@ -25,13 +26,18 @@ type Props = {
   hasInvestments?: boolean;
   debtCategoryId?: string | null;
   transferCategoryId?: string | null;
+  onMutated?: () => void;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [internalSortAsc, setInternalSortAsc] = useState(false);
   const sortAsc = sortable ? internalSortAsc : (externalSortAsc ?? false);
   const { confirm, ConfirmDialog } = useConfirm();
+  const router = useRouter();
+
+  const notifyMutated = onMutated ?? (() => router.refresh());
 
   if (expenses.length === 0) {
     return (
@@ -67,11 +73,17 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
       variant: "destructive",
     });
     if (ok) {
-      const result = await deleteExpense(expense.id);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
+      setDeletingId(expense.id);
+      try {
+        const result = await deleteExpense(expense.id);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
+          notifyMutated();
+        }
+      } finally {
+        setDeletingId(null);
       }
     }
   }
@@ -114,10 +126,12 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 </span>
               </div>
               <div className="space-y-1">
-                {dayExpenses.map((expense) => (
+                {dayExpenses.map((expense) => {
+                  const isDeleting = deletingId === expense.id;
+                  return (
                   <div
                     key={expense.id}
-                    className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35"
+                    className={`group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 ${isDeleting ? "opacity-50" : ""}`}
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
@@ -156,21 +170,28 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                       </span>
                       <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                         <button
-                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                           onClick={() => setEditingExpense(expense)}
+                          disabled={isDeleting}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors"
+                          className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors disabled:opacity-100"
                           onClick={() => handleDelete(expense)}
+                          disabled={isDeleting}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          {isDeleting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
                         </button>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -187,7 +208,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
               <ExpenseForm
                 categories={categories}
                 expense={editingExpense}
-                onSuccess={() => setEditingExpense(null)}
+                onSuccess={() => { setEditingExpense(null); notifyMutated(); }}
                 hasInvestments={hasInvestments}
               />
             )}

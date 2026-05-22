@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import type { Category, Expense } from "@/types";
 
 type ExpenseType = "expense" | "income" | "debt" | "transfer";
@@ -142,7 +143,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const submitLabel = isTransfer ? "Añadir traspaso" : type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
 
   return (
-    <form key={formKey} ref={formRef} action={handleSubmit} className="grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+    <form key={formKey} ref={formRef} action={handleSubmit} className={cn("grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4", loading && "pointer-events-none")}>
       <div className="flex flex-wrap gap-2 md:col-span-2">
         {typeButtons.map((btn) => (
           <Button
@@ -303,6 +304,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
 
       {expense ? (
         <Button type="submit" className="w-full md:col-span-2" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? "Guardando..." : "Actualizar"}
         </Button>
       ) : (
@@ -314,6 +316,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             disabled={loading}
             onClick={() => { keepOpenRef.current = true; }}
           >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? "Guardando..." : "Guardar y crear otro"}
           </Button>
           <Button
@@ -321,6 +324,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             className="flex-1"
             disabled={loading}
           >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? "Guardando..." : submitLabel}
           </Button>
         </div>

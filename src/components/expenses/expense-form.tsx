@@ -143,7 +143,16 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const submitLabel = isTransfer ? "Añadir traspaso" : type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
 
   return (
-    <form key={formKey} ref={formRef} action={handleSubmit} className={cn("grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4", loading && "pointer-events-none")}>
+    <form
+      key={formKey}
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (loading) return;
+        handleSubmit(new FormData(e.currentTarget));
+      }}
+      className={cn("grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4", loading && "pointer-events-none")}
+    >
       <div className="flex flex-wrap gap-2 md:col-span-2">
         {typeButtons.map((btn) => (
           <Button

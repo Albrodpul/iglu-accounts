@@ -128,6 +128,8 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
       concept: r.concept,
       day_of_month: r.day_of_month,
       schedule_type: r.schedule_type,
+      expense_day_of_month: r.expense_day_of_month ?? null,
+      expense_schedule_type: r.expense_schedule_type ?? null,
       is_active: r.is_active,
     }))
     .filter((r) => r.category_id !== null);

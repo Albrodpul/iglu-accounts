@@ -21,7 +21,7 @@ import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2, Play } from "lucide-react";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
-import type { Category, RecurringExpenseWithCategory, ScheduleType } from "@/types";
+import type { Category, RecurringExpenseWithCategory, ScheduleType, ExpenseDateScheduleType } from "@/types";
 
 type Props = {
   recurring: RecurringExpenseWithCategory[];
@@ -31,16 +31,35 @@ type Props = {
 const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 function formatSchedule(item: RecurringExpenseWithCategory): string {
+  let trigger: string;
   switch (item.schedule_type) {
     case "last_day":
-      return "Último día del mes";
+      trigger = "Último día del mes";
+      break;
     case "last_weekday":
-      return `Último ${WEEKDAYS[item.day_of_month ?? 0]} del mes`;
+      trigger = `Último ${WEEKDAYS[item.day_of_month ?? 0]} del mes`;
+      break;
     case "bimonthly":
-      return item.day_of_month ? `Cada 2 meses · día ${item.day_of_month}` : "Cada 2 meses";
+      trigger = item.day_of_month ? `Cada 2 meses · día ${item.day_of_month}` : "Cada 2 meses";
+      break;
     default:
-      return item.day_of_month ? `Día ${item.day_of_month}` : "Mensual";
+      trigger = item.day_of_month ? `Día ${item.day_of_month}` : "Mensual";
   }
+
+  if (!item.expense_schedule_type) return trigger;
+
+  let stamp: string;
+  switch (item.expense_schedule_type) {
+    case "last_day":
+      stamp = "último día";
+      break;
+    case "last_weekday":
+      stamp = `último ${WEEKDAYS[item.expense_day_of_month ?? 0].toLowerCase()}`;
+      break;
+    default:
+      stamp = item.expense_day_of_month ? `día ${item.expense_day_of_month}` : "mismo día";
+  }
+  return `${trigger} → fecha: ${stamp}`;
 }
 
 export function RecurringList({ recurring, categories }: Props) {
@@ -48,6 +67,7 @@ export function RecurringList({ recurring, categories }: Props) {
   const [editingItem, setEditingItem] = useState<RecurringExpenseWithCategory | null>(null);
   const [isIncome, setIsIncome] = useState(false);
   const [scheduleType, setScheduleType] = useState<ScheduleType>("monthly");
+  const [expenseScheduleType, setExpenseScheduleType] = useState<ExpenseDateScheduleType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -57,6 +77,7 @@ export function RecurringList({ recurring, categories }: Props) {
     setEditingItem(null);
     setIsIncome(false);
     setScheduleType("monthly");
+    setExpenseScheduleType(null);
     setError(null);
     setOpen(true);
   }
@@ -65,6 +86,7 @@ export function RecurringList({ recurring, categories }: Props) {
     setEditingItem(item);
     setIsIncome(item.amount > 0);
     setScheduleType(item.schedule_type || "monthly");
+    setExpenseScheduleType(item.expense_schedule_type ?? null);
     setError(null);
     setOpen(true);
   }
@@ -78,6 +100,16 @@ export function RecurringList({ recurring, categories }: Props) {
     // For last_day, day_of_month is irrelevant
     if (scheduleType === "last_day") {
       formData.delete("day_of_month");
+    }
+
+    if (expenseScheduleType) {
+      formData.set("expense_schedule_type", expenseScheduleType);
+      if (expenseScheduleType === "last_day") {
+        formData.delete("expense_day_of_month");
+      }
+    } else {
+      formData.delete("expense_schedule_type");
+      formData.delete("expense_day_of_month");
     }
 
     const result = editingItem
@@ -285,6 +317,81 @@ export function RecurringList({ recurring, categories }: Props) {
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 rounded-md border border-border/70 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Personalizar fecha del movimiento</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Por defecto, la fecha del movimiento es la misma que el día de ejecución.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={expenseScheduleType !== null}
+                  onChange={(e) => setExpenseScheduleType(e.target.checked ? "monthly" : null)}
+                  className="h-4 w-4 shrink-0 cursor-pointer accent-primary"
+                />
+              </div>
+
+              {expenseScheduleType !== null && (
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      ["monthly", "Día fijo"],
+                      ["last_day", "Último día"],
+                      ["last_weekday", "Último X día"],
+                    ] as [ExpenseDateScheduleType, string][]).map(([type, label]) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setExpenseScheduleType(type)}
+                        className={`rounded-md border px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
+                          expenseScheduleType === type
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-muted/40"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {expenseScheduleType === "monthly" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="expense_day_of_month">Día del mes</Label>
+                      <select
+                        id="expense_day_of_month"
+                        name="expense_day_of_month"
+                        defaultValue={editingItem?.expense_schedule_type === "monthly" ? (editingItem?.expense_day_of_month ?? "") : ""}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">Mismo día que ejecución</option>
+                        {Array.from({ length: 31 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>Día {i + 1}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {expenseScheduleType === "last_weekday" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="expense_day_of_month">Día de la semana</Label>
+                      <select
+                        id="expense_day_of_month"
+                        name="expense_day_of_month"
+                        defaultValue={editingItem?.expense_schedule_type === "last_weekday" ? (editingItem?.expense_day_of_month ?? 4) : 4}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {WEEKDAYS.map((name, i) => (
+                          <option key={i} value={i}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

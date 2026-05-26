@@ -24,28 +24,29 @@ export const recurringExpenseSchema = z.object({
   category_id: z.string().check(z.uuid({ error: "Selecciona una categoría" })),
   day_of_month: z.number().int("Día inválido").optional().nullable(),
   schedule_type: z.enum(["monthly", "last_day", "last_weekday", "bimonthly"]).default("monthly"),
+  expense_day_of_month: z.number().int("Día inválido").optional().nullable(),
+  expense_schedule_type: z.enum(["monthly", "last_day", "last_weekday"]).optional().nullable(),
 }).superRefine((data, ctx) => {
-  if (data.schedule_type === "last_day") {
-    return;
-  }
-
+  // --- Trigger schedule validation ---
   if (data.schedule_type === "last_weekday") {
     if (data.day_of_month == null || data.day_of_month < 0 || data.day_of_month > 6) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["day_of_month"],
-        message: "Día inválido",
-      });
+      ctx.addIssue({ code: "custom", path: ["day_of_month"], message: "Día inválido" });
     }
-    return;
+  } else if (data.schedule_type !== "last_day") {
+    if (data.day_of_month != null && (data.day_of_month < 1 || data.day_of_month > 31)) {
+      ctx.addIssue({ code: "custom", path: ["day_of_month"], message: "Día inválido" });
+    }
   }
 
-  if (data.day_of_month != null && (data.day_of_month < 1 || data.day_of_month > 31)) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["day_of_month"],
-      message: "Día inválido",
-    });
+  // --- Expense-date override validation ---
+  if (data.expense_schedule_type === "last_weekday") {
+    if (data.expense_day_of_month == null || data.expense_day_of_month < 0 || data.expense_day_of_month > 6) {
+      ctx.addIssue({ code: "custom", path: ["expense_day_of_month"], message: "Día inválido" });
+    }
+  } else if (data.expense_schedule_type === "monthly") {
+    if (data.expense_day_of_month != null && (data.expense_day_of_month < 1 || data.expense_day_of_month > 31)) {
+      ctx.addIssue({ code: "custom", path: ["expense_day_of_month"], message: "Día inválido" });
+    }
   }
 });
 

@@ -37,6 +37,8 @@ export type BackupData = {
     concept: string;
     day_of_month: number;
     schedule_type: string;
+    expense_day_of_month: number | null;
+    expense_schedule_type: string | null;
     is_active: boolean;
   }>;
   investment_types: Array<{
@@ -145,6 +147,8 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
       concept: r.concept,
       day_of_month: r.day_of_month,
       schedule_type: r.schedule_type,
+      expense_day_of_month: r.expense_day_of_month ?? null,
+      expense_schedule_type: r.expense_schedule_type ?? null,
       is_active: r.is_active,
     })),
     investment_types: investmentTypes,

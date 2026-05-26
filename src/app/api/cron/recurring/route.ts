@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceDb } from "@/lib/db/service";
-import { getScheduledDay } from "@/lib/recurring";
+import { getScheduledDay, getExpenseDay } from "@/lib/recurring";
 import { sendPushToMany, formatRecurringPushBody, formatWeeklySummaryBody } from "@/lib/web-push";
 
 const MONTHS_ES = [
@@ -59,15 +59,18 @@ export async function GET(request: Request) {
           const day = getScheduledDay(r, year, month);
           return day === today;
         })
-        .map((r) => ({
-          user_id: r.user_id,
-          account_id: r.account_id,
-          category_id: r.category_id,
-          amount: r.amount,
-          concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
-          expense_date: `${monthStr}-${String(today).padStart(2, "0")}`,
-          notes: `auto:recurring:${r.id}`,
-        }));
+        .map((r) => {
+          const expenseDay = getExpenseDay(r, year, month);
+          return {
+            user_id: r.user_id,
+            account_id: r.account_id,
+            category_id: r.category_id,
+            amount: r.amount,
+            concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
+            expense_date: `${monthStr}-${String(expenseDay).padStart(2, "0")}`,
+            notes: `auto:recurring:${r.id}`,
+          };
+        });
 
       if (toInsert.length > 0) {
         const { error: insertError } = await db.expenses.createMany(toInsert);

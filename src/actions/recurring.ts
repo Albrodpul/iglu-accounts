@@ -9,7 +9,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 import { getOrCreateIncomeCategory } from "./categories";
-import { getScheduledDay } from "@/lib/recurring";
+import { getScheduledDay, getExpenseDay } from "@/lib/recurring";
+
+function parseExpenseOverride(formData: FormData) {
+  const rawType = formData.get("expense_schedule_type");
+  const expense_schedule_type =
+    typeof rawType === "string" && rawType.length > 0 ? rawType : null;
+  const rawDay = formData.get("expense_day_of_month");
+  const expense_day_of_month =
+    typeof rawDay === "string" && rawDay.length > 0 ? parseInt(rawDay) : null;
+  return { expense_schedule_type, expense_day_of_month };
+}
 
 const findRecurringCached = cache(async (accountId: string | null) => {
   const db = await getDb();
@@ -40,12 +50,14 @@ export async function createRecurringExpense(formData: FormData) {
     if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
   }
 
+  const override = parseExpenseOverride(formData);
   const parsed = recurringExpenseSchema.safeParse({
     amount,
     concept: formData.get("concept"),
     category_id: categoryId,
     day_of_month: dayValue ? parseInt(dayValue) : null,
     schedule_type: scheduleType,
+    ...override,
   });
 
   if (!parsed.success) {
@@ -87,12 +99,14 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
     if (!categoryId) return { error: "No se pudo asignar categoría de ingreso" };
   }
 
+  const override = parseExpenseOverride(formData);
   const parsed = recurringExpenseSchema.safeParse({
     amount,
     concept: formData.get("concept"),
     category_id: categoryId,
     day_of_month: dayValue ? parseInt(dayValue) : null,
     schedule_type: scheduleType,
+    ...override,
   });
 
   if (!parsed.success) {
@@ -102,6 +116,8 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   const db = await getDb();
   const { error } = await db.recurring.update(id, user.id, {
     ...parsed.data,
+    expense_day_of_month: parsed.data.expense_day_of_month ?? null,
+    expense_schedule_type: parsed.data.expense_schedule_type ?? null,
     updated_at: new Date().toISOString(),
   });
 
@@ -154,14 +170,14 @@ export async function triggerRecurringExpenses() {
       return day !== null && day <= today;
     })
     .map((r) => {
-      const day = getScheduledDay(r, year, month)!;
+      const expenseDay = getExpenseDay(r, year, month);
       return {
         user_id: user.id,
         account_id: r.account_id,
         category_id: r.category_id,
         amount: r.amount,
         concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
-        expense_date: `${monthStr}-${String(day).padStart(2, "0")}`,
+        expense_date: `${monthStr}-${String(expenseDay).padStart(2, "0")}`,
         notes: `auto:recurring:${r.id}`,
       };
     });

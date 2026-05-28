@@ -7,38 +7,35 @@ import { useFormStatus } from "react-dom";
 type Account = {
   id: string;
   name: string;
+  action: () => void | Promise<void>;
 };
 
 type Props = {
   accounts: Account[];
-  action: (formData: FormData) => void;
 };
 
-type AccountOptionButtonProps = {
+type AccountOptionFormProps = {
   account: Account;
-  selectedAccountId: string | null;
-  optimisticPending: boolean;
-  onSelect: (accountId: string) => void;
+  anyPending: boolean;
+  onSelect: (id: string) => void;
+  isSelected: boolean;
 };
 
-function AccountOptionButton({ account, selectedAccountId, optimisticPending, onSelect }: AccountOptionButtonProps) {
+function SubmitButton({ name, isSelected, anyPending }: { name: string; isSelected: boolean; anyPending: boolean }) {
   const { pending } = useFormStatus();
-  const isSubmitting = pending || optimisticPending;
-  const isSelected = selectedAccountId === account.id;
+  const showSpinner = pending || (anyPending && isSelected);
+  const disabled = pending || anyPending;
 
   return (
     <button
       type="submit"
-      name="account_id"
-      value={account.id}
-      onClick={() => onSelect(account.id)}
-      aria-busy={isSubmitting && isSelected}
-      disabled={isSubmitting}
+      aria-busy={showSpinner}
+      disabled={disabled}
       className="w-full rounded-lg border border-border/80 bg-card px-5 py-4 text-left text-base font-medium transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-75"
     >
       <span className="flex items-center justify-between gap-3">
-        <span className="truncate">{account.name}</span>
-        {isSubmitting && isSelected && (
+        <span className="truncate">{name}</span>
+        {showSpinner && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
             Entrando...
@@ -49,36 +46,31 @@ function AccountOptionButton({ account, selectedAccountId, optimisticPending, on
   );
 }
 
-export function SelectAccountForm({ accounts, action }: Props) {
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [optimisticPending, setOptimisticPending] = useState(false);
-
+function AccountOptionForm({ account, anyPending, onSelect, isSelected }: AccountOptionFormProps) {
   return (
     <form
-      action={action}
-      className="space-y-2"
-      onSubmitCapture={(event) => {
-        const submitter = (event.nativeEvent as SubmitEvent).submitter as
-          | HTMLButtonElement
-          | null;
-        const accountId = submitter?.value;
-
-        if (accountId) {
-          setSelectedAccountId(accountId);
-        }
-
-        setOptimisticPending(true);
-      }}
+      action={account.action}
+      onSubmitCapture={() => onSelect(account.id)}
     >
+      <SubmitButton name={account.name} isSelected={isSelected} anyPending={anyPending} />
+    </form>
+  );
+}
+
+export function SelectAccountForm({ accounts }: Props) {
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-2">
       {accounts.map((account) => (
-        <AccountOptionButton
+        <AccountOptionForm
           key={account.id}
           account={account}
-          selectedAccountId={selectedAccountId}
-          optimisticPending={optimisticPending}
+          anyPending={selectedAccountId !== null}
+          isSelected={selectedAccountId === account.id}
           onSelect={setSelectedAccountId}
         />
       ))}
-    </form>
+    </div>
   );
 }

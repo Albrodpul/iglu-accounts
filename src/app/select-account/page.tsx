@@ -24,12 +24,11 @@ export default async function SelectAccountPage() {
 
   const hasActiveAccount = !!currentAccountId;
 
-  async function handleSelectAccount(formData: FormData) {
-    "use server";
-    const accountId = formData.get("account_id");
-    if (typeof accountId !== "string" || !accountId) return;
-    await selectAccount(accountId);
-  }
+  const accountsWithAction = accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    action: selectAccount.bind(null, account.id),
+  }));
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -68,10 +67,7 @@ export default async function SelectAccountPage() {
             </div>
           </div>
 
-          <SelectAccountForm
-            accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
-            action={handleSelectAccount}
-          />
+          <SelectAccountForm accounts={accountsWithAction} />
 
           <div className="flex items-center gap-2 pt-2">
             {hasActiveAccount && (

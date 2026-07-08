@@ -40,7 +40,11 @@ export function CategoryForm({ category, onSuccess }: Props) {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form
+      action={handleSubmit}
+      onSubmit={(e) => e.stopPropagation()}
+      className="space-y-4"
+    >
       <div className="space-y-2">
         <Label htmlFor="cat-name">Nombre</Label>
         <Input

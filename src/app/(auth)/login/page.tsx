@@ -55,9 +55,14 @@ export default function LoginPage() {
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
-    const result = await signIn(formData);
-    if (result?.error) {
-      setError(result.error);
+    try {
+      const result = await signIn(formData);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
       setLoading(false);
     }
   }

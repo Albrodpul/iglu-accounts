@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CategoryForm } from "@/components/settings/category-form";
-import { Plus, Pencil, Trash2, Settings2, Search } from "lucide-react";
+import { Plus, Trash2, Settings2, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { Category } from "@/types";
 
@@ -75,68 +75,60 @@ export function CategoryManager({ categories }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>Categorías</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-4">
-            {categories.length > 6 && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Filtrar categorías..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            )}
+          {categories.length > 8 && (
+            <div className="relative shrink-0 px-5 pt-4">
+              <Search className="absolute left-8 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Filtrar categorías..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
 
+          <DialogBody>
             {filtered.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 {filter ? "No se encontraron categorías" : "No hay categorías. Crea una para empezar."}
               </p>
             ) : (
-              <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {filtered.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors hover:bg-muted/35"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base"
+                  <div key={cat.id} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(cat)}
+                      className="flex w-full flex-col items-center gap-1.5 rounded-xl border border-border/70 px-2 py-3 text-center transition-colors hover:bg-muted/40"
+                    >
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-xl"
                         style={{ backgroundColor: (cat.color || "#64748b") + "18" }}
                       >
                         {cat.icon || "📦"}
-                      </div>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color || "#64748b" }}
-                        />
-                        <span className="text-sm font-medium truncate">{cat.name}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 shrink-0 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                      <button
-                        className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        onClick={() => openEdit(cat)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors cursor-pointer"
-                        onClick={() => handleDelete(cat)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                      </span>
+                      <span className="w-full truncate text-xs font-medium leading-snug">
+                        {cat.name}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Eliminar ${cat.name}`}
+                      onClick={() => handleDelete(cat)}
+                      className="absolute top-1 right-1 rounded p-1 text-muted-foreground/60 transition-colors hover:text-expense"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
             )}
-
+          </DialogBody>
+          <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
             <Button onClick={openCreate} className="h-12 w-full md:h-10">
               <Plus className="h-4 w-4 mr-1" /> Añadir categoría
             </Button>
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -146,7 +138,7 @@ export function CategoryManager({ categories }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>{editingCategory ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
           </DialogHeader>
-          <DialogBody>
+          <div className="flex min-h-0 flex-1 flex-col">
             <CategoryForm
               key={editingCategory?.id ?? "new"}
               category={editingCategory ?? undefined}
@@ -155,7 +147,7 @@ export function CategoryManager({ categories }: Props) {
                 setEditingCategory(null);
               }}
             />
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
 

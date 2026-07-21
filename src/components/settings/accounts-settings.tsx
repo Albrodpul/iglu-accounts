@@ -172,13 +172,13 @@ export function AccountsSettings({ accounts }: Props) {
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent variant="sheet" className="sm:max-w-sm">
-          <DialogHeader className="px-5 pt-7 pr-12 pb-2 sm:pt-5">
+          <DialogHeader variant="bar">
             <DialogTitle>
               {editingAccount ? "Renombrar cuenta" : "Nueva cuenta"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
               <Input
                 autoFocus
                 placeholder="Nombre de la cuenta"
@@ -190,14 +190,14 @@ export function AccountsSettings({ accounts }: Props) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 flex-1 md:h-10"
+                className="h-12 w-full md:h-10 md:flex-1"
                 onClick={() => setFormOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="h-12 flex-1 md:h-10"
+                className="h-12 w-full md:h-10 md:flex-1"
                 disabled={isPending || !name.trim()}
               >
                 {editingAccount ? "Guardar" : "Crear"}

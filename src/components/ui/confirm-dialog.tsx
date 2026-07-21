@@ -47,17 +47,17 @@ export function useConfirm() {
             {options.description}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex shrink-0 flex-col-reverse gap-2 px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:flex-row">
+        <div className="mt-auto flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:mt-0 sm:flex-row sm:border-0 sm:pb-5">
           <Button
             variant="outline"
-            className="h-12 flex-1 md:h-10"
+            className="h-12 w-full md:h-10 md:flex-1"
             onClick={() => handleClose(false)}
           >
             {options.cancelLabel || "Cancelar"}
           </Button>
           <Button
             variant={options.variant === "destructive" ? "destructive" : "default"}
-            className="h-12 flex-1 md:h-10"
+            className="h-12 w-full md:h-10 md:flex-1"
             onClick={() => handleClose(true)}
           >
             {options.confirmLabel || "Confirmar"}

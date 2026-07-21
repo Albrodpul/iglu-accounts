@@ -43,8 +43,9 @@ export function CategoryForm({ category, onSuccess }: Props) {
     <form
       action={handleSubmit}
       onSubmit={(e) => e.stopPropagation()}
-      className="space-y-4"
+      className="flex min-h-0 flex-1 flex-col"
     >
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
       <div className="space-y-2">
         <Label htmlFor="cat-name">Nombre</Label>
         <Input
@@ -77,9 +78,12 @@ export function CategoryForm({ category, onSuccess }: Props) {
           {error}
         </p>
       )}
-      <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
-        {loading ? "Guardando..." : category ? "Actualizar" : "Guardar"}
-      </Button>
+      </div>
+      <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+        <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+          {loading ? "Guardando..." : category ? "Actualizar" : "Guardar"}
+        </Button>
+      </div>
     </form>
   );
 }

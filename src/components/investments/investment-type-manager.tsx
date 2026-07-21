@@ -180,10 +180,12 @@ export function InvestmentTypeManager({ types, funds }: Props) {
               </div>
             )}
 
-            <Button size="sm" onClick={openCreate} className="w-full">
+          </DialogBody>
+          <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button onClick={openCreate} className="h-12 w-full md:h-10">
               <Plus className="h-4 w-4 mr-1" /> Añadir tipo
             </Button>
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
 

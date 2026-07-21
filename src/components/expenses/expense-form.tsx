@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryPicker } from "@/components/expenses/category-picker";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,12 @@ function detectExpenseType(expense: Expense | undefined, categories: Category[])
   return "income";
 }
 
+/** Categories reserved for income/debt/transfer bookkeeping are not user-pickable. */
+function isSelectableCategory(cat: Category) {
+  const n = cat.name.toLowerCase();
+  return n !== "ingreso" && n !== "deuda" && n !== "traspaso";
+}
+
 function detectTransferDirection(expense: Expense | undefined): "bank_to_cash" | "cash_to_bank" {
   if (!expense) return "bank_to_cash";
   if (expense.amount < 0) return expense.payment_method === "bank" ? "bank_to_cash" : "cash_to_bank";
@@ -45,6 +52,11 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(expense));
   const [formKey, setFormKey] = useState(0);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState(() => {
+    if (expense?.category_id) return expense.category_id;
+    const pickable = categories.filter(isSelectableCategory);
+    return pickable.length === 1 ? pickable[0].id : "";
+  });
   const categoryManual = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
@@ -53,8 +65,15 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const isTransfer = type === "transfer";
   const showCategory = type === "expense";
   const showPaymentMethod = hasInvestments && (type === "income" || type === "expense");
+  const selectableCategories = categories.filter(isSelectableCategory);
 
   async function handleSubmit(formData: FormData) {
+    if (showCategory && !categoryId) {
+      setError("Selecciona una categoría");
+      toast.error("Selecciona una categoría");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -122,6 +141,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       setLoading(false);
       if (keepOpenRef.current && !expense) {
         setFormKey((k) => k + 1);
+        setCategoryId("");
+        setSuggestedCat(null);
+        categoryManual.current = false;
         keepOpenRef.current = false;
       } else {
         if (!expense) formRef.current?.reset();
@@ -252,12 +274,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             const val = e.target.value.trim();
             if (!val || expense || type !== "expense" || categoryManual.current) return;
             const result = await suggestCategory(val);
-            if (result && !categoryManual.current) {
-              const select = formRef.current?.querySelector<HTMLSelectElement>("#category_id");
-              if (select && !select.value) {
-                select.value = result.category_id;
-                setSuggestedCat(result.category_name);
-              }
+            if (result && !categoryManual.current && !categoryId) {
+              setCategoryId(result.category_id);
+              setSuggestedCat(result.category_name);
             }
           }}
         />
@@ -269,28 +288,15 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             <Label htmlFor="category_id">Categoría</Label>
             <QuickCategoryButton />
           </div>
-          <select
-            id="category_id"
-            name="category_id"
-            defaultValue={expense?.category_id || (categories.length === 1 ? categories[0].id : "")}
-            required
-            onChange={() => { categoryManual.current = true; setSuggestedCat(null); }}
-            className="flex h-12 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-10 md:text-sm"
-          >
-            <option value="" disabled>
-              Selecciona categoría
-            </option>
-            {categories
-              .filter((cat) => {
-                const n = cat.name.toLowerCase();
-                return n !== "ingreso" && n !== "deuda" && n !== "traspaso";
-              })
-              .map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon} {cat.name}
-                </option>
-              ))}
-          </select>
+          <CategoryPicker
+            categories={selectableCategories}
+            value={categoryId}
+            onChange={(id) => {
+              categoryManual.current = true;
+              setSuggestedCat(null);
+              setCategoryId(id);
+            }}
+          />
           {suggestedCat && (
             <p className="text-[11px] text-primary">Sugerido: {suggestedCat}</p>
           )}

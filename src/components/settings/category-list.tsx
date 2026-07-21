@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
-  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -97,7 +96,7 @@ export function CategoryList({ categories }: Props) {
               {editingCategory ? "Editar categoría" : "Nueva categoría"}
             </DialogTitle>
           </DialogHeader>
-          <DialogBody className="pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="flex min-h-0 flex-1 flex-col">
             <CategoryForm
               key={editingCategory?.id ?? "new"}
               category={editingCategory ?? undefined}
@@ -106,7 +105,7 @@ export function CategoryList({ categories }: Props) {
                 setEditingCategory(null);
               }}
             />
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
 

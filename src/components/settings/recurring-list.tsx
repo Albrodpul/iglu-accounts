@@ -10,6 +10,7 @@ import {
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -187,11 +188,12 @@ export function RecurringList({ recurring, categories }: Props) {
       </div>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditingItem(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-lg">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-lg">
+          <DialogHeader variant="bar">
             <DialogTitle>{editingItem ? "Editar movimiento fijo" : "Nuevo movimiento fijo"}</DialogTitle>
           </DialogHeader>
-          <form key={editingItem?.id ?? "new"} action={handleSubmit} className="space-y-4 px-5 py-4">
+          <form key={editingItem?.id ?? "new"} action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -213,7 +215,18 @@ export function RecurringList({ recurring, categories }: Props) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Importe</Label>
+                <AmountInput
+                  id="amount"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  defaultValue={editingItem ? Math.abs(editingItem.amount) : ""}
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="concept">Concepto</Label>
                 <Input
@@ -221,19 +234,6 @@ export function RecurringList({ recurring, categories }: Props) {
                   name="concept"
                   defaultValue={editingItem?.concept || ""}
                   placeholder={isIncome ? "Ej: Nómina" : "Ej: Hipoteca"}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount">Importe (EUR)</Label>
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  defaultValue={editingItem ? Math.abs(editingItem.amount) : ""}
-                  placeholder="0.00"
-                  required
                 />
               </div>
             </div>
@@ -401,9 +401,12 @@ export function RecurringList({ recurring, categories }: Props) {
                 {error}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
               {loading ? "Guardando..." : editingItem ? "Actualizar" : "Guardar"}
             </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

@@ -77,7 +77,7 @@ export function CategoryForm({ category, onSuccess }: Props) {
           {error}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
         {loading ? "Guardando..." : category ? "Actualizar" : "Guardar"}
       </Button>
     </form>

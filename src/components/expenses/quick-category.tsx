@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -29,18 +30,18 @@ export function QuickCategoryButton({ onCreated }: Props) {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-sm">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-sm">
+          <DialogHeader variant="bar">
             <DialogTitle>Nueva categoría</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4">
+          <DialogBody>
             <CategoryForm
               onSuccess={() => {
                 setOpen(false);
                 onCreated?.();
               }}
             />
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </>

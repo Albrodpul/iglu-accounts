@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { createExpense, updateExpense, createTransfer, updateTransfer, checkDuplicate, suggestCategory } from "@/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
@@ -151,17 +152,20 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
         if (loading) return;
         handleSubmit(new FormData(e.currentTarget));
       }}
-      className={cn("grid gap-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4", loading && "pointer-events-none")}
+      className={cn("flex min-h-0 flex-1 flex-col", loading && "pointer-events-none")}
     >
-      <div className="flex flex-wrap gap-2 md:col-span-2">
+      <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain px-5 py-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+      <div
+        className="grid gap-2 md:col-span-2"
+        style={{ gridTemplateColumns: `repeat(${typeButtons.length}, minmax(0, 1fr))` }}
+      >
         {typeButtons.map((btn) => (
           <Button
             key={btn.value}
             type="button"
             variant={type === btn.value ? "default" : "outline"}
-            size="sm"
             onClick={() => setType(btn.value)}
-            className={type === btn.value ? btn.activeClass : ""}
+            className={cn("h-11 px-2 text-sm md:h-9", type === btn.value && btn.activeClass)}
           >
             {btn.label}
           </Button>
@@ -169,22 +173,20 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       </div>
 
       {showPaymentMethod && (
-        <div className="flex gap-2 md:col-span-2">
+        <div className="grid grid-cols-2 gap-2 md:col-span-2">
           <Button
             type="button"
             variant={paymentMethod === "bank" ? "default" : "outline"}
-            size="sm"
             onClick={() => setPaymentMethod("bank")}
-            className={paymentMethod === "bank" ? "bg-sky-500 hover:bg-sky-600 text-white" : ""}
+            className={cn("h-11 md:h-9", paymentMethod === "bank" && "bg-sky-500 hover:bg-sky-600 text-white")}
           >
             🏦 Banco
           </Button>
           <Button
             type="button"
             variant={paymentMethod === "cash" ? "default" : "outline"}
-            size="sm"
             onClick={() => setPaymentMethod("cash")}
-            className={paymentMethod === "cash" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+            className={cn("h-11 md:h-9", paymentMethod === "cash" && "bg-green-600 hover:bg-green-700 text-white")}
           >
             💵 Efectivo
           </Button>
@@ -196,35 +198,31 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
           <Button
             type="button"
             variant={transferDirection === "bank_to_cash" ? "default" : "outline"}
-            size="sm"
             onClick={() => setTransferDirection("bank_to_cash")}
-            className={cn(transferDirection === "bank_to_cash" ? "bg-violet-500 hover:bg-violet-600 text-white" : "", "h-auto whitespace-normal py-2")}
+            className={cn("h-auto min-h-11 whitespace-normal px-2 py-2 text-sm leading-tight", transferDirection === "bank_to_cash" && "bg-violet-500 hover:bg-violet-600 text-white")}
           >
             🏦 → 💵 Banco a Efectivo
           </Button>
           <Button
             type="button"
             variant={transferDirection === "cash_to_bank" ? "default" : "outline"}
-            size="sm"
             onClick={() => setTransferDirection("cash_to_bank")}
-            className={cn(transferDirection === "cash_to_bank" ? "bg-violet-500 hover:bg-violet-600 text-white" : "", "h-auto whitespace-normal py-2")}
+            className={cn("h-auto min-h-11 whitespace-normal px-2 py-2 text-sm leading-tight", transferDirection === "cash_to_bank" && "bg-violet-500 hover:bg-violet-600 text-white")}
           >
             💵 → 🏦 Efectivo a Banco
           </Button>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:col-span-2">
+      <div className="space-y-4 md:col-span-2">
         <div className="space-y-2">
-          <Label htmlFor="amount">Importe (EUR)</Label>
-          <Input
+          <Label htmlFor="amount">Importe</Label>
+          <AmountInput
             id="amount"
             name="amount"
-            type="number"
             step="any"
             min="0.000000001"
             defaultValue={expense ? Math.abs(expense.amount) : ""}
-            placeholder="0.00"
             required
           />
         </div>
@@ -247,6 +245,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
           name="concept"
           defaultValue={expense?.concept || ""}
           placeholder={type === "debt" ? "Ej: Pedro me debe cena" : "Ej: Compra supermercado"}
+          className="h-12 md:h-10"
+          autoCapitalize="sentences"
+          enterKeyHint="next"
           onBlur={async (e) => {
             const val = e.target.value.trim();
             if (!val || expense || type !== "expense" || categoryManual.current) return;
@@ -274,7 +275,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             defaultValue={expense?.category_id || (categories.length === 1 ? categories[0].id : "")}
             required
             onChange={() => { categoryManual.current = true; setSuggestedCat(null); }}
-            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-12 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-10 md:text-sm"
           >
             <option value="" disabled>
               Selecciona categoría
@@ -304,40 +305,44 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
           defaultValue={expense?.notes || ""}
           placeholder="Detalles adicionales..."
           rows={2}
+          className="min-h-20"
         />
       </div>
 
       {error && (
         <p className="rounded bg-red-50 p-2 text-sm text-red-600 md:col-span-2">{error}</p>
       )}
+      </div>
 
-      {expense ? (
-        <Button type="submit" className="w-full md:col-span-2" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {loading ? "Guardando..." : "Actualizar"}
-        </Button>
-      ) : (
-        <div className="flex gap-2 md:col-span-2">
-          <Button
-            type="submit"
-            variant="outline"
-            className="flex-1"
-            disabled={loading}
-            onClick={() => { keepOpenRef.current = true; }}
-          >
+      <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:flex-row md:pb-4">
+        {expense ? (
+          <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "Guardando..." : "Guardar y crear otro"}
+            {loading ? "Guardando..." : "Actualizar"}
           </Button>
-          <Button
-            type="submit"
-            className="flex-1"
-            disabled={loading}
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "Guardando..." : submitLabel}
-          </Button>
-        </div>
-      )}
+        ) : (
+          <>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-12 w-full md:h-10 md:flex-1"
+              disabled={loading}
+              onClick={() => { keepOpenRef.current = true; }}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? "Guardando..." : "Guardar y crear otro"}
+            </Button>
+            <Button
+              type="submit"
+              className="h-12 w-full md:h-10 md:flex-1"
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? "Guardando..." : submitLabel}
+            </Button>
+          </>
+        )}
+      </div>
     </form>
   );
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -90,20 +91,22 @@ export function CategoryList({ categories }: Props) {
           if (!v) setEditingCategory(null);
         }}
       >
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>
               {editingCategory ? "Editar categoría" : "Nueva categoría"}
             </DialogTitle>
           </DialogHeader>
-          <CategoryForm
-            key={editingCategory?.id ?? "new"}
-            category={editingCategory ?? undefined}
-            onSuccess={() => {
-              setOpen(false);
-              setEditingCategory(null);
-            }}
-          />
+          <DialogBody className="pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <CategoryForm
+              key={editingCategory?.id ?? "new"}
+              category={editingCategory ?? undefined}
+              onSuccess={() => {
+                setOpen(false);
+                setEditingCategory(null);
+              }}
+            />
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

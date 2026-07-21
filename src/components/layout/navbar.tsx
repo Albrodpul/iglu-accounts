@@ -33,13 +33,14 @@ import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { useTheme } from "@/contexts/theme";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import { ExpenseForm } from "@/components/expenses/expense-form";
+import { MovementDialog } from "@/components/expenses/movement-dialog";
 import { GlobalSearch } from "@/components/expenses/global-search";
 import type { Category } from "@/types";
 
@@ -446,18 +447,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
 
       {/* Mobile more sheet */}
       <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) setExportError(null); }}>
-        <DialogContent
-          showCloseButton={false}
-          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-lg rounded-b-none border border-border bg-card p-0 md:hidden"
-        >
-          <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
-          <DialogHeader className="px-5 pb-1 pt-4">
+        <DialogContent variant="sheet" showCloseButton={false} className="md:hidden">
+          <DialogHeader className="px-5 pt-7 pb-1">
             <DialogTitle>Más opciones</DialogTitle>
             <DialogDescription>
               Accesos rápidos para módulos secundarios.
             </DialogDescription>
           </DialogHeader>
-          <div className="px-3 pb-4">
+          <DialogBody className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {hasInvestments && (
               <Link
                 href="/investments"
@@ -507,22 +504,18 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             {exportError && (
               <p className="px-3 text-xs text-rose-500">{exportError}</p>
             )}
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       {/* Mobile header menu */}
       <Dialog open={headerMenuOpen} onOpenChange={setHeaderMenuOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="bottom-0 top-auto max-w-none translate-x-0 translate-y-0 left-0 right-0 w-full rounded-t-lg rounded-b-none border border-border bg-card p-0 md:hidden"
-        >
-          <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+        <DialogContent variant="sheet" showCloseButton={false} className="md:hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Menú</DialogTitle>
             <DialogDescription>Opciones de la aplicación</DialogDescription>
           </DialogHeader>
-          <div className="px-3 pb-4 pt-1 space-y-0.5">
+          <DialogBody className="space-y-0.5 px-3 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={() => { toggleDiscrete(); setHeaderMenuOpen(false); }}
@@ -575,17 +568,17 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
               <LogOut className="h-[18px] w-[18px]" />
               Cerrar sesión
             </button>
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       {/* Help dialog */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-sm">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-sm">
+          <DialogHeader variant="bar">
             <DialogTitle>Ayuda</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4 space-y-4">
+          <DialogBody className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Atajos de teclado</p>
               <div className="space-y-2">
@@ -608,7 +601,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
                 Iglú Management · Gestión de gastos personales
               </p>
             </div>
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -616,23 +609,13 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Mobile add dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-2xl lg:max-w-3xl">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
-            <DialogTitle>Nuevo movimiento</DialogTitle>
-            <DialogDescription>
-              Registra un gasto o ingreso en pocos segundos.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-5 py-4">
-            <ExpenseForm
-              categories={categories}
-              onSuccess={() => setAddOpen(false)}
-              hasInvestments={hasInvestments}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <MovementDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        categories={categories}
+        hasInvestments={hasInvestments}
+        onSuccess={() => setAddOpen(false)}
+      />
     </>
   );
 }

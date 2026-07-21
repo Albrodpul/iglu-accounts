@@ -40,24 +40,24 @@ export function useConfirm() {
 
   const ConfirmDialog = (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(false); }}>
-      <DialogContent className="max-w-[calc(100%-1.5rem)] rounded-lg border border-border bg-card p-0 sm:max-w-sm">
-        <DialogHeader className="px-5 pt-5 pb-2">
+      <DialogContent variant="sheet" className="sm:max-w-sm">
+        <DialogHeader className="px-5 pt-7 pr-12 pb-2 sm:pt-5">
           <DialogTitle>{options.title || "Confirmar"}</DialogTitle>
           <DialogDescription className="pt-1">
             {options.description}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex gap-2 px-5 pb-5 pt-2">
+        <div className="flex shrink-0 flex-col-reverse gap-2 px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:flex-row">
           <Button
             variant="outline"
-            className="flex-1"
+            className="h-12 flex-1 md:h-10"
             onClick={() => handleClose(false)}
           >
             {options.cancelLabel || "Cancelar"}
           </Button>
           <Button
             variant={options.variant === "destructive" ? "destructive" : "default"}
-            className={`flex-1 ${options.variant !== "destructive" ? "" : ""}`}
+            className="h-12 flex-1 md:h-10"
             onClick={() => handleClose(true)}
           >
             {options.confirmLabel || "Confirmar"}

@@ -4,14 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ExpenseForm } from "./expense-form";
+import { MovementDialog } from "./movement-dialog";
 import type { Category } from "@/types";
 
 type Props = {
@@ -33,23 +26,13 @@ export function AddExpenseFab({ categories, hasInvestments = false }: Props) {
         <Plus className="h-6 w-6" />
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-2xl lg:max-w-3xl">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
-            <DialogTitle>Nuevo movimiento</DialogTitle>
-            <DialogDescription>
-              Registra un gasto o ingreso en pocos segundos.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-5 py-4">
-            <ExpenseForm
-              categories={categories}
-              onSuccess={() => { setOpen(false); router.refresh(); }}
-              hasInvestments={hasInvestments}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <MovementDialog
+        open={open}
+        onOpenChange={setOpen}
+        categories={categories}
+        hasInvestments={hasInvestments}
+        onSuccess={() => { setOpen(false); router.refresh(); }}
+      />
     </>
   );
 }

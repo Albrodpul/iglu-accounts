@@ -171,31 +171,33 @@ export function AccountsSettings({ accounts }: Props) {
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] rounded-lg border border-border bg-card p-0 sm:max-w-sm">
-          <DialogHeader className="px-5 pt-5 pb-2">
+        <DialogContent variant="sheet" className="sm:max-w-sm">
+          <DialogHeader className="px-5 pt-7 pr-12 pb-2 sm:pt-5">
             <DialogTitle>
               {editingAccount ? "Renombrar cuenta" : "Nueva cuenta"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 px-5 pb-5">
-            <Input
-              autoFocus
-              placeholder="Nombre de la cuenta"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <div className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-4">
+              <Input
+                autoFocus
+                placeholder="Nombre de la cuenta"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row md:pb-4">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1"
+                className="h-12 flex-1 md:h-10"
                 onClick={() => setFormOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="flex-1"
+                className="h-12 flex-1 md:h-10"
                 disabled={isPending || !name.trim()}
               >
                 {editingAccount ? "Guardar" : "Crear"}

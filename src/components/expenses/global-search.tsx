@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -64,12 +65,12 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-lg">
-        <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+      <DialogContent variant="sheet" className="sm:max-w-lg">
+        <DialogHeader variant="bar">
           <DialogTitle>Buscar movimientos</DialogTitle>
         </DialogHeader>
 
-        <div className="px-5 pt-4 pb-2">
+        <div className="shrink-0 px-5 pt-4 pb-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -78,12 +79,12 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
               value={query}
               onChange={(e) => handleChange(e.target.value)}
               autoFocus
-              className="h-10 w-full rounded-lg border border-border/70 bg-transparent pl-10 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+              className="h-12 w-full rounded-lg border border-border/70 bg-transparent pl-10 pr-3 text-base outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring md:h-10 md:text-sm"
             />
           </div>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto px-5 pb-5">
+        <DialogBody className="px-5 pt-0 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           {isPending && (
             <p className="py-6 text-center text-sm text-muted-foreground">Buscando...</p>
           )}
@@ -136,7 +137,7 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
               Escribe para buscar en todo el historial
             </p>
           )}
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

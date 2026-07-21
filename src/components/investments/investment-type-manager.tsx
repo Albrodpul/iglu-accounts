@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -124,11 +125,11 @@ export function InvestmentTypeManager({ types, funds }: Props) {
 
       {/* Type list dialog */}
       <Dialog open={listOpen} onOpenChange={setListOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>Tipos de inversión</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4 space-y-4">
+          <DialogBody className="space-y-4">
             {localTypes.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">
                 No hay tipos de inversión. Crea uno para empezar.
@@ -182,17 +183,18 @@ export function InvestmentTypeManager({ types, funds }: Props) {
             <Button size="sm" onClick={openCreate} className="w-full">
               <Plus className="h-4 w-4 mr-1" /> Añadir tipo
             </Button>
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       {/* Create/Edit type dialog */}
       <Dialog open={formOpen} onOpenChange={(v) => { setFormOpen(v); if (!v) setEditingType(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>{editingType ? "Editar tipo" : "Nuevo tipo de inversión"}</DialogTitle>
           </DialogHeader>
-          <form key={editingType?.id ?? "new"} action={handleSubmit} className="space-y-4 px-5 py-4">
+          <form key={editingType?.id ?? "new"} action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
               <Input
@@ -203,9 +205,12 @@ export function InvestmentTypeManager({ types, funds }: Props) {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
               {loading ? "Guardando..." : editingType ? "Actualizar" : "Crear"}
             </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

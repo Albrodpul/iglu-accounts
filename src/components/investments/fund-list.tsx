@@ -14,9 +14,11 @@ import {
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -348,11 +350,12 @@ export function FundList({ types, funds }: Props) {
 
       {/* Fund create/edit dialog */}
       <Dialog open={fundOpen} onOpenChange={(v) => { setFundOpen(v); if (!v) setEditingFund(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-lg">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-lg">
+          <DialogHeader variant="bar">
             <DialogTitle>{editingFund ? "Editar fondo" : "Nuevo fondo"}</DialogTitle>
           </DialogHeader>
-          <form key={editingFund?.id ?? "new"} action={handleFundSubmit} className="space-y-4 px-5 py-4">
+          <form key={editingFund?.id ?? "new"} action={handleFundSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             {/* Pass show_negative_returns as hidden field; visual toggle updates state */}
             <input type="hidden" name="show_negative_returns" value={showNegative ? "true" : "false"} />
 
@@ -415,17 +418,15 @@ export function FundList({ types, funds }: Props) {
             </div>
 
             {!editingFund && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="initial_amount">Inversión inicial (EUR)</Label>
-                  <Input
+                  <Label htmlFor="initial_amount">Inversión inicial</Label>
+                  <AmountInput
                     id="initial_amount"
                     name="initial_amount"
-                    type="number"
                     step="0.01"
                     min="0"
                     defaultValue=""
-                    placeholder="0.00"
                     required
                   />
                 </div>
@@ -492,36 +493,38 @@ export function FundList({ types, funds }: Props) {
                 <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
               </div>
             </label>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
               {loading ? "Guardando..." : editingFund ? "Actualizar" : "Crear"}
             </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Profitability edit dialog */}
       <Dialog open={profitOpen} onOpenChange={(v) => { setProfitOpen(v); if (!v) setProfitFund(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-sm">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-sm">
+          <DialogHeader variant="bar">
             <DialogTitle>Editar rentabilidad · {profitFund?.name}</DialogTitle>
           </DialogHeader>
-          <form key={profitFund?.id ?? "profit"} action={handleProfitSubmit} className="space-y-4 px-5 py-4">
+          <form key={profitFund?.id ?? "profit"} action={handleProfitSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="space-y-2">
-              <Label>Invertido (EUR)</Label>
-              <p className="flex h-10 items-center text-sm font-semibold tabular-nums text-muted-foreground">
+              <Label>Invertido</Label>
+              <p className="flex h-10 items-center text-lg font-semibold tabular-nums text-muted-foreground">
                 {profitFund ? <Amount value={profitFund.invested_amount} /> : "—"}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profit_return">Rentabilidad (EUR)</Label>
-              <Input
+              <Label htmlFor="profit_return">Rentabilidad</Label>
+              <AmountInput
                 id="profit_return"
                 name="return_amount"
-                type="number"
                 step="0.01"
                 defaultValue={profitFund ? Math.round((profitFund.current_value - profitFund.invested_amount) * 100) / 100 : 0}
-                placeholder="0.00"
                 required
                 autoFocus
               />
@@ -529,32 +532,34 @@ export function FundList({ types, funds }: Props) {
                 Ganancia o pérdida del fondo. Ej: 12.50 si has ganado 12,50€
               </p>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
               {loading ? "Guardando..." : "Actualizar"}
             </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Contribution create/edit dialog */}
       <Dialog open={contribOpen} onOpenChange={(v) => { setContribOpen(v); if (!v) { setContribFund(null); setEditingContrib(null); } }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>{editingContrib ? "Editar aportación" : "Nueva aportación"} · {contribFund?.name}</DialogTitle>
           </DialogHeader>
-          <form key={editingContrib?.id ?? contribFund?.id ?? "contrib"} action={handleContribSubmit} className="space-y-4 px-5 py-4">
+          <form key={editingContrib?.id ?? contribFund?.id ?? "contrib"} action={handleContribSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <input type="hidden" name="fund_id" value={contribFund?.id || ""} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="contrib_amount">Importe (EUR)</Label>
-                <Input
+                <Label htmlFor="contrib_amount">Importe</Label>
+                <AmountInput
                   id="contrib_amount"
                   name="amount"
-                  type="number"
                   step="0.01"
                   min="0.01"
                   defaultValue={editingContrib?.amount ?? ""}
-                  placeholder="0.00"
                   required
                 />
               </div>
@@ -612,20 +617,23 @@ export function FundList({ types, funds }: Props) {
                 placeholder="Opcional"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
               {loading ? "Guardando..." : editingContrib ? "Actualizar" : "Registrar aportación"}
             </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Contribution history dialog */}
       <Dialog open={historyOpen} onOpenChange={(v) => { setHistoryOpen(v); if (!v) setHistoryFund(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>Historial · {historyFund?.name}</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
+          <DialogBody className="pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[60vh]">
             {historyLoading ? (
               <div className="space-y-2 py-1">
                 {[1, 2, 3].map((i) => (
@@ -680,7 +688,7 @@ export function FundList({ types, funds }: Props) {
                 })}
               </div>
             )}
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

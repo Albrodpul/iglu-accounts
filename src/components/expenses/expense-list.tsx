@@ -6,14 +6,8 @@ import { deleteExpense } from "@/actions/expenses";
 import { formatDateShort, formatDateWithYear } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { ExpenseForm } from "./expense-form";
+import { MovementDialog } from "./movement-dialog";
 import { Pencil, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
@@ -198,23 +192,16 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
         })}
       </div>
 
-      <Dialog open={!!editingExpense} onOpenChange={() => setEditingExpense(null)}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-2xl lg:max-w-3xl">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
-            <DialogTitle>Editar movimiento</DialogTitle>
-          </DialogHeader>
-          <div className="px-5 py-4">
-            {editingExpense && (
-              <ExpenseForm
-                categories={categories}
-                expense={editingExpense}
-                onSuccess={() => { setEditingExpense(null); notifyMutated(); }}
-                hasInvestments={hasInvestments}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {editingExpense && (
+        <MovementDialog
+          open
+          onOpenChange={() => setEditingExpense(null)}
+          categories={categories}
+          expense={editingExpense}
+          hasInvestments={hasInvestments}
+          onSuccess={() => { setEditingExpense(null); notifyMutated(); }}
+        />
+      )}
 
       {ConfirmDialog}
     </>

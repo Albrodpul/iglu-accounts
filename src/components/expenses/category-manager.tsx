@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -70,11 +71,11 @@ export function CategoryManager({ categories }: Props) {
 
       {/* Category list dialog */}
       <Dialog open={listOpen} onOpenChange={setListOpen}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] overflow-hidden rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>Categorías</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4 space-y-4">
+          <DialogBody className="space-y-4">
             {categories.length > 6 && (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -132,20 +133,20 @@ export function CategoryManager({ categories }: Props) {
               </div>
             )}
 
-            <Button size="sm" onClick={openCreate} className="w-full">
+            <Button onClick={openCreate} className="h-12 w-full md:h-10">
               <Plus className="h-4 w-4 mr-1" /> Añadir categoría
             </Button>
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       {/* Create/Edit category dialog */}
       <Dialog open={formOpen} onOpenChange={(v) => { setFormOpen(v); if (!v) setEditingCategory(null); }}>
-        <DialogContent className="max-w-[calc(100%-1.5rem)] max-h-[85vh] overflow-y-auto rounded-lg border border-border bg-card p-0 sm:max-w-md">
-          <DialogHeader className="border-b border-border/70 bg-muted/45 px-5 py-4">
+        <DialogContent variant="sheet" className="sm:max-w-md">
+          <DialogHeader variant="bar">
             <DialogTitle>{editingCategory ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
           </DialogHeader>
-          <div className="px-5 py-4">
+          <DialogBody>
             <CategoryForm
               key={editingCategory?.id ?? "new"}
               category={editingCategory ?? undefined}
@@ -154,7 +155,7 @@ export function CategoryManager({ categories }: Props) {
                 setEditingCategory(null);
               }}
             />
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

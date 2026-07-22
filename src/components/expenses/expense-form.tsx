@@ -12,6 +12,7 @@ import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
 import type { Category, Expense } from "@/types";
 
 type ExpenseType = "expense" | "income" | "debt" | "transfer";
@@ -52,6 +53,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(expense));
   const [formKey, setFormKey] = useState(0);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
+  const [notes, setNotes] = useState(expense?.notes || "");
   const [categoryId, setCategoryId] = useState(() => {
     if (expense?.category_id) return expense.category_id;
     const pickable = categories.filter(isSelectableCategory);
@@ -143,6 +145,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
         setFormKey((k) => k + 1);
         setCategoryId("");
         setSuggestedCat(null);
+        setNotes("");
         categoryManual.current = false;
         keepOpenRef.current = false;
       } else {
@@ -304,14 +307,28 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
       )}
 
       <div className="space-y-2 md:col-span-2">
-        <Label htmlFor="notes">Notas (opcional)</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="notes">Notas (opcional)</Label>
+          {notes.length > NOTES_MAX_LENGTH * 0.8 && (
+            <span
+              className={cn(
+                "text-[11px] tabular-nums",
+                notes.length >= NOTES_MAX_LENGTH ? "text-expense" : "text-muted-foreground"
+              )}
+            >
+              {notes.length}/{NOTES_MAX_LENGTH}
+            </span>
+          )}
+        </div>
         <Textarea
           id="notes"
           name="notes"
-          defaultValue={expense?.notes || ""}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          maxLength={NOTES_MAX_LENGTH}
           placeholder="Detalles adicionales..."
           rows={2}
-          className="min-h-20"
+          className="max-h-60 min-h-20"
         />
       </div>
 

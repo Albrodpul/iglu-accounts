@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** `notes` is a TEXT column, so this cap is a UI guardrail, not a storage limit. */
+export const NOTES_MAX_LENGTH = 2000;
+
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -13,7 +16,7 @@ export const expenseSchema = z.object({
     .string()
     .min(1, "La fecha es obligatoria")
     .regex(DATE_REGEX, "Formato de fecha inválido"),
-  notes: z.string().trim().max(500).optional().nullable(),
+  notes: z.string().trim().max(NOTES_MAX_LENGTH, `Máximo ${NOTES_MAX_LENGTH} caracteres`).optional().nullable(),
 });
 
 export const recurringExpenseSchema = z.object({
@@ -124,7 +127,7 @@ export const investmentContributionSchema = z.object({
     .string()
     .min(1, "La fecha es obligatoria")
     .regex(DATE_REGEX, "Formato de fecha inválido"),
-  notes: z.string().trim().max(500).optional().nullable(),
+  notes: z.string().trim().max(NOTES_MAX_LENGTH, `Máximo ${NOTES_MAX_LENGTH} caracteres`).optional().nullable(),
 });
 
 export type ExpenseFormData = z.infer<typeof expenseSchema>;

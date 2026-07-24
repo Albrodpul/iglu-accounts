@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2, Play } from "lucide-react";
+import { SwipeRow } from "@/components/ui/swipe-row";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { Category, RecurringExpenseWithCategory, ScheduleType, ExpenseDateScheduleType } from "@/types";
@@ -454,7 +455,11 @@ function RecurringItem({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35">
+    <SwipeRow
+      onTap={() => onEdit(item)}
+      onDelete={() => onDelete(item.id)}
+      className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35"
+    >
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
         style={{
@@ -477,21 +482,21 @@ function RecurringItem({
         <span className={`text-[15px] font-semibold tabular-nums ${item.amount > 0 ? "text-income" : "text-expense"}`}>
           <Amount value={item.amount} />
         </span>
-        <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+        <div className="hidden items-center md:flex md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
           <button
             className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            onClick={() => onEdit(item)}
+            onClick={(e) => { e.stopPropagation(); onEdit(item); }}
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors cursor-pointer"
-            onClick={() => onDelete(item.id)}
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-    </div>
+    </SwipeRow>
   );
 }

@@ -8,6 +8,7 @@ import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { MovementDialog } from "./movement-dialog";
+import { SwipeRow } from "@/components/ui/swipe-row";
 import { Pencil, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
@@ -123,8 +124,11 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 {dayExpenses.map((expense) => {
                   const isDeleting = deletingId === expense.id;
                   return (
-                  <div
+                  <SwipeRow
                     key={expense.id}
+                    disabled={isDeleting}
+                    onTap={() => setEditingExpense(expense)}
+                    onDelete={() => handleDelete(expense)}
                     className={`group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 ${isDeleting ? "opacity-50" : ""}`}
                   >
                     <div
@@ -162,17 +166,17 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                       >
                         <Amount value={expense.amount} />
                       </span>
-                      <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                      <div className="hidden items-center md:flex md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                          onClick={() => setEditingExpense(expense)}
+                          onClick={(e) => { e.stopPropagation(); setEditingExpense(expense); }}
                           disabled={isDeleting}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors disabled:opacity-100"
-                          onClick={() => handleDelete(expense)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(expense); }}
                           disabled={isDeleting}
                         >
                           {isDeleting ? (
@@ -183,7 +187,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </SwipeRow>
                   );
                 })}
               </div>

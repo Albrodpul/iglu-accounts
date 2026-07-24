@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import { SwipeRow } from "@/components/ui/swipe-row";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,8 +128,11 @@ export function AccountsSettings({ accounts }: Props) {
       ) : (
         <div className="space-y-2">
           {accounts.map((account) => (
-            <div
+            <SwipeRow
               key={account.id}
+              disabled={isPending}
+              onTap={() => openEdit(account)}
+              onDelete={() => handleDelete(account)}
               className="flex items-center justify-between rounded-md border border-border/80 px-3 py-2"
             >
               <div className="flex items-center gap-3">
@@ -143,12 +147,12 @@ export function AccountsSettings({ accounts }: Props) {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="hidden gap-1 md:flex">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => openEdit(account)}
+                  onClick={(e) => { e.stopPropagation(); openEdit(account); }}
                   disabled={isPending}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -158,14 +162,14 @@ export function AccountsSettings({ accounts }: Props) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(account)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(account); }}
                   disabled={isPending}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="size-4" />
                 </Button>
               </div>
-            </div>
+            </SwipeRow>
           ))}
         </div>
       )}

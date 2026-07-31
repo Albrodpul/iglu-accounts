@@ -70,7 +70,7 @@ export function CategoryPicker({ categories, value, onChange, name = "category_i
       </button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent variant="sheet" className="sm:max-w-md">
+        <DialogContent variant="sheet" className="sm:max-w-md" initialFocus={false}>
           <DialogHeader variant="bar">
             <DialogTitle>Elige categoría</DialogTitle>
           </DialogHeader>

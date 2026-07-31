@@ -56,7 +56,7 @@ const dialogContentVariants = {
 function useSwipeToDismiss(enabled: boolean) {
   const popupRef = React.useRef<HTMLDivElement>(null)
   const closeRef = React.useRef<HTMLButtonElement>(null)
-  const gesture = React.useRef({ y: 0, dragging: false, delta: 0, scrollEl: null as HTMLElement | null })
+  const gesture = React.useRef({ x: 0, y: 0, dragging: false, canceled: false, delta: 0, startAtTop: false })
 
   function setTranslate(dy: number, animate: boolean) {
     const el = popupRef.current
@@ -68,23 +68,35 @@ function useSwipeToDismiss(enabled: boolean) {
   function onTouchStart(e: React.TouchEvent) {
     if (!enabled || e.touches.length !== 1) return
     const t = e.touches[0]
-    const target = e.target as HTMLElement
+    // Whether the scroll body is already at the top decides, for the WHOLE
+    // gesture, if a downward drag dismisses. Scrolling from anywhere below the
+    // top can never close the sheet, only pulling down when already at the top.
+    const scrollEl = (e.target as HTMLElement).closest<HTMLElement>(
+      '[data-slot="dialog-body"], .overflow-y-auto'
+    )
     gesture.current = {
+      x: t.clientX,
       y: t.clientY,
       dragging: false,
+      canceled: false,
       delta: 0,
-      scrollEl: target.closest<HTMLElement>('[data-slot="dialog-body"], .overflow-y-auto'),
+      startAtTop: !scrollEl || scrollEl.scrollTop <= 0,
     }
   }
 
   function onTouchMove(e: React.TouchEvent) {
     const g = gesture.current
-    if (!enabled || !e.touches.length) return
+    if (!enabled || g.canceled || !e.touches.length) return
+    const dx = e.touches[0].clientX - g.x
     const dy = e.touches[0].clientY - g.y
     if (!g.dragging) {
-      const atTop = !g.scrollEl || g.scrollEl.scrollTop <= 0
-      if (dy > 8 && atTop) g.dragging = true
-      else return
+      // Only engage a clearly-downward, mostly-vertical pull from the top.
+      if (!g.startAtTop || dy <= 24 || Math.abs(dx) > dy) {
+        // Give up as soon as the gesture proves to be a scroll or horizontal move.
+        if (dy < -4 || Math.abs(dx) > 24) g.canceled = true
+        return
+      }
+      g.dragging = true
     }
     if (dy < 0) {
       g.delta = 0

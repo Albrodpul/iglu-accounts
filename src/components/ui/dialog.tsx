@@ -65,8 +65,19 @@ function useSwipeToDismiss(enabled: boolean) {
     el.style.transform = dy ? `translateY(${dy}px)` : ""
   }
 
+  // Nested sheets portal out of this popup's DOM but still bubble their touch
+  // events up the React tree. Ignore any gesture that didn't originate inside
+  // this exact popup so closing a child sheet doesn't drag its parent.
+  function owns(e: React.TouchEvent) {
+    return e.currentTarget.contains(e.target as Node)
+  }
+
   function onTouchStart(e: React.TouchEvent) {
     if (!enabled || e.touches.length !== 1) return
+    if (!owns(e)) {
+      gesture.current.canceled = true
+      return
+    }
     const t = e.touches[0]
     // Whether the scroll body is already at the top decides, for the WHOLE
     // gesture, if a downward drag dismisses. Scrolling from anywhere below the
@@ -86,7 +97,7 @@ function useSwipeToDismiss(enabled: boolean) {
 
   function onTouchMove(e: React.TouchEvent) {
     const g = gesture.current
-    if (!enabled || g.canceled || !e.touches.length) return
+    if (!enabled || g.canceled || !e.touches.length || !owns(e)) return
     const dx = e.touches[0].clientX - g.x
     const dy = e.touches[0].clientY - g.y
     if (!g.dragging) {
@@ -108,9 +119,9 @@ function useSwipeToDismiss(enabled: boolean) {
     if (e.cancelable) e.preventDefault()
   }
 
-  function onTouchEnd() {
+  function onTouchEnd(e: React.TouchEvent) {
     const g = gesture.current
-    if (!g.dragging) return
+    if (!owns(e) || !g.dragging) return
     g.dragging = false
     if (g.delta > 120) {
       setTranslate(0, false)

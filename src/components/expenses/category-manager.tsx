@@ -76,14 +76,16 @@ export function CategoryManager({ categories }: Props) {
             <DialogTitle>Categorías</DialogTitle>
           </DialogHeader>
           {categories.length > 8 && (
-            <div className="relative shrink-0 px-5 pt-4">
-              <Search className="absolute left-8 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Filtrar categorías..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="pl-9"
-              />
+            <div className="shrink-0 px-5 pt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar categorías..."
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           )}
 

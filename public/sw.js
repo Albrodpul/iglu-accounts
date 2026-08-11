@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "iglu-v2";
+const CACHE_NAME = "iglu-v3";
 
 const PRECACHE_ASSETS = [
   "/pwa-icon-192.svg",
@@ -63,32 +63,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Pages (HTML): stale-while-revalidate with 3s network timeout
+  // Pages (HTML): network-first, cache only as an offline fallback.
+  // HTML embeds build-specific Server Action IDs, so serving stale HTML after a
+  // redeploy breaks form actions ("Server Action not found"). Always prefer the
+  // network so the action IDs match the currently-deployed server.
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(request);
-        const networkFetch = fetch(request)
-          .then((response) => {
-            if (response.ok) cache.put(request, response.clone());
-            return response;
-          })
-          .catch(() => null);
-
-        if (cached) {
-          // Serve cache immediately, refresh in background
-          networkFetch.catch(() => {});
-          return cached;
+        try {
+          const response = await fetch(request);
+          if (response.ok) cache.put(request, response.clone());
+          return response;
+        } catch {
+          const cached = await cache.match(request);
+          return cached || new Response("Offline", { status: 503 });
         }
-
-        // No cache: race network against 3s timeout
-        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
-        const winner = await Promise.race([networkFetch, timeout]);
-        if (winner) return winner;
-
-        // Timed out — wait a bit more for the actual network result
-        const fallback = await networkFetch;
-        return fallback || new Response("Offline", { status: 503 });
       }),
     );
     return;

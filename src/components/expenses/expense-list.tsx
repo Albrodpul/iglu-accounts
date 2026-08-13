@@ -59,28 +59,28 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
 
   async function handleDelete(expense: ExpenseWithCategory) {
     const isTransfer = !!(transferCategoryId && expense.category_id === transferCategoryId);
-    const ok = await confirm({
+    await confirm({
       title: isTransfer ? "Eliminar traspaso" : "Eliminar movimiento",
       description: isTransfer
         ? "Este traspaso está vinculado a dos movimientos. Se eliminarán ambos. Esta acción no se puede deshacer."
         : "¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.",
       confirmLabel: "Eliminar",
       variant: "destructive",
-    });
-    if (ok) {
-      setDeletingId(expense.id);
-      try {
-        const result = await deleteExpense(expense.id);
-        if (result?.error) {
-          toast.error(result.error);
-        } else {
-          toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
-          notifyMutated();
+      onConfirm: async () => {
+        setDeletingId(expense.id);
+        try {
+          const result = await deleteExpense(expense.id);
+          if (result?.error) {
+            toast.error(result.error);
+          } else {
+            toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
+            notifyMutated();
+          }
+        } finally {
+          setDeletingId(null);
         }
-      } finally {
-        setDeletingId(null);
-      }
-    }
+      },
+    });
   }
 
   return (

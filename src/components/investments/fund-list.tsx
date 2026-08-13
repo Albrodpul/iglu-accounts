@@ -169,35 +169,35 @@ export function FundList({ types, funds }: Props) {
   }
 
   async function handleDeleteFund(fund: InvestmentFundWithType) {
-    const ok = await confirm({
+    await confirm({
       title: "Eliminar fondo",
       description: `¿Eliminar "${fund.name}"? Se perderá todo el historial de aportaciones.`,
       confirmLabel: "Eliminar",
       variant: "destructive",
+      onConfirm: async () => {
+        const result = await deleteInvestmentFund(fund.id);
+        if (result?.error) toast.error(result.error);
+        else toast.success("Fondo eliminado");
+      },
     });
-    if (ok) {
-      const result = await deleteInvestmentFund(fund.id);
-      if (result?.error) toast.error(result.error);
-      else toast.success("Fondo eliminado");
-    }
   }
 
   async function handleDeleteContribution(contrib: InvestmentContribution) {
-    const ok = await confirm({
+    await confirm({
       title: "Eliminar aportación",
       description: `¿Eliminar aportación de ${formatCurrency(contrib.amount)}?`,
       confirmLabel: "Eliminar",
       variant: "destructive",
+      onConfirm: async () => {
+        const result = await deleteContribution(contrib.id, contrib.fund_id, contrib.amount);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Aportación eliminada");
+          setContributions((prev) => prev.filter((c) => c.id !== contrib.id));
+        }
+      },
     });
-    if (ok) {
-      const result = await deleteContribution(contrib.id, contrib.fund_id, contrib.amount);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Aportación eliminada");
-        setContributions((prev) => prev.filter((c) => c.id !== contrib.id));
-      }
-    }
   }
 
   function getReturnPct(invested: number, current: number): number {
@@ -497,6 +497,7 @@ export function FundList({ types, funds }: Props) {
             <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
 
             <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : editingFund ? "Actualizar" : "Crear"}
             </Button>
             </div>
@@ -535,6 +536,7 @@ export function FundList({ types, funds }: Props) {
             </div>
             <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
             <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : "Actualizar"}
             </Button>
             </div>
@@ -620,6 +622,7 @@ export function FundList({ types, funds }: Props) {
             </div>
             <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
             <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : editingContrib ? "Actualizar" : "Registrar aportación"}
             </Button>
             </div>

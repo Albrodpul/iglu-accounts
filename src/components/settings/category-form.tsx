@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import type { Category } from "@/types";
 
 type Props = {
@@ -81,6 +82,7 @@ export function CategoryForm({ category, onSuccess }: Props) {
       </div>
       <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
         <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? "Guardando..." : category ? "Actualizar" : "Guardar"}
         </Button>
       </div>

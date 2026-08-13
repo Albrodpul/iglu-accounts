@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Settings2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Settings2, GripVertical, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { InvestmentType, InvestmentFundWithType } from "@/types";
 
@@ -72,20 +72,20 @@ export function InvestmentTypeManager({ types, funds }: Props) {
       return;
     }
 
-    const ok = await confirm({
+    await confirm({
       title: "Eliminar tipo de inversión",
       description: `¿Eliminar "${type.name}"?`,
       confirmLabel: "Eliminar",
       variant: "destructive",
+      onConfirm: async () => {
+        const result = await deleteInvestmentType(type.id);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Tipo eliminado");
+        }
+      },
     });
-    if (ok) {
-      const result = await deleteInvestmentType(type.id);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Tipo eliminado");
-      }
-    }
   }
 
   function handleDragStart(idx: number) {
@@ -210,6 +210,7 @@ export function InvestmentTypeManager({ types, funds }: Props) {
             </div>
             <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
             <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : editingType ? "Actualizar" : "Crear"}
             </Button>
             </div>

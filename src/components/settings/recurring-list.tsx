@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
-import { Plus, Pencil, Trash2, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, Play, Loader2 } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
@@ -72,7 +72,6 @@ export function RecurringList({ recurring, categories }: Props) {
   const [expenseScheduleType, setExpenseScheduleType] = useState<ExpenseDateScheduleType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [triggering, setTriggering] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   function openCreate() {
@@ -130,38 +129,36 @@ export function RecurringList({ recurring, categories }: Props) {
   }
 
   async function handleTrigger() {
-    const ok = await confirm({
+    await confirm({
       title: "Generar pendientes",
       description: "Se insertarán los movimientos fijos pendientes hasta hoy que aún no se hayan generado este mes. ¿Continuar?",
       confirmLabel: "Generar",
+      onConfirm: async () => {
+        const result = await triggerRecurringExpenses();
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success(result.message);
+        }
+      },
     });
-    if (!ok) return;
-
-    setTriggering(true);
-    const result = await triggerRecurringExpenses();
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success(result.message);
-    }
-    setTriggering(false);
   }
 
   async function handleDelete(id: string) {
-    const ok = await confirm({
+    await confirm({
       title: "Eliminar movimiento fijo",
       description: "¿Estás seguro de que quieres desactivar este movimiento fijo?",
       confirmLabel: "Eliminar",
       variant: "destructive",
+      onConfirm: async () => {
+        const result = await deleteRecurringExpense(id);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Movimiento fijo eliminado");
+        }
+      },
     });
-    if (ok) {
-      const result = await deleteRecurringExpense(id);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Movimiento fijo eliminado");
-      }
-    }
   }
 
   const expenses = recurring.filter((r) => r.amount < 0);
@@ -179,8 +176,8 @@ export function RecurringList({ recurring, categories }: Props) {
           Gastos e ingresos que se repiten cada mes
         </p>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={handleTrigger} disabled={triggering || recurring.length === 0}>
-            <Play className="h-4 w-4 mr-1" /> {triggering ? "Generando..." : "Generar pendientes"}
+          <Button size="sm" variant="outline" onClick={handleTrigger} disabled={recurring.length === 0}>
+            <Play className="h-4 w-4 mr-1" /> Generar pendientes
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" /> Añadir
@@ -405,6 +402,7 @@ export function RecurringList({ recurring, categories }: Props) {
             </div>
             <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
             <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : editingItem ? "Actualizar" : "Guardar"}
             </Button>
             </div>

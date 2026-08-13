@@ -38,20 +38,20 @@ export function CategoryList({ categories }: Props) {
   }
 
   async function handleDelete(id: string) {
-    const ok = await confirm({
+    await confirm({
       title: "Eliminar categoría",
       description: "¿Eliminar esta categoría? No se podrá si tiene gastos asociados.",
       confirmLabel: "Eliminar",
       variant: "destructive",
+      onConfirm: async () => {
+        const result = await deleteCategory(id);
+        if (result?.error) {
+          toast.error("No se puede eliminar: " + result.error);
+        } else {
+          toast.success("Categoría eliminada");
+        }
+      },
     });
-    if (ok) {
-      const result = await deleteCategory(id);
-      if (result?.error) {
-        toast.error("No se puede eliminar: " + result.error);
-      } else {
-        toast.success("Categoría eliminada");
-      }
-    }
   }
 
   const filtered = filter

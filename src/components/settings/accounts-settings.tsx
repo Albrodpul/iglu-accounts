@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import { Pencil, Plus, Trash2, Wallet, Loader2 } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -88,22 +88,20 @@ export function AccountsSettings({ accounts }: Props) {
         ? `Esta cuenta tiene ${parts.join(", ")}. Al eliminarla se borrarán todos estos datos permanentemente.`
         : "¿Seguro que quieres eliminar esta cuenta? Esta acción no se puede deshacer.";
 
-    const ok = await confirm({
+    await confirm({
       title: `Eliminar "${account.name}"`,
       description,
       confirmLabel: "Eliminar cuenta",
       variant: "destructive",
-    });
-    if (!ok) return;
-
-    startTransition(async () => {
-      const result = await deleteAccount(account.id);
-      if (result?.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Cuenta eliminada");
-      router.refresh();
+      onConfirm: async () => {
+        const result = await deleteAccount(account.id);
+        if (result?.error) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success("Cuenta eliminada");
+        router.refresh();
+      },
     });
   }
 
@@ -204,7 +202,10 @@ export function AccountsSettings({ accounts }: Props) {
                 className="h-12 w-full md:h-10 md:flex-1"
                 disabled={isPending || !name.trim()}
               >
-                {editingAccount ? "Guardar" : "Crear"}
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isPending
+                  ? "Guardando..."
+                  : editingAccount ? "Guardar" : "Crear"}
               </Button>
             </div>
           </form>

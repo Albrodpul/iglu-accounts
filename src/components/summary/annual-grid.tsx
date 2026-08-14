@@ -89,7 +89,9 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
   const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
 
   return (
-    <div className="overflow-x-auto -mx-5 md:-mx-6">
+    <>
+      {/* Desktop: category rows × month columns */}
+      <div className="hidden overflow-x-auto md:-mx-6 md:block">
       <table className="w-full min-w-[860px] text-sm tabular-nums md:min-w-0">
         <thead>
           <tr className="border-b border-border/60">
@@ -188,6 +190,96 @@ export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, 
           </tr>
         </tfoot>
       </table>
-    </div>
+      </div>
+
+      {/* Mobile: transposed — month rows × category columns.
+          A category lives in one column, so its whole year reads top-to-bottom
+          without horizontal scrolling. */}
+      <div className="-mx-5 overflow-x-auto md:hidden">
+        <table className="w-full text-xs tabular-nums">
+          <thead>
+            <tr className="border-b border-border/60">
+              <th className="sticky left-0 z-10 bg-card py-2 pl-5 pr-2 text-left align-bottom font-semibold text-muted-foreground after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30">
+                Mes
+              </th>
+              {grid.map((row) => (
+                <th key={row.category.id} className="px-1.5 py-2 align-bottom">
+                  <div className="flex min-w-[52px] flex-col items-center gap-0.5">
+                    <span className="text-base leading-none">{row.category.icon}</span>
+                    <span className="max-w-[64px] truncate text-[10px] font-medium text-muted-foreground">
+                      {row.category.name}
+                    </span>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {monthAbbr.map((m, mi) => (
+              <tr
+                key={m}
+                className={`border-b border-border/30 ${mi === currentMonth ? "bg-primary/5" : ""}`}
+              >
+                <td className={`sticky left-0 z-10 bg-card py-1.5 pl-5 pr-2 font-medium after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30 ${mi === currentMonth ? "text-primary" : "text-muted-foreground"}`}>
+                  {m}
+                </td>
+                {grid.map((row) => {
+                  const val = row.months[mi];
+                  return (
+                    <td
+                      key={row.category.id}
+                      className={`px-1.5 py-1.5 text-right ${
+                        val > 0 ? "text-income" : val < 0 ? "text-foreground" : "text-muted-foreground/30"
+                      }`}
+                    >
+                      <Amount value={val} compact />
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border/60 font-bold">
+              <td className="sticky left-0 z-10 bg-card py-2 pl-5 pr-2 text-foreground after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30">
+                Total
+              </td>
+              {grid.map((row) => (
+                <td
+                  key={row.category.id}
+                  className={`px-1.5 py-2 text-right ${
+                    row.total > 0 ? "text-income" : row.total < 0 ? "text-expense" : ""
+                  }`}
+                >
+                  <Amount value={row.total} compact />
+                </td>
+              ))}
+            </tr>
+            <tr className="border-b border-border/30 text-muted-foreground">
+              <td className="sticky left-0 z-10 bg-card py-1.5 pl-5 pr-2 font-medium after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30">
+                Media
+              </td>
+              {grid.map((row) => (
+                <td key={row.category.id} className="px-1.5 py-1.5 text-right">
+                  <Amount value={row.avg} compact />
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td className="sticky left-0 z-10 bg-card py-1.5 pl-5 pr-2 font-medium text-muted-foreground after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30">
+                Tend.
+              </td>
+              {grid.map((row) => (
+                <td key={row.category.id} className="px-1.5 py-1.5">
+                  <div className="flex justify-center">
+                    <Sparkline data={row.months} color={row.category.color || "#64748b"} />
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </>
   );
 }

@@ -11,7 +11,8 @@ import { AnnualGrid } from "@/components/summary/annual-grid";
 import { YearComparison } from "@/components/summary/year-comparison";
 import { BalanceYear } from "@/components/shared/balance-year";
 import { InvestmentReturnsTab } from "@/components/investments/investment-returns-tab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
+import { SummaryTabs } from "@/components/summary/summary-tabs";
 import { buildBalanceYearKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
 
 type Props = {
@@ -118,18 +119,16 @@ export default async function SummaryPage({ searchParams }: Props) {
         <YearSelector year={year} availableYears={availablePeriods.map((p) => p.year)} />
       </div>
 
-      <Tabs defaultValue="resumen">
-        <TabsList className="h-auto w-full overflow-x-auto justify-start rounded-lg p-1">
-          <TabsTrigger value="resumen">Resumen Anual</TabsTrigger>
-          <TabsTrigger value="mensual">Evolución Mensual</TabsTrigger>
-          <TabsTrigger value="anual">Tabla Anual</TabsTrigger>
-          <TabsTrigger value="categorias">Categorías</TabsTrigger>
-          <TabsTrigger value="comparar">Comparar</TabsTrigger>
-          {hasInvestments && (
-            <TabsTrigger value="inversiones">Inversiones</TabsTrigger>
-          )}
-        </TabsList>
-
+      <SummaryTabs
+        tabs={[
+          { value: "resumen", label: "Resumen Anual" },
+          { value: "mensual", label: "Evolución Mensual" },
+          { value: "anual", label: "Tabla Anual" },
+          { value: "categorias", label: "Categorías" },
+          { value: "comparar", label: "Comparar" },
+          ...(hasInvestments ? [{ value: "inversiones", label: "Inversiones" }] : []),
+        ]}
+      >
         <TabsContent value="resumen" className="mt-4">
           <BalanceYear year={year} neto={totals.net} kpis={kpis} />
         </TabsContent>
@@ -169,7 +168,7 @@ export default async function SummaryPage({ searchParams }: Props) {
             <InvestmentReturnsTab returns={monthlyReturns} />
           </TabsContent>
         )}
-      </Tabs>
+      </SummaryTabs>
     </div>
   );
 }

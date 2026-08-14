@@ -250,26 +250,28 @@ export function FundList({ types, funds }: Props) {
 
               return (
                 <div key={type.id} className="space-y-3">
-                  {/* Type header — responsive */}
-                  <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                      {type.name}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs md:text-sm">
-                      <span className="text-muted-foreground">
+                  {/* Type header */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="min-w-0 truncate text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        {type.name}
+                      </h3>
+                      <span className={`shrink-0 text-xs font-semibold tabular-nums md:text-sm ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                        <Amount value={totalReturnAmt} prefix={totalReturnAmt >= 0 ? "+" : ""} suffix={` (${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(1)}%)`} />
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:text-sm">
+                      <span>
                         Inv: <Amount value={totalInvested} className="font-semibold text-foreground tabular-nums" />
                       </span>
-                      <span className="text-muted-foreground">
+                      <span>
                         Val: <Amount value={totalDisplayValue} className="font-semibold text-foreground tabular-nums" />
-                      </span>
-                      <span className={`font-semibold tabular-nums ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                        <Amount value={totalReturnAmt} prefix={totalReturnAmt >= 0 ? "+" : ""} suffix={` (${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}%)`} />
                       </span>
                     </div>
                   </div>
 
                   {/* Fund items */}
-                  <div className="space-y-1">
+                  <div className="space-y-2 md:space-y-1">
                     {typeFunds.map((fund) => {
                       const displayReturn = getDisplayReturn(fund);
                       const displayValue = fund.invested_amount + displayReturn;
@@ -281,7 +283,7 @@ export function FundList({ types, funds }: Props) {
                       return (
                         <div
                           key={fund.id}
-                          className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:px-3 md:py-3"
+                          className="group flex flex-wrap items-center gap-x-3 gap-y-2.5 rounded-xl border border-border/60 bg-card px-3 py-3 transition-colors md:flex-nowrap md:rounded-lg md:border-transparent md:bg-transparent md:px-3 md:hover:border-border/70 md:hover:bg-muted/35"
                         >
                           {/* Icon */}
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
@@ -293,30 +295,33 @@ export function FundList({ types, funds }: Props) {
                           </div>
 
                           {/* Content */}
-                          <div className="flex-1 min-w-0">
+                          <div className="order-1 min-w-0 flex-1">
                             <p className="text-[15px] font-medium text-foreground truncate">
                               {fund.name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground">
                               Inv: <Amount value={fund.invested_amount} /> · Peso: {weight}%
                               {fund.ticker && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.ticker}</span>}
                               {!fund.ticker && fund.isin && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.isin}</span>}
                             </p>
                           </div>
 
-                          {/* Values — aligned */}
-                          <div className="text-right shrink-0">
-                            <p className="text-[15px] font-semibold tabular-nums">
-                              <Amount value={displayValue} />
-                            </p>
-                            <p className={`text-xs font-medium tabular-nums ${displayReturn >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                              <Amount value={displayReturn} prefix={displayReturn >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
-                            </p>
+                          {/* Values — wraps to its own line on mobile, inline on desktop */}
+                          <div className="order-3 flex w-full items-baseline justify-between gap-2 pl-[52px] md:order-2 md:block md:w-auto md:pl-0 md:text-right">
+                            <span className="text-xs text-muted-foreground md:hidden">Valor</span>
+                            <div className="flex items-baseline gap-2 md:block md:gap-0">
+                              <p className="text-[15px] font-semibold tabular-nums">
+                                <Amount value={displayValue} />
+                              </p>
+                              <p className={`text-xs font-medium tabular-nums ${displayReturn >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                <Amount value={displayReturn} prefix={displayReturn >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
+                              </p>
+                            </div>
                           </div>
 
                           {/* Actions dropdown */}
                           <DropdownMenu>
-                            <DropdownMenuTrigger className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                            <DropdownMenuTrigger className="order-2 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0 md:order-3 md:h-8 md:w-8 md:opacity-0 md:group-hover:opacity-100">
                               <MoreVertical className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" side="bottom" className="min-w-44">

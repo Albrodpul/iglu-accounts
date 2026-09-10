@@ -195,7 +195,11 @@ export function InvestmentTypeManager({ types, funds }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>{editingType ? "Editar tipo" : "Nuevo tipo de inversión"}</DialogTitle>
           </DialogHeader>
-          <form key={editingType?.id ?? "new"} action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={editingType?.id ?? "new"}
+            onSubmit={(e) => { e.preventDefault(); if (loading) return; handleSubmit(new FormData(e.currentTarget)); }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>

@@ -359,7 +359,11 @@ export function FundList({ types, funds }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>{editingFund ? "Editar fondo" : "Nuevo fondo"}</DialogTitle>
           </DialogHeader>
-          <form key={editingFund?.id ?? "new"} action={handleFundSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={editingFund?.id ?? "new"}
+            onSubmit={(e) => { e.preventDefault(); if (loading) return; handleFundSubmit(new FormData(e.currentTarget)); }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             {/* Pass show_negative_returns as hidden field; visual toggle updates state */}
             <input type="hidden" name="show_negative_returns" value={showNegative ? "true" : "false"} />
@@ -516,7 +520,11 @@ export function FundList({ types, funds }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>Editar rentabilidad · {profitFund?.name}</DialogTitle>
           </DialogHeader>
-          <form key={profitFund?.id ?? "profit"} action={handleProfitSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={profitFund?.id ?? "profit"}
+            onSubmit={(e) => { e.preventDefault(); if (loading) return; handleProfitSubmit(new FormData(e.currentTarget)); }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="space-y-2">
               <Label>Invertido</Label>
@@ -555,7 +563,11 @@ export function FundList({ types, funds }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>{editingContrib ? "Editar aportación" : "Nueva aportación"} · {contribFund?.name}</DialogTitle>
           </DialogHeader>
-          <form key={editingContrib?.id ?? contribFund?.id ?? "contrib"} action={handleContribSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={editingContrib?.id ?? contribFund?.id ?? "contrib"}
+            onSubmit={(e) => { e.preventDefault(); if (loading) return; handleContribSubmit(new FormData(e.currentTarget)); }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <input type="hidden" name="fund_id" value={contribFund?.id || ""} />
             <div className="space-y-4">

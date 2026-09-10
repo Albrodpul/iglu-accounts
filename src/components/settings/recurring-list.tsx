@@ -190,7 +190,11 @@ export function RecurringList({ recurring, categories }: Props) {
           <DialogHeader variant="bar">
             <DialogTitle>{editingItem ? "Editar movimiento fijo" : "Nuevo movimiento fijo"}</DialogTitle>
           </DialogHeader>
-          <form key={editingItem?.id ?? "new"} action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={editingItem?.id ?? "new"}
+            onSubmit={(e) => { e.preventDefault(); if (loading) return; handleSubmit(new FormData(e.currentTarget)); }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div className="flex gap-2">
               <Button

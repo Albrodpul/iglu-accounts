@@ -121,12 +121,14 @@ export default async function SummaryPage({ searchParams }: Props) {
 
       <SummaryTabs
         tabs={[
-          { value: "resumen", label: "Resumen Anual" },
-          { value: "mensual", label: "Evolución Mensual" },
-          { value: "anual", label: "Tabla Anual" },
-          { value: "categorias", label: "Categorías" },
-          { value: "comparar", label: "Comparar" },
-          ...(hasInvestments ? [{ value: "inversiones", label: "Inversiones" }] : []),
+          { value: "resumen", label: "Balance del año", short: "Balance" },
+          { value: "mensual", label: "Ingresos vs. gastos por mes", short: "Mes a mes" },
+          { value: "anual", label: "Tabla por categoría y mes", short: "Categoría × mes" },
+          { value: "categorias", label: "Ranking de gasto por categoría", short: "Por categoría" },
+          { value: "comparar", label: "Comparar dos periodos", short: "Comparar" },
+          ...(hasInvestments
+            ? [{ value: "inversiones", label: "Rentabilidad de inversiones", short: "Inversiones" }]
+            : []),
         ]}
       >
         <TabsContent value="resumen" className="mt-4">

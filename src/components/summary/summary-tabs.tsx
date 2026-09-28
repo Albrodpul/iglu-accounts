@@ -4,7 +4,13 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type TabItem = { value: string; label: string };
+type TabItem = {
+  value: string;
+  /** Descriptive name, used in the mobile dropdown. */
+  label: string;
+  /** Compact name for the desktop tab strip. Falls back to `label`. */
+  short?: string;
+};
 
 type Props = {
   tabs: TabItem[];
@@ -14,7 +20,7 @@ type Props = {
 
 /**
  * Summary view switcher. On phones the six views collapse into a single native
- * select (one tap, everything discoverable, no horizontal scroll); from `md`
+ * select (one tap, everything discoverable, no horizontal scroll); from `lg`
  * up it renders the usual segmented tab strip.
  */
 export function SummaryTabs({ tabs, children }: Props) {
@@ -24,7 +30,7 @@ export function SummaryTabs({ tabs, children }: Props) {
   return (
     <Tabs value={value} onValueChange={(v) => setValue(v as string)}>
       {/* Mobile: dropdown */}
-      <div className="relative md:hidden">
+      <div className="relative lg:hidden">
         <select
           aria-label="Vista del resumen"
           value={value}
@@ -42,10 +48,10 @@ export function SummaryTabs({ tabs, children }: Props) {
       </div>
 
       {/* Desktop: segmented tabs */}
-      <TabsList className="hidden h-auto w-full justify-start rounded-lg p-1 md:flex">
+      <TabsList className="hidden h-auto w-full justify-start rounded-lg p-1 lg:flex">
         {tabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
-            {tab.label}
+            {tab.short ?? tab.label}
           </TabsTrigger>
         ))}
       </TabsList>

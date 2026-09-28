@@ -146,7 +146,16 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
     : navItemsLeft;
   const allNavItemsFinal = [...navItemsLeftFinal, ...navItemsRight];
-  const mobileRightItems = [{ href: "/summary", label: "Resumen", icon: BarChart3 }];
+  // With investments, "Inversiones" earns the bottom-bar slot and "Resumen"
+  // moves into the "Más" sheet; without it, "Resumen" keeps the slot.
+  const mobileRightItems = hasInvestments
+    ? [{ href: "/investments", label: "Inversiones", icon: TrendingUp }]
+    : [{ href: "/summary", label: "Resumen", icon: BarChart3 }];
+  const moreSheetRoutes = [
+    "/settings",
+    "/import",
+    ...(hasInvestments ? ["/summary"] : []),
+  ];
 
   function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
     const isActive = pathname.startsWith(href);
@@ -436,11 +445,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             label="Más"
             icon={Ellipsis}
             onClick={() => setMoreOpen(true)}
-            isActive={
-              pathname.startsWith("/settings") ||
-              pathname.startsWith("/investments") ||
-              pathname.startsWith("/import")
-            }
+            isActive={moreSheetRoutes.some((route) => pathname.startsWith(route))}
           />
         </div>
       </nav>
@@ -457,13 +462,13 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           <DialogBody className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {hasInvestments && (
               <Link
-                href="/investments"
+                href="/summary"
                 onClick={() => setMoreOpen(false)}
                 className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
               >
                 <span className="flex items-center gap-3 text-sm font-semibold">
-                  <TrendingUp className="h-[18px] w-[18px] text-muted-foreground" />
-                  Inversiones
+                  <BarChart3 className="h-[18px] w-[18px] text-muted-foreground" />
+                  Resumen
                 </span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>

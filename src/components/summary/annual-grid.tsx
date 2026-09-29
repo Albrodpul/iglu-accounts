@@ -2,6 +2,7 @@
 
 import { MONTHS } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
+import { sumByCategoryAndMonth } from "@/lib/aggregations";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -36,23 +37,16 @@ type Props = {
 export function AnnualGrid({ expenses, categories, year, debtCategoryId = null, transferCategoryId = null }: Props) {
   const monthAbbr = MONTHS.map((m) => m.substring(0, 3));
 
-  // Build matrix: category × month
+  // Build matrix: category × month, in one pass over the movements
+  const byCategory = sumByCategoryAndMonth(expenses);
   const usedCategories = categories.filter((cat) => {
     if (transferCategoryId && cat.id === transferCategoryId) return false;
     if (cat.name.toLowerCase() === "traspaso") return false;
-    return expenses.some((e) => e.category_id === cat.id);
+    return byCategory.has(cat.id);
   });
 
   const grid = usedCategories.map((cat) => {
-    const monthlyTotals = Array.from({ length: 12 }, (_, i) => {
-      return expenses
-        .filter((e) => {
-          const d = new Date(e.expense_date);
-          return e.category_id === cat.id && d.getMonth() === i;
-        })
-        .reduce((s, e) => s + e.amount, 0);
-    });
-
+    const monthlyTotals = byCategory.get(cat.id) ?? new Array<number>(12).fill(0);
     const total = monthlyTotals.reduce((s, v) => s + v, 0);
 
     return {

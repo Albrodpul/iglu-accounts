@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useEffect, useCallback } from "react";
+import { useLocalStorageValue, useMediaQuery, writeLocalStorage } from "@/hooks/use-browser-state";
 
 type Theme = "light" | "dark" | "system";
 
@@ -18,46 +19,27 @@ const ThemeContext = createContext<ThemeContextType>({
 
 const STORAGE_KEY = "iglu-theme";
 
-function getSystemTheme(): "light" | "dark" {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 function applyTheme(resolved: "light" | "dark") {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
+function parseTheme(value: string | null): Theme {
+  return value === "light" || value === "dark" ? value : "system";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [resolved, setResolved] = useState<"light" | "dark">("light");
+  // The preference lives in localStorage and the OS scheme in a media query;
+  // both are read as external stores, so nothing is copied into state.
+  const theme = parseTheme(useLocalStorageValue(STORAGE_KEY));
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const resolved: "light" | "dark" = theme === "system" ? (systemDark ? "dark" : "light") : theme;
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial = stored || "system";
-    setThemeState(initial);
-    const r = initial === "system" ? getSystemTheme() : initial;
-    setResolved(r);
-    applyTheme(r);
-  }, []);
-
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => {
-      const r = getSystemTheme();
-      setResolved(r);
-      applyTheme(r);
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [theme]);
+    applyTheme(resolved);
+  }, [resolved]);
 
   const setTheme = useCallback((t: Theme) => {
-    setThemeState(t);
-    localStorage.setItem(STORAGE_KEY, t);
-    const r = t === "system" ? getSystemTheme() : t;
-    setResolved(r);
-    applyTheme(r);
+    writeLocalStorage(STORAGE_KEY, t);
   }, []);
 
   return (

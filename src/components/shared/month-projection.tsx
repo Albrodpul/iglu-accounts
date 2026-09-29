@@ -3,13 +3,12 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 
 type Props = {
   projected: number | null;
-  currentNet: number;
   historicalMonths: number;
   monthProgress: number;
   pendingRecurringNet: number;
 };
 
-export function MonthProjection({ projected, currentNet, historicalMonths, monthProgress, pendingRecurringNet }: Props) {
+export function MonthProjection({ projected, historicalMonths, monthProgress, pendingRecurringNet }: Props) {
   if (projected === null || monthProgress < 0.1) return null;
 
   const isPositive = projected >= 0;

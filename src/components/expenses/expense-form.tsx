@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { CategoryPicker } from "@/components/expenses/category-picker";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { toLocalISODate } from "@/lib/dates";
 import { Loader2 } from "lucide-react";
 import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
 import type { Category, Expense } from "@/types";
@@ -62,8 +64,9 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const categoryManual = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalISODate();
   const isTransfer = type === "transfer";
   const showCategory = type === "expense";
   const showPaymentMethod = hasInvestments && (type === "income" || type === "expense");
@@ -107,10 +110,14 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
             expense_date: expenseDate,
           });
           if (dup.duplicate) {
-            const msg = dup.concept
-              ? `Ya existe un movimiento similar: "${dup.concept}". ¿Añadir de todas formas?`
-              : "Ya existe un movimiento con el mismo importe, categoría y fecha. ¿Añadir de todas formas?";
-            if (!window.confirm(msg)) {
+            const proceed = await confirm({
+              title: "Posible duplicado",
+              description: dup.concept
+                ? `Ya existe un movimiento similar: "${dup.concept}". ¿Añadir de todas formas?`
+                : "Ya existe un movimiento con el mismo importe, categoría y fecha. ¿Añadir de todas formas?",
+              confirmLabel: "Añadir igualmente",
+            });
+            if (!proceed) {
               setLoading(false);
               return;
             }
@@ -169,6 +176,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
   const submitLabel = isTransfer ? "Añadir traspaso" : type === "income" ? "Añadir ingreso" : type === "debt" ? "Añadir deuda" : "Añadir gasto";
 
   return (
+    <>
     <form
       key={formKey}
       ref={formRef}
@@ -367,5 +375,7 @@ export function ExpenseForm({ categories, expense, onSuccess, hasInvestments = f
         )}
       </div>
     </form>
+    {ConfirmDialog}
+    </>
   );
 }

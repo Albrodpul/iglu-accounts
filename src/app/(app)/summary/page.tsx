@@ -14,6 +14,7 @@ import { InvestmentReturnsTab } from "@/components/investments/investment-return
 import { TabsContent } from "@/components/ui/tabs";
 import { SummaryTabs } from "@/components/summary/summary-tabs";
 import { buildBalanceYearKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
+import { spentByCategory, sumCategory, summarizeMonths } from "@/lib/aggregations";
 
 type Props = {
   searchParams: Promise<{ year?: string }>;
@@ -36,63 +37,42 @@ export default async function SummaryPage({ searchParams }: Props) {
 
   const monthlyReturns = hasInvestments ? await getInvestmentMonthlyReturns() : [];
 
+  const specialCategories = { debtCategoryId, transferCategoryId };
+
   // Monthly totals (including debts as separate bar)
-  const monthlyData = MONTHS.map((name, i) => {
-    const monthExpenses = expenses.filter((e) => {
-      const d = new Date(e.expense_date);
-      return d.getMonth() === i;
-    });
-
-    const isTransfer = (e: { category_id: string }) => transferCategoryId && e.category_id === transferCategoryId;
-    const gastos = monthExpenses
-      .filter((e) => e.amount < 0 && !isTransfer(e))
-      .reduce((s, e) => s + e.amount, 0);
-    const ingresos = monthExpenses
-      .filter((e) => e.amount > 0 && e.category_id !== debtCategoryId && !isTransfer(e))
-      .reduce((s, e) => s + e.amount, 0);
-    const deudas = debtCategoryId
-      ? monthExpenses
-          .filter((e) => e.category_id === debtCategoryId)
-          .reduce((s, e) => s + e.amount, 0)
-      : 0;
-
-    return {
-      name: name.substring(0, 3),
-      gastos: Math.abs(gastos),
-      ingresos,
-      deudas,
-      neto: gastos + ingresos,
-    };
-  });
+  const monthlyData = summarizeMonths(expenses, specialCategories).map((m, i) => ({
+    name: MONTHS[i].substring(0, 3),
+    gastos: Math.abs(m.gastos),
+    ingresos: m.ingresos,
+    deudas: m.deudas,
+    neto: m.gastos + m.ingresos,
+  }));
 
   const hasAnyDebts = monthlyData.some((m) => m.deudas > 0);
 
   // Category breakdown
+  const spent = spentByCategory(expenses);
   const categoryTotals = categories
-    .map((cat) => {
-      const total = expenses
-        .filter((e) => e.category_id === cat.id && e.amount < 0)
-        .reduce((s, e) => s + Math.abs(e.amount), 0);
-      return { name: cat.name, color: cat.color || "#64748b", icon: cat.icon || "", total };
-    })
+    .map((cat) => ({
+      name: cat.name,
+      color: cat.color || "#64748b",
+      icon: cat.icon || "",
+      total: spent.get(cat.id) ?? 0,
+    }))
     .filter((c) => c.total > 0)
     .sort((a, b) => b.total - a.total);
 
   // Include debts in category breakdown (positive amounts)
-  if (debtCategoryId) {
-    const debtCat = categories.find((c) => c.id === debtCategoryId);
-    if (debtCat) {
-      const debtTotal = expenses
-        .filter((e) => e.category_id === debtCategoryId)
-        .reduce((s, e) => s + e.amount, 0);
-      if (debtTotal > 0) {
-        categoryTotals.push({
-          name: debtCat.name,
-          color: debtCat.color || "#f59e0b",
-          icon: debtCat.icon || "🤝",
-          total: debtTotal,
-        });
-      }
+  const debtCat = debtCategoryId ? categories.find((c) => c.id === debtCategoryId) : undefined;
+  if (debtCat) {
+    const debtTotal = sumCategory(expenses, debtCat.id);
+    if (debtTotal > 0) {
+      categoryTotals.push({
+        name: debtCat.name,
+        color: debtCat.color || "#f59e0b",
+        icon: debtCat.icon || "🤝",
+        total: debtTotal,
+      });
     }
   }
 

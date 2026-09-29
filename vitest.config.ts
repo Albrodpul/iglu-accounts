@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+// Run every test in the users' timezone so date logic is deterministic and
+// timezone bugs (e.g. UTC "today" after local midnight) reproduce in CI (UTC).
+process.env.TZ = "Europe/Madrid";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

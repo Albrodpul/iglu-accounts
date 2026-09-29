@@ -21,6 +21,7 @@ import {
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2, Play, Loader2 } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { Category, RecurringExpenseWithCategory, ScheduleType, ExpenseDateScheduleType } from "@/types";
@@ -73,6 +74,7 @@ export function RecurringList({ recurring, categories }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
+  const { pendingIds, scheduleDelete } = useUndoableDelete();
 
   function openCreate() {
     setEditingItem(null);
@@ -144,25 +146,17 @@ export function RecurringList({ recurring, categories }: Props) {
     });
   }
 
-  async function handleDelete(id: string) {
-    await confirm({
-      title: "Eliminar movimiento fijo",
-      description: "¿Estás seguro de que quieres desactivar este movimiento fijo?",
-      confirmLabel: "Eliminar",
-      variant: "destructive",
-      onConfirm: async () => {
-        const result = await deleteRecurringExpense(id);
-        if (result?.error) {
-          toast.error(result.error);
-        } else {
-          toast.success("Movimiento fijo eliminado");
-        }
-      },
+  function handleDelete(id: string) {
+    scheduleDelete(id, {
+      message: "Movimiento fijo eliminado",
+      commit: () => deleteRecurringExpense(id),
     });
   }
 
-  const expenses = recurring.filter((r) => r.amount < 0);
-  const income = recurring.filter((r) => r.amount > 0);
+  // Items deleted but still inside their undo window are hidden right away.
+  const visible = recurring.filter((r) => !pendingIds.has(r.id));
+  const expenses = visible.filter((r) => r.amount < 0);
+  const income = visible.filter((r) => r.amount > 0);
 
   // Show day selector for monthly/bimonthly
   const showDaySelector = scheduleType === "monthly" || scheduleType === "bimonthly";

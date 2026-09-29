@@ -77,7 +77,7 @@ export function InvestmentPieChart({ funds }: Props) {
     return item.breakdown ? OTHERS_COLOR : COLORS[i % COLORS.length];
   }
 
-  function CustomTooltip({ active, payload }: any) {
+  function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartItem }> }) {
     if (!active || !payload?.length) return null;
     const item = payload[0].payload as ChartItem;
     const pct = ((item.value / total) * 100).toFixed(1);

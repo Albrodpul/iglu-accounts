@@ -55,3 +55,8 @@ next-env.d.ts
 
 # context (instrucciones locales para Claude)
 /context/
+
+# e2e (Playwright): saved session holds login cookies — never commit it
+/e2e/.auth/
+/test-results/
+/playwright-report/

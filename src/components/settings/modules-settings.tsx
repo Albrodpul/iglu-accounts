@@ -1,5 +1,6 @@
 "use client";
 
+import { useClientCheck } from "@/hooks/use-browser-state";
 import { useState, useEffect } from "react";
 import { toggleInvestments, toggleNotifications } from "@/actions/accounts";
 import { savePushSubscription, removePushSubscription, sendTestNotification } from "@/actions/notifications";
@@ -53,15 +54,12 @@ export function ModulesSettings({ hasInvestments, hasNotifications }: Props) {
   const [notifEnabled, setNotifEnabled] = useState(hasNotifications);
   const [notifLoading, setNotifLoading] = useState(false);
   const [deviceSubscribed, setDeviceSubscribed] = useState(false);
-  const [pushSupported, setPushSupported] = useState(false);
+  const pushSupported = useClientCheck(isPushSupported);
 
   useEffect(() => {
-    const supported = isPushSupported();
-    setPushSupported(supported);
-    if (supported) {
-      getExistingSubscription().then((sub) => setDeviceSubscribed(!!sub));
-    }
-  }, []);
+    if (!pushSupported) return;
+    getExistingSubscription().then((sub) => setDeviceSubscribed(!!sub));
+  }, [pushSupported]);
 
   async function handleInvestToggle() {
     setInvestLoading(true);

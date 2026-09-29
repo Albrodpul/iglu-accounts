@@ -204,7 +204,6 @@ export default async function DashboardPage() {
               <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
               <MonthProjection
                 projected={projection.projected}
-                currentNet={projection.currentNet}
                 historicalMonths={projection.historicalMonths}
                 monthProgress={projection.monthProgress}
                 pendingRecurringNet={projection.pendingRecurringNet}
@@ -265,7 +264,6 @@ export default async function DashboardPage() {
               <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
               <MonthProjection
                 projected={projection.projected}
-                currentNet={projection.currentNet}
                 historicalMonths={projection.historicalMonths}
                 monthProgress={projection.monthProgress}
                 pendingRecurringNet={projection.pendingRecurringNet}

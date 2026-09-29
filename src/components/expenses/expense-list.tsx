@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { deleteExpense } from "@/actions/expenses";
 import { formatDateShort, formatDateWithYear } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
-import { toast } from "sonner";
-import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { MovementDialog } from "./movement-dialog";
 import { SwipeRow } from "@/components/ui/swipe-row";
-import { Pencil, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
@@ -26,15 +25,17 @@ type Props = {
 
 export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [internalSortAsc, setInternalSortAsc] = useState(false);
   const sortAsc = sortable ? internalSortAsc : (externalSortAsc ?? false);
-  const { confirm, ConfirmDialog } = useConfirm();
+  const { pendingIds, scheduleDelete } = useUndoableDelete();
   const router = useRouter();
 
   const notifyMutated = onMutated ?? (() => router.refresh());
 
-  if (expenses.length === 0) {
+  // Rows deleted but still inside their undo window are hidden right away.
+  const visibleExpenses = expenses.filter((e) => !pendingIds.has(e.id));
+
+  if (visibleExpenses.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-muted-foreground">
         No hay movimientos en este periodo
@@ -43,7 +44,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
   }
 
   // Group by date
-  const grouped = expenses.reduce(
+  const grouped = visibleExpenses.reduce(
     (acc, expense) => {
       const date = expense.expense_date;
       if (!acc[date]) acc[date] = [];
@@ -57,29 +58,13 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
     sortAsc ? a.localeCompare(b) : b.localeCompare(a)
   );
 
-  async function handleDelete(expense: ExpenseWithCategory) {
+  function handleDelete(expense: ExpenseWithCategory) {
     const isTransfer = !!(transferCategoryId && expense.category_id === transferCategoryId);
-    await confirm({
-      title: isTransfer ? "Eliminar traspaso" : "Eliminar movimiento",
-      description: isTransfer
-        ? "Este traspaso está vinculado a dos movimientos. Se eliminarán ambos. Esta acción no se puede deshacer."
-        : "¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.",
-      confirmLabel: "Eliminar",
-      variant: "destructive",
-      onConfirm: async () => {
-        setDeletingId(expense.id);
-        try {
-          const result = await deleteExpense(expense.id);
-          if (result?.error) {
-            toast.error(result.error);
-          } else {
-            toast.success(isTransfer ? "Traspaso eliminado" : "Movimiento eliminado");
-            notifyMutated();
-          }
-        } finally {
-          setDeletingId(null);
-        }
-      },
+    scheduleDelete(expense.id, {
+      // A transfer is two linked movements; the server removes both.
+      message: isTransfer ? "Traspaso eliminado" : "Movimiento eliminado",
+      commit: () => deleteExpense(expense.id),
+      onCommitted: notifyMutated,
     });
   }
 
@@ -121,15 +106,12 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 </span>
               </div>
               <div className="space-y-1">
-                {dayExpenses.map((expense) => {
-                  const isDeleting = deletingId === expense.id;
-                  return (
+                {dayExpenses.map((expense) => (
                   <SwipeRow
                     key={expense.id}
-                    disabled={isDeleting}
                     onTap={() => setEditingExpense(expense)}
                     onDelete={() => handleDelete(expense)}
-                    className={`group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 ${isDeleting ? "opacity-50" : ""}`}
+                    className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35"
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
@@ -170,26 +152,19 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                           onClick={(e) => { e.stopPropagation(); setEditingExpense(expense); }}
-                          disabled={isDeleting}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors disabled:opacity-100"
                           onClick={(e) => { e.stopPropagation(); handleDelete(expense); }}
-                          disabled={isDeleting}
                         >
-                          {isDeleting ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
                   </SwipeRow>
-                  );
-                })}
+                ))}
               </div>
             </div>
           );
@@ -207,7 +182,6 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
         />
       )}
 
-      {ConfirmDialog}
     </>
   );
 }

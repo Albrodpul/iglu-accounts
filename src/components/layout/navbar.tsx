@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
+import { toLocalISODate } from "@/lib/dates";
 import {
   House,
   List,
@@ -29,6 +30,7 @@ import {
   Database,
 } from "lucide-react";
 import { exportAccountData } from "@/actions/export";
+import { useIsOffline } from "@/hooks/use-browser-state";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { useTheme } from "@/contexts/theme";
 import {
@@ -62,6 +64,56 @@ type Props = {
   hasInvestments?: boolean;
 };
 
+type NavIcon = React.ComponentType<{ className?: string }>;
+
+const bottomNavItemClass =
+  "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all";
+
+function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon: NavIcon; isActive: boolean }) {
+  return (
+    <>
+      <span
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-full transition-all",
+          isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
+        )}
+      >
+        <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
+      </span>
+      {label}
+    </>
+  );
+}
+
+function NavItem({ href, label, icon, isActive }: { href: string; label: string; icon: NavIcon; isActive: boolean }) {
+  return (
+    <Link href={href} className={cn(bottomNavItemClass, isActive ? "text-foreground" : "text-muted-foreground")}>
+      <BottomNavContent label={label} icon={icon} isActive={isActive} />
+    </Link>
+  );
+}
+
+function NavActionItem({
+  label,
+  icon,
+  onClick,
+  isActive = false,
+}: {
+  label: string;
+  icon: NavIcon;
+  onClick: () => void;
+  isActive?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(bottomNavItemClass, "cursor-pointer", isActive ? "text-foreground" : "text-muted-foreground")}
+    >
+      <BottomNavContent label={label} icon={icon} isActive={isActive} />
+    </button>
+  );
+}
+
 export function Navbar({ accountName, showAccountSwitcher = true, categories = [], hasInvestments = false }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -73,31 +125,30 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [exportError, setExportError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
-  const [dataOpen, setDataOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState(() => pathname.startsWith("/import"));
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
   const { theme, setTheme } = useTheme();
-  const [offline, setOffline] = useState(false);
+  const offline = useIsOffline();
 
-  // Auto-open add dialog from PWA shortcut (?add=1)
+  // PWA shortcut (?add=1) opens the add dialog. State is adjusted during render
+  // (once per arrival of the param); the effect only strips it from the URL.
+  const addRequested = searchParams.get("add") === "1";
+  const [handledAddRequest, setHandledAddRequest] = useState(false);
+  if (addRequested !== handledAddRequest) {
+    setHandledAddRequest(addRequested);
+    if (addRequested) setAddOpen(true);
+  }
   useEffect(() => {
-    if (searchParams.get("add") === "1") {
-      setAddOpen(true);
-      router.replace(pathname, { scroll: false });
-    }
-  }, [searchParams, pathname, router]);
+    if (addRequested) router.replace(pathname, { scroll: false });
+  }, [addRequested, pathname, router]);
 
-  useEffect(() => {
-    setOffline(!navigator.onLine);
-    const goOffline = () => setOffline(true);
-    const goOnline = () => setOffline(false);
-    window.addEventListener("offline", goOffline);
-    window.addEventListener("online", goOnline);
-    return () => {
-      window.removeEventListener("offline", goOffline);
-      window.removeEventListener("online", goOnline);
-    };
-  }, []);
+  // Landing on /import expands the "Copia de seguridad" group.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    if (pathname.startsWith("/import")) setDataOpen(true);
+  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -119,9 +170,6 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    if (pathname.startsWith("/import")) setDataOpen(true);
-  }, [pathname]);
 
   async function handleExport() {
     setExporting(true);
@@ -136,7 +184,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `iglu-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `iglu-backup-${toLocalISODate()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setMoreOpen(false);
@@ -156,61 +204,6 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     "/import",
     ...(hasInvestments ? ["/summary"] : []),
   ];
-
-  function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
-    const isActive = pathname.startsWith(href);
-    return (
-      <Link
-        href={href}
-        className={cn(
-          "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all",
-          isActive ? "text-foreground" : "text-muted-foreground"
-        )}
-      >
-        <span
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full transition-all",
-            isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
-          )}
-        >
-          <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
-        </span>
-        {label}
-      </Link>
-    );
-  }
-
-  function NavActionItem({
-    label,
-    icon: Icon,
-    onClick,
-    isActive = false,
-  }: {
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    onClick: () => void;
-    isActive?: boolean;
-  }) {
-    return (
-      <button
-        onClick={onClick}
-        className={cn(
-          "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all cursor-pointer",
-          isActive ? "text-foreground" : "text-muted-foreground"
-        )}
-      >
-        <span
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full transition-all",
-            isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
-          )}
-        >
-          <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
-        </span>
-        {label}
-      </button>
-    );
-  }
 
   return (
     <>
@@ -424,7 +417,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       >
         <div className="relative grid grid-cols-5 px-2 pt-0.5">
           {navItemsLeft.map((item) => (
-            <NavItem key={item.href} {...item} />
+            <NavItem key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
           ))}
 
           <div className="flex items-center justify-center">
@@ -438,7 +431,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </div>
 
           {mobileRightItems.map((item) => (
-            <NavItem key={item.href} {...item} />
+            <NavItem key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
           ))}
 
           <NavActionItem

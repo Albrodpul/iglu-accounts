@@ -8,13 +8,14 @@ const STALE_AFTER_MS = 60_000;
 
 export function ServiceWorkerRegister() {
   const router = useRouter();
-  const lastActiveRef = useRef<number>(Date.now());
+  const lastActiveRef = useRef<number>(0);
 
   useEffect(() => {
     registerServiceWorker();
   }, []);
 
   useEffect(() => {
+    lastActiveRef.current = Date.now();
     function handleVisibility() {
       if (document.hidden) {
         lastActiveRef.current = Date.now();

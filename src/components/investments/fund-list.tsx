@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { toLocalISODate } from "@/lib/dates";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
 import type { InvestmentType, InvestmentFundWithType, InvestmentContribution } from "@/types";
@@ -212,7 +213,7 @@ export function FundList({ types, funds }: Props) {
     return ret;
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalISODate();
 
   return (
     <>

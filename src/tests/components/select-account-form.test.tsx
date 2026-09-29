@@ -6,15 +6,16 @@ import { SelectAccountForm } from "@/components/select-account/select-account-fo
 
 describe("select account form", () => {
   it("shows loading only for clicked account and blocks the rest", async () => {
-    const action = vi.fn();
+    // Never resolves, so the clicked account stays pending for the assertions.
+    const actionA = vi.fn(() => new Promise<void>(() => {}));
+    const actionB = vi.fn(() => new Promise<void>(() => {}));
 
     render(
       <SelectAccountForm
         accounts={[
-          { id: "acc-1", name: "Cuenta A" },
-          { id: "acc-2", name: "Cuenta B" },
+          { id: "acc-1", name: "Cuenta A", action: actionA },
+          { id: "acc-2", name: "Cuenta B", action: actionB },
         ]}
-        action={action}
       />,
     );
 
@@ -34,5 +35,7 @@ describe("select account form", () => {
     expect(screen.getAllByText("Entrando...")).toHaveLength(1);
     expect(firstButton).toHaveAttribute("aria-busy", "true");
     expect(secondButton).toHaveAttribute("aria-busy", "false");
+    expect(actionA).toHaveBeenCalledTimes(1);
+    expect(actionB).not.toHaveBeenCalled();
   });
 });

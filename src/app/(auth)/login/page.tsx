@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocalStorageValue } from "@/hooks/use-browser-state";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
@@ -23,12 +24,8 @@ function getGreeting(): string {
 }
 
 function LoginGreeting() {
-  const [firstName, setFirstName] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(NAME_KEY);
-    if (stored) setFirstName(stored.split(" ")[0]);
-  }, []);
+  const storedName = useLocalStorageValue(NAME_KEY);
+  const firstName = storedName ? storedName.split(" ")[0] : null;
 
   const greeting = getGreeting();
 

@@ -30,6 +30,36 @@ type Props = {
   returns: MonthlyReturn[];
 };
 
+function fmtPct(v: number | null) {
+  if (v === null) return "—";
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${v.toFixed(2)}%`;
+}
+
+function pctClass(v: number | null) {
+  if (v === null) return "text-muted-foreground";
+  return v >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
+}
+
+function ReturnTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const val = payload[0].value;
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
+      <p className="font-medium text-foreground">{label}</p>
+      <p className={`font-bold tabular-nums ${pctClass(val)}`}>{fmtPct(val)}</p>
+    </div>
+  );
+}
+
 export function InvestmentReturnsTab({ returns }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -112,36 +142,6 @@ export function InvestmentReturnsTab({ returns }: Props) {
     return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
   });
 
-  const fmtPct = (v: number | null) => {
-    if (v === null) return "—";
-    const sign = v >= 0 ? "+" : "";
-    return `${sign}${v.toFixed(2)}%`;
-  };
-
-  const pctClass = (v: number | null) => {
-    if (v === null) return "text-muted-foreground";
-    return v >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
-  };
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: Array<{ value: number }>;
-    label?: string;
-  }) => {
-    if (!active || !payload?.length) return null;
-    const val = payload[0].value;
-    return (
-      <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
-        <p className="font-medium text-foreground">{label}</p>
-        <p className={`font-bold tabular-nums ${pctClass(val)}`}>{fmtPct(val)}</p>
-      </div>
-    );
-  };
-
   const currentMonthRecorded = returns.some(
     (r) => r.year === now.getFullYear() && r.month === now.getMonth() + 1,
   );
@@ -213,7 +213,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
               axisLine={false}
               tickFormatter={(v) => `${v}%`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<ReturnTooltip />} />
             <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.3} strokeDasharray="4 4" />
             <Line
               type="monotone"

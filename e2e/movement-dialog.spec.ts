@@ -12,8 +12,14 @@ test("móvil: «Nuevo movimiento» es un bottom sheet alto con botones táctiles
   await expect(sheet).toBeVisible();
 
   const viewport = page.viewportSize()!;
+  // Wait for the slide-in animation to settle before measuring.
+  await expect
+    .poll(async () => {
+      const b = (await sheet.boundingBox())!;
+      return Math.round(b.y + b.height);
+    })
+    .toBe(viewport.height); // anchored to the bottom
   const box = (await sheet.boundingBox())!;
-  expect(Math.round(box.y + box.height)).toBe(viewport.height); // anchored to the bottom
   expect(box.height).toBeGreaterThan(viewport.height * 0.9); // fixed ~94dvh height
 
   const submit = sheet.getByRole("button", { name: "Añadir gasto" });

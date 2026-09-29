@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createExpense: vi.fn(),
   checkDuplicate: vi.fn(),
   suggestCategory: vi.fn(),
+  getEntryHints: vi.fn(),
 }));
 
 vi.mock("@/actions/expenses", () => ({
@@ -16,7 +17,10 @@ vi.mock("@/actions/expenses", () => ({
   updateTransfer: vi.fn(),
   checkDuplicate: mocks.checkDuplicate,
   suggestCategory: mocks.suggestCategory,
+  getEntryHints: mocks.getEntryHints,
 }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }) }));
 
 vi.mock("@/actions/categories", () => ({
   createCategory: vi.fn(),
@@ -48,6 +52,7 @@ beforeEach(() => {
   mocks.suggestCategory.mockResolvedValue(null);
   mocks.createExpense.mockResolvedValue({ success: true });
   mocks.checkDuplicate.mockResolvedValue({ duplicate: true, concept: "Súper" });
+  mocks.getEntryHints.mockResolvedValue({ concepts: [], categoryUsage: {} });
 });
 
 describe("ExpenseForm duplicate check", () => {
@@ -77,6 +82,16 @@ describe("ExpenseForm duplicate check", () => {
     await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
   });
 
+  it("recovers when the server action throws (offline / 5xx)", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    mocks.createExpense.mockRejectedValue(new Error("Failed to fetch"));
+
+    await submitExpense();
+
+    expect(await screen.findByText(/No se pudo guardar/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Añadir gasto" })).toBeEnabled();
+  });
+
   it("creates directly when there is no duplicate", async () => {
     mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
 
@@ -84,5 +99,55 @@ describe("ExpenseForm duplicate check", () => {
 
     await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
     expect(screen.queryByText("Posible duplicado")).not.toBeInTheDocument();
+  });
+});
+
+describe("ExpenseForm quick entry", () => {
+  const categoriesWithTwo: Category[] = [
+    ...categories,
+    { ...categories[0], id: "cat-fuel", name: "Gasolina", icon: "⛽", sort_order: 2 },
+  ];
+
+  it("Hoy / Ayer chips set the date", async () => {
+    render(<ExpenseForm categories={categories} />);
+    const date = screen.getByLabelText("Fecha") as HTMLInputElement;
+    const hoy = screen.getByRole("button", { name: "Hoy" });
+
+    expect(hoy).toHaveAttribute("aria-pressed", "true"); // defaults to today
+
+    await userEvent.click(screen.getByRole("button", { name: "Ayer" }));
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    expect(date.value).toBe(`${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`);
+    expect(hoy).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("a frequent-concept chip fills concept + category and focuses the amount", async () => {
+    mocks.getEntryHints.mockResolvedValue({
+      concepts: [
+        { concept: "Repsol", category_id: "cat-fuel", kind: "expense", count: 6 },
+        { concept: "Nómina", category_id: "cat-food", kind: "income", count: 4 },
+      ],
+      categoryUsage: {},
+    });
+    render(<ExpenseForm categories={categoriesWithTwo} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Repsol" }));
+
+    expect(screen.getByLabelText("Concepto")).toHaveValue("Repsol");
+    expect(screen.getByLabelText("Categoría")).toHaveTextContent("Gasolina"); // picker shows the category
+    expect(screen.getByLabelText("Importe")).toHaveFocus();
+    // Income concepts only appear for income movements.
+    expect(screen.queryByRole("button", { name: "Nómina" })).not.toBeInTheDocument();
+  });
+
+  it("the amount shows the sign of the movement type", async () => {
+    render(<ExpenseForm categories={categories} />);
+    const field = screen.getByLabelText("Importe").parentElement!;
+
+    expect(field).toHaveTextContent("−");
+    await userEvent.click(screen.getByRole("button", { name: "Ingreso" }));
+    expect(field).toHaveTextContent("+");
   });
 });

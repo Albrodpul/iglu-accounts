@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -22,10 +22,23 @@ type Props = {
  * Summary view switcher. On phones the six views collapse into a single native
  * select (one tap, everything discoverable, no horizontal scroll); from `lg`
  * up it renders the usual segmented tab strip.
+ *
+ * The active view lives in the URL (`?view=`) so it survives reloads and
+ * back/forward, and can be linked.
  */
 export function SummaryTabs({ tabs, children }: Props) {
-  const [value, setValue] = useState(tabs[0]?.value);
+  const searchParams = useSearchParams();
+  const requested = searchParams.get("view");
+  const value = tabs.some((t) => t.value === requested) ? requested! : tabs[0]?.value;
   const current = tabs.find((t) => t.value === value);
+
+  function setValue(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", next);
+    // Shallow URL update: Next syncs useSearchParams without a server
+    // round-trip, so switching views doesn't refetch the page data.
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }
 
   return (
     <Tabs value={value} onValueChange={(v) => setValue(v as string)}>

@@ -20,3 +20,10 @@ export function toLocalISODate(date: Date = new Date()): string {
 export function monthIndexOf(isoDate: string): number {
   return Number(isoDate.slice(5, 7)) - 1;
 }
+
+/** Same local time-of-day `n` calendar days before `from` (DST-safe). */
+export function daysAgo(n: number, from: Date = new Date()): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() - n);
+  return d;
+}

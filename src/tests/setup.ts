@@ -14,3 +14,21 @@ vi.mock("next/link", () => ({
     React.createElement("a", { href, ...rest }, children)
   ),
 }));
+
+// jsdom has no matchMedia; components read media queries (mobile vs desktop).
+// Default: no query matches (desktop, light scheme, not standalone).
+if (!window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}

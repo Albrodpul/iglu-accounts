@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,6 +12,7 @@ type Props = {
 
 export function YearSelector({ year, availableYears }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -29,7 +30,10 @@ export function YearSelector({ year, availableYears }: Props) {
     : [year - 1, year, year + 1];
 
   function goTo(y: number) {
-    startTransition(() => router.push(`/summary?year=${y}`));
+    // Keep the other params (e.g. the active `view`) when changing year.
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("year", String(y));
+    startTransition(() => router.push(`/summary?${params.toString()}`));
     setOpen(false);
   }
 

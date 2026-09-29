@@ -1,0 +1,31 @@
+# Keeps dependencies current without anyone watching.
+# Security fixes are raised immediately by GitHub (Settings → Security →
+# Dependabot security updates); this file adds a weekly batch of routine
+# updates. Every PR runs CI (lint, types, tests, audit) before merging.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 5
+    groups:
+      # Patch + minor updates in one PR: low risk, easy to review.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Major versions can break the app; bump them deliberately, one by one.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      actions:
+        patterns: ["*"]

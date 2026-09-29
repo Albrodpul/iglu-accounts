@@ -8,8 +8,18 @@ import { Amount } from "@/components/ui/amount";
 import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { MovementDialog } from "./movement-dialog";
 import { SwipeRow } from "@/components/ui/swipe-row";
-import { Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { openAddMovement } from "@/lib/add-movement";
+import { Pencil, Trash2, ArrowUpDown, ReceiptText } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
+
+/**
+ * Undo-delete key: both legs of a transfer share their pair id, so deleting
+ * one hides the other too (the server deletes the pair together).
+ */
+function deleteKey(expense: ExpenseWithCategory): string {
+  return expense.transfer_pair_id ? `pair:${expense.transfer_pair_id}` : expense.id;
+}
 
 type Props = {
   expenses: ExpenseWithCategory[];
@@ -33,13 +43,15 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
   const notifyMutated = onMutated ?? (() => router.refresh());
 
   // Rows deleted but still inside their undo window are hidden right away.
-  const visibleExpenses = expenses.filter((e) => !pendingIds.has(e.id));
+  const visibleExpenses = expenses.filter((e) => !pendingIds.has(deleteKey(e)));
 
   if (visibleExpenses.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        No hay movimientos en este periodo
-      </p>
+      <EmptyState
+        icon={ReceiptText}
+        message="No hay movimientos en este periodo"
+        action={{ label: "Añadir movimiento", onClick: openAddMovement }}
+      />
     );
   }
 
@@ -60,8 +72,9 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
 
   function handleDelete(expense: ExpenseWithCategory) {
     const isTransfer = !!(transferCategoryId && expense.category_id === transferCategoryId);
-    scheduleDelete(expense.id, {
-      // A transfer is two linked movements; the server removes both.
+    scheduleDelete(deleteKey(expense), {
+      // A transfer is two linked movements; the server removes both, and the
+      // shared key hides both legs during the undo window.
       message: isTransfer ? "Traspaso eliminado" : "Movimiento eliminado",
       commit: () => deleteExpense(expense.id),
       onCommitted: notifyMutated,
@@ -179,6 +192,10 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
           expense={editingExpense}
           hasInvestments={hasInvestments}
           onSuccess={() => { setEditingExpense(null); notifyMutated(); }}
+          onDelete={() => {
+            setEditingExpense(null);
+            handleDelete(editingExpense);
+          }}
         />
       )}
 

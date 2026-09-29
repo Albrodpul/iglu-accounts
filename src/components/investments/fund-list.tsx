@@ -34,7 +34,9 @@ import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, 
 import { formatCurrency } from "@/lib/format";
 import { toLocalISODate } from "@/lib/dates";
 import { Amount } from "@/components/ui/amount";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
+import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
 import type { InvestmentType, InvestmentFundWithType, InvestmentContribution } from "@/types";
 
 type Props = {
@@ -105,61 +107,76 @@ export function FundList({ types, funds }: Props) {
 
   async function handleFundSubmit(formData: FormData) {
     setLoading(true);
-    const result = editingFund
-      ? await updateInvestmentFund(editingFund.id, formData)
-      : await createInvestmentFund(formData);
+    try {
+      const result = editingFund
+        ? await updateInvestmentFund(editingFund.id, formData)
+        : await createInvestmentFund(formData);
 
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success(editingFund ? "Fondo actualizado" : "Fondo creado");
-      setFundOpen(false);
-      setEditingFund(null);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(editingFund ? "Fondo actualizado" : "Fondo creado");
+        setFundOpen(false);
+        setEditingFund(null);
+      }
+    } catch {
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleProfitSubmit(formData: FormData) {
     if (!profitFund) return;
     setLoading(true);
-    const result = await updateFundProfitability(profitFund.id, formData);
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("Rentabilidad actualizada");
-      setProfitOpen(false);
-      setProfitFund(null);
+    try {
+      const result = await updateFundProfitability(profitFund.id, formData);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Rentabilidad actualizada");
+        setProfitOpen(false);
+        setProfitFund(null);
+      }
+    } catch {
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleContribSubmit(formData: FormData) {
     setLoading(true);
-    if (editingContrib) {
-      const result = await updateContribution(editingContrib.id, formData);
-      if (result?.error) {
-        toast.error(result.error);
+    try {
+      if (editingContrib) {
+        const result = await updateContribution(editingContrib.id, formData);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Aportación actualizada");
+          setContribOpen(false);
+          setEditingContrib(null);
+          // Refresh history list in background
+          if (historyFund) {
+            const data = await getContributions(historyFund.id);
+            setContributions(data);
+          }
+        }
       } else {
-        toast.success("Aportación actualizada");
-        setContribOpen(false);
-        setEditingContrib(null);
-        // Refresh history list in background
-        if (historyFund) {
-          const data = await getContributions(historyFund.id);
-          setContributions(data);
+        const result = await createContribution(formData);
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Aportación registrada");
+          setContribOpen(false);
+          setContribFund(null);
         }
       }
-    } else {
-      const result = await createContribution(formData);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Aportación registrada");
-        setContribOpen(false);
-        setContribFund(null);
-      }
+    } catch {
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function openEditContribution(contrib: InvestmentContribution, fund: InvestmentFundWithType) {
@@ -230,13 +247,16 @@ export function FundList({ types, funds }: Props) {
         </div>
 
         {types.length === 0 ? (
-          <p className="text-center text-muted-foreground py-6">
-            Crea un tipo de inversión primero
-          </p>
+          <EmptyState
+            icon={TrendingUp}
+            message="Crea primero un tipo de inversión (botón «Tipos») para poder añadir fondos."
+          />
         ) : funds.length === 0 ? (
-          <p className="text-center text-muted-foreground py-6">
-            No hay fondos. Añade tu primer fondo de inversión.
-          </p>
+          <EmptyState
+            icon={TrendingUp}
+            message="No hay fondos todavía. Añade el primero para seguir su rentabilidad."
+            action={{ label: "Añadir fondo", onClick: openCreateFund }}
+          />
         ) : (
           Array.from(fundsByType.values())
             .filter((group) => group.funds.length > 0)

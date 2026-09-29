@@ -38,6 +38,105 @@ function CustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
   );
 }
 
+function sliceColor(i: number, item: ChartItem) {
+  return item.breakdown ? OTHERS_COLOR : COLORS[i % COLORS.length];
+}
+
+function PieTooltip({
+  active,
+  payload,
+  total,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartItem }>;
+  total: number;
+}) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload;
+  const pct = ((item.value / total) * 100).toFixed(1);
+  return (
+    <div style={{ borderRadius: 12, borderColor: "rgba(148,163,184,0.3)", backgroundColor: "rgba(15,23,42,0.92)", color: "#f1f5f9", fontSize: 13, padding: "10px 14px", minWidth: 180 }}>
+      <p style={{ fontWeight: 600, marginBottom: item.breakdown ? 6 : 0 }}>{item.name}</p>
+      <p style={{ color: "#94a3b8" }}>{fmt(item.value)} · {pct}%</p>
+      {item.breakdown && (
+        <div style={{ marginTop: 8, borderTop: "1px solid rgba(148,163,184,0.2)", paddingTop: 8 }}>
+          {item.breakdown.map((b, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: i > 0 ? 3 : 0 }}>
+              <span style={{ color: "#cbd5e1" }}>{b.name}</span>
+              <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>{((b.value / total) * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LegendItem({
+  d,
+  color,
+  total,
+  size,
+}: {
+  d: ChartItem;
+  color: string;
+  total: number;
+  size: "sm" | "md";
+}) {
+  // Declared at module level: defined inside the chart it would remount on
+  // every parent render and lose this open/closed state.
+  const [open, setOpen] = useState(false);
+  const fs = size === "md" ? "text-[13px]" : "text-[11px]";
+  const pct = ((d.value / total) * 100).toFixed(0);
+
+  if (d.breakdown) {
+    return (
+      <div
+        className="group relative flex items-center gap-1.5 min-w-0 cursor-pointer"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className={`truncate ${fs} text-white/80 underline decoration-dotted underline-offset-2`}>{d.name}</span>
+        <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
+        <div className={`pointer-events-none absolute top-full left-0 z-50 mt-1 w-52 rounded-xl border border-white/10 bg-[rgba(15,23,42,0.95)] p-3 shadow-xl group-hover:block ${open ? "block" : "hidden"}`}>
+          {d.breakdown.map((b, j) => (
+            <div key={j} className="flex justify-between gap-3 text-[12px]" style={{ marginTop: j > 0 ? 4 : 0 }}>
+              <span className="truncate text-slate-300">{b.name}</span>
+              <span className="shrink-0 text-slate-400">{((b.value / total) * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      <span className={`truncate ${fs} text-white/80`}>{d.name}</span>
+      <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
+    </div>
+  );
+}
+
+function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-lg bg-white/10 p-0.5 text-[11px] font-semibold">
+      {(["fund", "type"] as View[]).map((v) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={`rounded-md px-2.5 py-1 transition-colors cursor-pointer ${
+            view === v ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
+          }`}
+        >
+          {v === "fund" ? "Por fondo" : "Por tipo"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function InvestmentPieChart({ funds }: Props) {
   const [view, setView] = useState<View>("fund");
 
@@ -73,88 +172,12 @@ export function InvestmentPieChart({ funds }: Props) {
     chartData = data;
   }
 
-  function sliceColor(i: number, item: ChartItem) {
-    return item.breakdown ? OTHERS_COLOR : COLORS[i % COLORS.length];
-  }
-
-  function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartItem }> }) {
-    if (!active || !payload?.length) return null;
-    const item = payload[0].payload as ChartItem;
-    const pct = ((item.value / total) * 100).toFixed(1);
-    return (
-      <div style={{ borderRadius: 12, borderColor: "rgba(148,163,184,0.3)", backgroundColor: "rgba(15,23,42,0.92)", color: "#f1f5f9", fontSize: 13, padding: "10px 14px", minWidth: 180 }}>
-        <p style={{ fontWeight: 600, marginBottom: item.breakdown ? 6 : 0 }}>{item.name}</p>
-        <p style={{ color: "#94a3b8" }}>{fmt(item.value)} · {pct}%</p>
-        {item.breakdown && (
-          <div style={{ marginTop: 8, borderTop: "1px solid rgba(148,163,184,0.2)", paddingTop: 8 }}>
-            {item.breakdown.map((b, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: i > 0 ? 3 : 0 }}>
-                <span style={{ color: "#cbd5e1" }}>{b.name}</span>
-                <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>{((b.value / total) * 100).toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function LegendItem({ d, i, size }: { d: ChartItem; i: number; size: "sm" | "md" }) {
-    const [open, setOpen] = useState(false);
-    const fs = size === "md" ? "text-[13px]" : "text-[11px]";
-    const color = sliceColor(i, d);
-    const pct = ((d.value / total) * 100).toFixed(0);
-
-    if (d.breakdown) {
-      return (
-        <div
-          className="group relative flex items-center gap-1.5 min-w-0 cursor-pointer"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          <span className={`truncate ${fs} text-white/80 underline decoration-dotted underline-offset-2`}>{d.name}</span>
-          <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
-          <div className={`pointer-events-none absolute top-full left-0 z-50 mt-1 w-52 rounded-xl border border-white/10 bg-[rgba(15,23,42,0.95)] p-3 shadow-xl group-hover:block ${open ? "block" : "hidden"}`}>
-            {d.breakdown.map((b, j) => (
-              <div key={j} className="flex justify-between gap-3 text-[12px]" style={{ marginTop: j > 0 ? 4 : 0 }}>
-                <span className="truncate text-slate-300">{b.name}</span>
-                <span className="shrink-0 text-slate-400">{((b.value / total) * 100).toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div key={i} className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-        <span className={`truncate ${fs} text-white/80`}>{d.name}</span>
-        <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
-      </div>
-    );
-  }
-
-  const desktopLegendItems = chartData.map((d, i) => <LegendItem key={i} d={d} i={i} size="md" />);
-  const mobileLegendItems = chartData.map((d, i) => <LegendItem key={i} d={d} i={i} size="sm" />);
-
-  function Toggle() {
-    return (
-      <div className="inline-flex items-center gap-1 rounded-lg bg-white/10 p-0.5 text-[11px] font-semibold">
-        {(["fund", "type"] as View[]).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`rounded-md px-2.5 py-1 transition-colors cursor-pointer ${
-              view === v ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
-            }`}
-          >
-            {v === "fund" ? "Por fondo" : "Por tipo"}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  const desktopLegendItems = chartData.map((d, i) => (
+    <LegendItem key={i} d={d} color={sliceColor(i, d)} total={total} size="md" />
+  ));
+  const mobileLegendItems = chartData.map((d, i) => (
+    <LegendItem key={i} d={d} color={sliceColor(i, d)} total={total} size="sm" />
+  ));
 
   return (
     <div>
@@ -167,11 +190,11 @@ export function InvestmentPieChart({ funds }: Props) {
                 <Cell key={i} fill={sliceColor(i, item)} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<PieTooltip total={total} />} />
           </PieChart>
         </div>
         <div className="flex-1 min-w-0 space-y-1.5 -mt-4">
-          <div className="mb-2"><Toggle /></div>
+          <div className="mb-2"><ViewToggle view={view} onChange={setView} /></div>
           {desktopLegendItems}
         </div>
       </div>
@@ -179,7 +202,7 @@ export function InvestmentPieChart({ funds }: Props) {
       {/* Mobile: collapsible chart + legend */}
       <div className="md:hidden">
         <CollapsibleSection label="Distribución" variant="hero">
-          <div className="mb-3"><Toggle /></div>
+          <div className="mb-3"><ViewToggle view={view} onChange={setView} /></div>
           <div className="flex justify-center">
             <PieChart width={220} height={200}>
               <Pie data={chartData} cx={110} cy={100} outerRadius={90} dataKey="value" labelLine={false} label={CustomLabel}>

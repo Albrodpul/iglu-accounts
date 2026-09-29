@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { toast } from "sonner";
+import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
 import { Loader2 } from "lucide-react";
 import type { Category } from "@/types";
 
@@ -22,22 +23,28 @@ export function CategoryForm({ category, onSuccess }: Props) {
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
-    setError(null);
-    if (selectedIcon) formData.set("icon", selectedIcon);
+    try {
+      setError(null);
+      if (selectedIcon) formData.set("icon", selectedIcon);
 
-    const result = category
-      ? await updateCategory(category.id, formData)
-      : await createCategory(formData);
+      const result = category
+        ? await updateCategory(category.id, formData)
+        : await createCategory(formData);
 
-    if (result?.error) {
-      setError(result.error);
-      toast.error(result.error);
-    } else {
-      toast.success(category ? "Categoría actualizada" : "Categoría creada");
-      setSelectedIcon("");
-      onSuccess?.();
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
+      } else {
+        toast.success(category ? "Categoría actualizada" : "Categoría creada");
+        setSelectedIcon("");
+        onSuccess?.();
+      }
+    } catch {
+      setError(SAVE_FAILED_MESSAGE);
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

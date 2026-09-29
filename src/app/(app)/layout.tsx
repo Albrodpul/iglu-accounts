@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/navbar";
 import { PersistUserName } from "@/components/layout/persist-user-name";
+import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { DiscreteModeProvider } from "@/contexts/discrete-mode";
 import { ThemeProvider } from "@/contexts/theme";
 import { getAccounts, getSelectedAccountId, setSelectedAccount, getUserDisplayName, getDiscreteMode } from "@/actions/accounts";
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <ThemeProvider>
     <DiscreteModeProvider initialDiscrete={discreteMode}>
       <PersistUserName name={userName} />
+      <PullToRefresh />
       <div className="min-h-screen bg-background">
         <Navbar
           accountName={currentAccount?.name}

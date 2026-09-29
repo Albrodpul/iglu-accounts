@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Settings2, GripVertical, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
 import type { InvestmentType, InvestmentFundWithType } from "@/types";
 
 type Props = {
@@ -51,18 +52,23 @@ export function InvestmentTypeManager({ types, funds }: Props) {
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
-    const result = editingType
-      ? await updateInvestmentType(editingType.id, formData)
-      : await createInvestmentType(formData);
+    try {
+      const result = editingType
+        ? await updateInvestmentType(editingType.id, formData)
+        : await createInvestmentType(formData);
 
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success(editingType ? "Tipo actualizado" : "Tipo creado");
-      setFormOpen(false);
-      setEditingType(null);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(editingType ? "Tipo actualizado" : "Tipo creado");
+        setFormOpen(false);
+        setEditingType(null);
+      }
+    } catch {
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleDelete(type: InvestmentType) {

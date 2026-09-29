@@ -18,6 +18,8 @@ type Props = {
   expense?: Expense;
   hasInvestments?: boolean;
   onSuccess?: () => void;
+  /** Edit mode: delete the movement (the dialog should close first). */
+  onDelete?: () => void;
 };
 
 /**
@@ -31,6 +33,7 @@ export function MovementDialog({
   expense,
   hasInvestments = false,
   onSuccess,
+  onDelete,
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,6 +52,7 @@ export function MovementDialog({
             expense={expense}
             hasInvestments={hasInvestments}
             onSuccess={onSuccess}
+            onDelete={onDelete}
           />
         </div>
       </DialogContent>

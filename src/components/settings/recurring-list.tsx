@@ -19,11 +19,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
-import { Plus, Pencil, Trash2, Play, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Play, Loader2, Repeat } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { Amount } from "@/components/ui/amount";
 import { toast } from "sonner";
+import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
 import type { Category, RecurringExpenseWithCategory, ScheduleType, ExpenseDateScheduleType } from "@/types";
 
 type Props = {
@@ -96,38 +98,44 @@ export function RecurringList({ recurring, categories }: Props) {
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
-    setError(null);
-    formData.set("is_income", String(isIncome));
-    formData.set("schedule_type", scheduleType);
+    try {
+      setError(null);
+      formData.set("is_income", String(isIncome));
+      formData.set("schedule_type", scheduleType);
 
-    // For last_day, day_of_month is irrelevant
-    if (scheduleType === "last_day") {
-      formData.delete("day_of_month");
-    }
+      // For last_day, day_of_month is irrelevant
+      if (scheduleType === "last_day") {
+        formData.delete("day_of_month");
+      }
 
-    if (expenseScheduleType) {
-      formData.set("expense_schedule_type", expenseScheduleType);
-      if (expenseScheduleType === "last_day") {
+      if (expenseScheduleType) {
+        formData.set("expense_schedule_type", expenseScheduleType);
+        if (expenseScheduleType === "last_day") {
+          formData.delete("expense_day_of_month");
+        }
+      } else {
+        formData.delete("expense_schedule_type");
         formData.delete("expense_day_of_month");
       }
-    } else {
-      formData.delete("expense_schedule_type");
-      formData.delete("expense_day_of_month");
-    }
 
-    const result = editingItem
-      ? await updateRecurringExpense(editingItem.id, formData)
-      : await createRecurringExpense(formData);
+      const result = editingItem
+        ? await updateRecurringExpense(editingItem.id, formData)
+        : await createRecurringExpense(formData);
 
-    if (result?.error) {
-      setError(result.error);
-      toast.error(result.error);
-    } else {
-      toast.success(editingItem ? "Movimiento fijo actualizado" : "Movimiento fijo añadido");
-      setOpen(false);
-      setEditingItem(null);
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
+      } else {
+        toast.success(editingItem ? "Movimiento fijo actualizado" : "Movimiento fijo añadido");
+        setOpen(false);
+        setEditingItem(null);
+      }
+    } catch {
+      setError(SAVE_FAILED_MESSAGE);
+      toast.error(SAVE_FAILED_MESSAGE);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleTrigger() {
@@ -398,20 +406,39 @@ export function RecurringList({ recurring, categories }: Props) {
               </p>
             )}
             </div>
-            <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
-            <Button type="submit" className="h-12 w-full md:h-10" disabled={loading}>
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:flex-row md:pb-4">
+            <Button type="submit" className="h-12 w-full md:order-2 md:h-10 md:flex-1" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : editingItem ? "Actualizar" : "Guardar"}
             </Button>
+            {editingItem && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-12 w-full md:order-1 md:h-10 md:w-auto md:px-5"
+                disabled={loading}
+                onClick={() => {
+                  const id = editingItem.id;
+                  setOpen(false);
+                  setEditingItem(null);
+                  handleDelete(id);
+                }}
+              >
+                <Trash2 className="mr-1 h-4 w-4" />
+                Eliminar
+              </Button>
+            )}
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {recurring.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">
-          No hay movimientos fijos configurados
-        </p>
+        <EmptyState
+          icon={Repeat}
+          message="No hay movimientos fijos. Añade la hipoteca, la nómina o tus suscripciones y se apuntarán solos cada mes."
+          action={{ label: "Añadir movimiento fijo", onClick: openCreate }}
+        />
       ) : (
         <div className="space-y-5">
           {expenses.length > 0 && (

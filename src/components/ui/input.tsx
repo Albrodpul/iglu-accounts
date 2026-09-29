@@ -3,7 +3,7 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, onWheel, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
@@ -13,6 +13,15 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         className
       )}
       {...props}
+      onWheel={(e) => {
+        // A focused number input steps its value on mouse-wheel — scrolling
+        // the page over an amount field would silently change it. Blur so the
+        // wheel scrolls the page instead.
+        if (type === "number" && e.currentTarget === document.activeElement) {
+          e.currentTarget.blur()
+        }
+        onWheel?.(e)
+      }}
     />
   )
 }

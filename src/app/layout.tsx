@@ -52,7 +52,15 @@ export default function RootLayout({
       >
         <ServiceWorkerRegister />
         {children}
-        <Toaster richColors position="top-center" closeButton />
+        {/* Bottom offset clears the mobile nav plus the raised "+" button, for
+            toasts that opt into bottom placement (the thumb-reachable undo). */}
+        <Toaster
+          richColors
+          position="top-center"
+          closeButton
+          offset={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+          mobileOffset={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+        />
       </body>
     </html>
   );

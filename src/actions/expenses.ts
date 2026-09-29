@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/db/auth";
 import { expenseSchema } from "@/lib/validators/expense";
 import { parseSignedAmount } from "@/lib/amounts";
+import { buildEntryHints, type EntryHints } from "@/lib/entry-hints";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
@@ -55,6 +56,23 @@ export async function suggestCategory(concept: string) {
   if (excluded.includes(cat.name.toLowerCase())) return null;
 
   return { category_id: cat.id, category_name: cat.name };
+}
+
+/** How many recent movements feed the quick-entry hints. */
+const HINTS_WINDOW = 300;
+
+export async function getEntryHints(): Promise<EntryHints> {
+  const accountId = await getSelectedAccountId();
+  const db = await getDb();
+  const rows = await db.expenses.findRecentForHints(accountId, HINTS_WINDOW);
+  return buildEntryHints(
+    rows.map((r) => ({
+      concept: r.concept,
+      category_id: r.category_id,
+      amount: r.amount,
+      categoryName: r.category?.name ?? null,
+    }))
+  );
 }
 
 export async function searchExpenses(query: string) {

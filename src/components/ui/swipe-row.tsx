@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { haptic } from "@/lib/haptics";
 
 const ACTION_WIDTH = 76;
 /** Drag past this (px) on release to fire the delete action. */
@@ -34,12 +35,13 @@ export function SwipeRow({ onTap, onDelete, disabled, className, children }: Pro
     active: false,
     horizontal: false,
     moved: false,
+    armed: false,
   });
 
   function onTouchStart(e: React.TouchEvent) {
     if (disabled || e.touches.length !== 1) return;
     const t = e.touches[0];
-    gesture.current = { x: t.clientX, y: t.clientY, active: true, horizontal: false, moved: false };
+    gesture.current = { x: t.clientX, y: t.clientY, active: true, horizontal: false, moved: false, armed: false };
   }
 
   function onTouchMove(e: React.TouchEvent) {
@@ -65,6 +67,10 @@ export function SwipeRow({ onTap, onDelete, disabled, className, children }: Pro
     // Left only, with a little rubber-banding past the action width.
     const next = Math.max(-ACTION_WIDTH - 20, Math.min(0, dx));
     setOffset(next);
+    // Buzz once when the release would delete, and again if re-armed.
+    const armed = !!onDelete && next <= -TRIGGER;
+    if (armed && !g.armed) haptic();
+    g.armed = armed;
     if (e.cancelable) e.preventDefault();
   }
 

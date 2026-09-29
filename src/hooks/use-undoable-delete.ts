@@ -5,6 +5,11 @@ import { toast } from "sonner";
 
 export const UNDO_WINDOW_MS = 5000;
 
+/** Phones get the undo toast at the bottom, within thumb reach of "Deshacer". */
+function undoToastPosition() {
+  return window.matchMedia("(max-width: 767px)").matches ? "bottom-center" : "top-center";
+}
+
 type DeleteResult = { error?: string } | void | undefined;
 
 type ScheduleOptions = {
@@ -74,6 +79,7 @@ export function useUndoableDelete() {
       // Callbacks above read `toastId` only when they fire, i.e. after this line.
       const toastId = toast(message, {
         duration: UNDO_WINDOW_MS,
+        position: undoToastPosition(),
         action: { label: "Deshacer", onClick: undo },
         onAutoClose: () => void runCommit(),
         onDismiss: () => void runCommit(),

@@ -18,6 +18,8 @@ type Props = {
   categories: Category[];
   value: string;
   onChange: (categoryId: string) => void;
+  /** Recent uses per category id; when given, most used categories go first. */
+  usage?: Record<string, number>;
   /** Field name for the hidden input submitted with the form. */
   name?: string;
   id?: string;
@@ -27,14 +29,18 @@ type Props = {
  * Category selector: a trigger showing the current pick, backed by a sheet with
  * an icon grid. Replaces a native `<select>`, which cannot render the icons.
  */
-export function CategoryPicker({ categories, value, onChange, name = "category_id", id = "category_id" }: Props) {
+export function CategoryPicker({ categories, usage, value, onChange, name = "category_id", id = "category_id" }: Props) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
 
+  // Array.sort is stable, so ties keep the user's manual order.
+  const ordered = usage
+    ? [...categories].sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0))
+    : categories;
   const selected = categories.find((c) => c.id === value);
   const filtered = filter
-    ? categories.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase()))
-    : categories;
+    ? ordered.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase()))
+    : ordered;
 
   function handleOpenChange(next: boolean) {
     setOpen(next);

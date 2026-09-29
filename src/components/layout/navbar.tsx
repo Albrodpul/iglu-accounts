@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { exportAccountData } from "@/actions/export";
 import { useIsOffline } from "@/hooks/use-browser-state";
+import { OPEN_ADD_MOVEMENT_EVENT } from "@/lib/add-movement";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { useTheme } from "@/contexts/theme";
 import {
@@ -142,6 +143,13 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   useEffect(() => {
     if (addRequested) router.replace(pathname, { scroll: false });
   }, [addRequested, pathname, router]);
+
+  // Empty states anywhere can ask for the add dialog (see lib/add-movement).
+  useEffect(() => {
+    const open = () => setAddOpen(true);
+    window.addEventListener(OPEN_ADD_MOVEMENT_EVENT, open);
+    return () => window.removeEventListener(OPEN_ADD_MOVEMENT_EVENT, open);
+  }, []);
 
   // Landing on /import expands the "Copia de seguridad" group.
   const [prevPathname, setPrevPathname] = useState(pathname);

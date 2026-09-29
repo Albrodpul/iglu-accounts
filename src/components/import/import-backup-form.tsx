@@ -18,14 +18,19 @@ export function ImportBackupForm() {
     if (!file) return;
 
     setLoading(true);
-    setResult(null);
+    try {
+      setResult(null);
 
-    const formData = new FormData();
-    formData.set("file", file);
+      const formData = new FormData();
+      formData.set("file", file);
 
-    const res = await importBackup(formData);
-    setResult(res);
-    setLoading(false);
+      const res = await importBackup(formData);
+      setResult(res);
+    } catch {
+      setResult({ error: "No se pudo importar. Revisa tu conexión e inténtalo de nuevo." });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -11,6 +11,11 @@ test("móvil: desplegable de vistas y tabla anual transpuesta (meses en filas)",
 
   await selector.selectOption({ label: "Tabla por categoría y mes" });
   await expect(page.getByRole("columnheader", { name: "Mes" })).toBeVisible();
+
+  // The view lives in the URL, so a reload keeps it.
+  await expect(page).toHaveURL(/view=anual/);
+  await page.reload();
+  await expect(page.getByLabel("Vista del resumen")).toHaveValue("anual");
 });
 
 test("escritorio: pestañas y tabla anual con categorías en filas", async ({ page, isMobile }) => {

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, Wallet, Loader2 } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +123,11 @@ export function AccountsSettings({ accounts }: Props) {
       </div>
 
       {accounts.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay cuentas creadas.</p>
+        <EmptyState
+          icon={Wallet}
+          message="No hay cuentas creadas."
+          action={{ label: "Añadir cuenta", onClick: openCreate }}
+        />
       ) : (
         <div className="space-y-2">
           {accounts.map((account) => (
@@ -207,6 +212,21 @@ export function AccountsSettings({ accounts }: Props) {
                   ? "Guardando..."
                   : editingAccount ? "Guardar" : "Crear"}
               </Button>
+              {editingAccount && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="h-12 w-full md:h-10 sm:order-first sm:mr-auto sm:w-auto sm:px-5"
+                  disabled={isPending}
+                  onClick={() => {
+                    setFormOpen(false);
+                    handleDelete(editingAccount);
+                  }}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Eliminar
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>

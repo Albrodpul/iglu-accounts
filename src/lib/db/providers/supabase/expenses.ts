@@ -125,6 +125,24 @@ export function createExpensesRepo(client: SupabaseClient) {
       return data && data.length > 0 ? data[0] : null;
     },
 
+    /** Latest movements (concept, category, amount) to derive quick-entry hints. */
+    async findRecentForHints(accountId: string | null, limit: number) {
+      let q = client
+        .from("expenses")
+        .select("concept, category_id, amount, category:categories(name)")
+        .order("expense_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data } = await q;
+      return (data ?? []) as unknown as {
+        concept: string | null;
+        category_id: string;
+        amount: number;
+        category: { name: string } | null;
+      }[];
+    },
+
     async findDuplicate(
       accountId: string | null,
       params: {

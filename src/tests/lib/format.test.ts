@@ -5,13 +5,19 @@ import { formatCurrency } from "@/lib/format";
 const plain = (s: string) => s.replace(/\u00a0/g, " ");
 
 describe("formatCurrency", () => {
-  it("always groups thousands, even with four digits (es-ES skips it by default)", () => {
-    expect(plain(formatCurrency(1234))).toBe("1.234,00 €");
-    expect(plain(formatCurrency(-1234567.8))).toBe("-1.234.567,80 €");
+  it("shows whole amounts without decimals", () => {
+    expect(plain(formatCurrency(-99))).toBe("-99 €");
+    expect(plain(formatCurrency(5))).toBe("5 €");
+    expect(plain(formatCurrency(99.0000001))).toBe("99 €"); // float noise
   });
 
-  it("always shows two decimals", () => {
-    expect(plain(formatCurrency(5))).toBe("5,00 €");
+  it("shows two decimals when there are cents", () => {
+    expect(plain(formatCurrency(12.5))).toBe("12,50 €");
     expect(plain(formatCurrency(0.456))).toBe("0,46 €");
+  });
+
+  it("always groups thousands, even with four digits (es-ES skips it by default)", () => {
+    expect(plain(formatCurrency(1234))).toBe("1.234 €");
+    expect(plain(formatCurrency(-1234567.8))).toBe("-1.234.567,80 €");
   });
 });

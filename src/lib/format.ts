@@ -1,9 +1,15 @@
 /**
- * Always two decimals and always a thousands separator, so amounts line up in
- * lists. Spanish formatting skips the separator for 4-digit numbers by default
- * ("1579,94 €" next to "14.515,43 €"); `useGrouping: "always"` avoids that.
+ * Whole amounts without decimals ("-99 €"), the rest with two ("12,50 €").
+ * Always a thousands separator: Spanish formatting skips it for 4-digit numbers
+ * by default ("1579,94 €" next to "14.515,43 €"); `useGrouping: "always"` avoids that.
  */
-const currencyFormatter = new Intl.NumberFormat("es-ES", {
+const wholeFormatter = new Intl.NumberFormat("es-ES", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+  useGrouping: "always",
+});
+const centsFormatter = new Intl.NumberFormat("es-ES", {
   style: "currency",
   currency: "EUR",
   minimumFractionDigits: 2,
@@ -11,8 +17,13 @@ const currencyFormatter = new Intl.NumberFormat("es-ES", {
   useGrouping: "always",
 });
 
+/** True when the amount has cents once rounded (ignores float noise like 99.0000001). */
+export function hasCents(amount: number): boolean {
+  return Math.round(amount * 100) % 100 !== 0;
+}
+
 export function formatCurrency(amount: number): string {
-  return currencyFormatter.format(amount);
+  return (hasCents(amount) ? centsFormatter : wholeFormatter).format(amount);
 }
 
 export function formatDate(date: string): string {

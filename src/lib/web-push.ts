@@ -1,5 +1,6 @@
 // @ts-expect-error -- web-push has no type declarations
 import webpush from "web-push";
+import { formatCurrency } from "@/lib/format";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
@@ -28,11 +29,9 @@ type SubscriptionRow = {
   auth: string;
 };
 
-const currencyFmt = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" });
-
 export function formatRecurringPushBody(items: { concept: string; amount: number }[]): string {
   return items
-    .map((i) => `${i.amount > 0 ? "Ingreso" : "Gasto"} · ${i.concept}: ${currencyFmt.format(i.amount)}`)
+    .map((i) => `${i.amount > 0 ? "Ingreso" : "Gasto"} · ${i.concept}: ${formatCurrency(i.amount)}`)
     .join("\n");
 }
 
@@ -45,9 +44,9 @@ export function formatWeeklySummaryBody(params: {
   monthName: string;
 }): string {
   const lines = [`Semana del ${params.weekStart} al ${params.weekEnd}`];
-  if (params.totalExpenses < 0) lines.push(`Gastos: ${currencyFmt.format(Math.abs(params.totalExpenses))}`);
-  if (params.totalIncome > 0) lines.push(`Ingresos: ${currencyFmt.format(params.totalIncome)}`);
-  lines.push(`Neto ${params.monthName}: ${currencyFmt.format(params.monthNet)}`);
+  if (params.totalExpenses < 0) lines.push(`Gastos: ${formatCurrency(Math.abs(params.totalExpenses))}`);
+  if (params.totalIncome > 0) lines.push(`Ingresos: ${formatCurrency(params.totalIncome)}`);
+  lines.push(`Neto ${params.monthName}: ${formatCurrency(params.monthNet)}`);
   return lines.join("\n");
 }
 

@@ -18,20 +18,10 @@ const toneStyles: Record<AmountTone, { sign: string | null; text: string; border
  * the amount reads as the primary field of a form. `tone` colours it and adds
  * a leading sign; the typed value itself stays unsigned.
  */
-/** "99" → "99.00", "12.5" → "12.50"; never rounds values with more decimals. */
-function padDecimals(value: string): string {
-  const n = Number(value)
-  if (value.trim() === "" || !Number.isFinite(n)) return value
-  const decimals = value.split(".")[1]?.length ?? 0
-  return decimals <= 2 ? n.toFixed(2) : value
-}
-
 function AmountInput({
   className,
   currency = "€",
   tone = "neutral",
-  defaultValue,
-  onBlur,
   ...props
 }: React.ComponentProps<"input"> & { currency?: string; tone?: AmountTone }) {
   const style = toneStyles[tone]
@@ -53,12 +43,6 @@ function AmountInput({
         inputMode="decimal"
         placeholder="0,00"
         {...props}
-        // Amounts always read with two decimals, like everywhere else in the app.
-        defaultValue={typeof defaultValue === "number" ? padDecimals(String(defaultValue)) : defaultValue}
-        onBlur={(e) => {
-          e.currentTarget.value = padDecimals(e.currentTarget.value)
-          onBlur?.(e)
-        }}
         className={cn(
           "h-14 pl-3 pr-10 text-2xl font-bold tabular-nums transition-colors md:h-12 md:text-xl",
           style.sign && "pl-8",
@@ -77,4 +61,4 @@ function AmountInput({
   )
 }
 
-export { AmountInput, padDecimals }
+export { AmountInput }

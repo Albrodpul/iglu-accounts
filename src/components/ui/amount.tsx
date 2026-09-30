@@ -1,7 +1,7 @@
 "use client";
 
 import { useDiscreteMode } from "@/contexts/discrete-mode";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, hasCents } from "@/lib/format";
 import { useRollingNumber } from "@/hooks/use-rolling-number";
 
 type Props = {
@@ -19,10 +19,9 @@ type Props = {
 
 function formatCompact(amount: number): string {
   if (amount === 0) return "";
-  const hasDecimals = amount % 1 !== 0;
   return new Intl.NumberFormat("es-ES", {
     style: "decimal",
-    minimumFractionDigits: hasDecimals ? 2 : 0,
+    minimumFractionDigits: hasCents(amount) ? 2 : 0,
     maximumFractionDigits: 2,
     useGrouping: "always", // "1.234" like the rest, not "1234"
   }).format(amount);

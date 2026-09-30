@@ -55,15 +55,15 @@ describe("Amount animate (rolling number)", () => {
       const { rerender } = render(<span data-testid="amt"><Amount value={100} animate /></span>);
 
       rerender(<span data-testid="amt"><Amount value={200} animate /></span>);
-      expect(text()).toBe("100,00 €"); // starts from what was on screen
+      expect(text()).toBe("100 €"); // starts from what was on screen
 
       act(() => vi.advanceTimersByTime(300));
       const mid = text();
-      expect(mid).not.toBe("100,00 €");
-      expect(mid).not.toBe("200,00 €"); // mid-roll value
+      expect(mid).not.toBe("100 €");
+      expect(mid).not.toBe("200 €"); // mid-roll value
 
       act(() => vi.advanceTimersByTime(1000));
-      expect(text()).toBe("200,00 €");
+      expect(text()).toBe("200 €");
     } finally {
       vi.useRealTimers();
     }

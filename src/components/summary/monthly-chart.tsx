@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/format";
 import { useMediaQuery } from "@/hooks/use-browser-state";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import {
@@ -29,16 +30,7 @@ type Props = {
 const axisNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0, useGrouping: "always" });
 const axisFormatter = (value: number) => axisNumber.format(value);
 
-const currencyFormatter = (value: number) => {
-  const hasDecimals = value % 1 !== 0;
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: hasDecimals ? 2 : 0,
-    maximumFractionDigits: 2,
-    useGrouping: "always",
-  }).format(value);
-};
+const currencyFormatter = formatCurrency;
 
 export function MonthlyChart({ data, showDebts = false }: Props) {
   const isMobile = useMediaQuery("(max-width: 639px)");

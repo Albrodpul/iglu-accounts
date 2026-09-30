@@ -24,6 +24,7 @@ function formatCompact(amount: number): string {
     style: "decimal",
     minimumFractionDigits: hasDecimals ? 2 : 0,
     maximumFractionDigits: 2,
+    useGrouping: "always", // "1.234" like the rest, not "1234"
   }).format(amount);
 }
 

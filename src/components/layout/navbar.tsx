@@ -75,8 +75,9 @@ function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon
     <>
       <span
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full transition-all",
-          isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-current"
+          // The coloured pill behind the icon is the shared sliding indicator.
+          "relative flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-300",
+          isActive ? "text-primary-foreground" : "text-current"
         )}
       >
         <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
@@ -212,6 +213,20 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     "/import",
     ...(hasInvestments ? ["/summary"] : []),
   ];
+
+  // Column (of 5; the FAB owns column 2) holding the active bottom-nav item.
+  const leftActive = navItemsLeft.findIndex((item) => pathname.startsWith(item.href));
+  const activeColumn =
+    leftActive >= 0
+      ? leftActive
+      : mobileRightItems.some((item) => pathname.startsWith(item.href))
+        ? 3
+        : moreSheetRoutes.some((route) => pathname.startsWith(route))
+          ? 4
+          : null;
+  // Remember the last column so the pill fades in place instead of sliding from 0.
+  const [indicatorColumn, setIndicatorColumn] = useState(activeColumn ?? 0);
+  if (activeColumn !== null && activeColumn !== indicatorColumn) setIndicatorColumn(activeColumn);
 
   return (
     <>
@@ -424,6 +439,17 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative grid grid-cols-5 px-2 pt-0.5">
+          {/* One pill shared by all items: it slides to the active column. */}
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute left-2 top-2 flex w-[calc((100%-1rem)/5)] justify-center transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              activeColumn === null && "opacity-0"
+            )}
+            style={{ transform: `translateX(${indicatorColumn * 100}%)` }}
+          >
+            <span className="h-9 w-9 rounded-full bg-primary shadow-sm" />
+          </div>
           {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
           ))}

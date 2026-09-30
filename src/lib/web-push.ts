@@ -28,7 +28,7 @@ type SubscriptionRow = {
   auth: string;
 };
 
-const currencyFmt = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
+const currencyFmt = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" });
 
 export function formatRecurringPushBody(items: { concept: string; amount: number }[]): string {
   return items

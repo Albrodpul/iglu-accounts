@@ -124,7 +124,7 @@ export function YearComparison({ availableYears }: Props) {
                   <td className={`py-1.5 px-2 text-right ${row.valueB > 0 ? "text-income" : row.valueB < 0 ? "text-foreground" : "text-muted-foreground/30"}`}>
                     {row.valueB === 0 ? "—" : <Amount value={row.valueB} />}
                   </td>
-                  <td className={`py-1.5 pl-2 pr-3 text-right font-semibold ${row.diff > 0 ? "text-emerald-600" : row.diff < 0 ? "text-rose-600" : ""}`}>
+                  <td className={`py-1.5 pl-2 pr-3 text-right font-semibold ${row.diff > 0 ? "text-income" : row.diff < 0 ? "text-expense" : ""}`}>
                     {row.diff === 0 ? "—" : <Amount value={row.diff} />}
                   </td>
                 </tr>
@@ -139,7 +139,7 @@ export function YearComparison({ availableYears }: Props) {
                 <td className={`py-2 px-2 text-right ${totalB > 0 ? "text-income" : totalB < 0 ? "text-expense" : ""}`}>
                   <Amount value={totalB} />
                 </td>
-                <td className={`py-2 pl-2 pr-3 text-right ${totalDiff > 0 ? "text-emerald-600" : totalDiff < 0 ? "text-rose-600" : ""}`}>
+                <td className={`py-2 pl-2 pr-3 text-right ${totalDiff > 0 ? "text-income" : totalDiff < 0 ? "text-expense" : ""}`}>
                   <Amount value={totalDiff} />
                 </td>
               </tr>

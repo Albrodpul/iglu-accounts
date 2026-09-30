@@ -11,6 +11,7 @@ import { SwipeRow } from "@/components/ui/swipe-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { openAddMovement } from "@/lib/add-movement";
 import { Pencil, Trash2, ArrowUpDown, ReceiptText } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 /**
@@ -31,10 +32,13 @@ type Props = {
   debtCategoryId?: string | null;
   transferCategoryId?: string | null;
   onMutated?: () => void;
+  /** Pin each day header (date + day total) under the app header while scrolling. */
+  stickyDayHeaders?: boolean;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated }: Props) {
+export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated, stickyDayHeaders = false }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
+  const [duplicatingExpense, setDuplicatingExpense] = useState<ExpenseWithCategory | null>(null);
   const [internalSortAsc, setInternalSortAsc] = useState(false);
   const sortAsc = sortable ? internalSortAsc : (externalSortAsc ?? false);
   const { pendingIds, scheduleDelete } = useUndoableDelete();
@@ -108,7 +112,14 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
               {dateIndex > 0 && (
                 <div className="my-1 border-t border-border/40" />
               )}
-              <div className="mb-2 mt-3 flex items-center justify-between px-1">
+              <div
+                className={cn(
+                  "mb-2 mt-3 flex items-center justify-between px-1",
+                  stickyDayHeaders &&
+                    // Mobile header is 53px tall; tuck 1px under its border so no content peeks through.
+                    "sticky top-[52px] z-10 md:top-14 -mx-1 mt-2 rounded-lg bg-card/95 px-2 py-1.5 backdrop-blur-md"
+                )}
+              >
                 <span className="text-sm font-semibold text-muted-foreground">
                   {showYear ? formatDateWithYear(date) : formatDateShort(date)}
                 </span>
@@ -196,6 +207,21 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
             setEditingExpense(null);
             handleDelete(editingExpense);
           }}
+          onDuplicate={() => {
+            setEditingExpense(null);
+            setDuplicatingExpense(editingExpense);
+          }}
+        />
+      )}
+
+      {duplicatingExpense && (
+        <MovementDialog
+          open
+          onOpenChange={() => setDuplicatingExpense(null)}
+          categories={categories}
+          prefill={duplicatingExpense}
+          hasInvestments={hasInvestments}
+          onSuccess={() => { setDuplicatingExpense(null); notifyMutated(); }}
         />
       )}
 

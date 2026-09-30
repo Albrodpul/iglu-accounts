@@ -14,7 +14,7 @@ const OTHERS_COLOR = "#94a3b8";
 const MAX_VISIBLE = 7;
 
 const fmt = (value: number) =>
-  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: "always" }).format(value);
 
 type RawItem = { name: string; value: number };
 type ChartItem = RawItem & { breakdown?: RawItem[] };

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Category } from "@/types";
+import type { Category, Expense } from "@/types";
 
 const mocks = vi.hoisted(() => ({
   createExpense: vi.fn(),
@@ -149,5 +149,50 @@ describe("ExpenseForm quick entry", () => {
     expect(field).toHaveTextContent("−");
     await userEvent.click(screen.getByRole("button", { name: "Ingreso" }));
     expect(field).toHaveTextContent("+");
+  });
+});
+
+describe("ExpenseForm duplicating a movement", () => {
+  const source: Expense = {
+    id: "exp-1",
+    user_id: "user-1",
+    category_id: "cat-food",
+    account_id: "acc-1",
+    amount: -42.3,
+    concept: "Mercadona",
+    expense_date: "2026-01-15",
+    payment_method: "bank",
+    transfer_pair_id: null,
+    is_recurring: false,
+    notes: "Compra semanal",
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-01-15T10:00:00Z",
+  };
+
+  it("prefill copies the movement in create mode, dated today", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={categories} prefill={source} />);
+
+    expect(screen.getByLabelText("Importe")).toHaveValue(42.3);
+    expect(screen.getByLabelText("Concepto")).toHaveValue("Mercadona");
+    expect(screen.getByLabelText("Notas (opcional)")).toHaveValue("Compra semanal");
+    expect(screen.getByRole("button", { name: "Hoy" })).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    const data = mocks.createExpense.mock.calls[0][0] as FormData;
+    expect(data.get("concept")).toBe("Mercadona");
+    expect(data.get("category_id")).toBe("cat-food");
+    expect(data.get("expense_date")).not.toBe("2026-01-15");
+  });
+
+  it("the edit form offers Duplicar", async () => {
+    const onDuplicate = vi.fn();
+    render(<ExpenseForm categories={categories} expense={source} onDuplicate={onDuplicate} onDelete={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Duplicar" }));
+
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
   });
 });

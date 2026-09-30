@@ -171,7 +171,7 @@ export function ModulesSettings({ hasInvestments, hasNotifications }: Props) {
             {deviceSubscribed ? (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-emerald-600">Este dispositivo recibe notificaciones</p>
+                  <p className="text-xs text-income">Este dispositivo recibe notificaciones</p>
                   <button
                     type="button"
                     onClick={handleUnsubscribeDevice}

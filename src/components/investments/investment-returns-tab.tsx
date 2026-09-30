@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useThemeColors } from "@/hooks/use-theme-colors";
 import {
   LineChart,
   Line,
@@ -38,7 +39,7 @@ function fmtPct(v: number | null) {
 
 function pctClass(v: number | null) {
   if (v === null) return "text-muted-foreground";
-  return v >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
+  return v >= 0 ? "text-income" : "text-expense";
 }
 
 function ReturnTooltip({
@@ -63,6 +64,8 @@ function ReturnTooltip({
 export function InvestmentReturnsTab({ returns }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const c = useThemeColors();
+  const tick = { fontSize: 11, fill: c["muted-foreground"] };
 
   const now = new Date();
 
@@ -196,32 +199,32 @@ export function InvestmentReturnsTab({ returns }: Props) {
 
       {/* Line chart */}
       <div className="glass-panel p-4 md:p-5">
-        <h3 className="mb-4 text-sm font-semibold text-foreground/80">Evolución de la rentabilidad</h3>
+        <h3 className="mb-4 text-base font-bold">Evolución de la rentabilidad</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.1} />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.border} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11 }}
+              tick={tick}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11 }}
+              tick={tick}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `${v}%`}
             />
             <Tooltip content={<ReturnTooltip />} />
-            <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.3} strokeDasharray="4 4" />
+            <ReferenceLine y={0} stroke={c["muted-foreground"]} strokeOpacity={0.5} strokeDasharray="4 4" />
             <Line
               type="monotone"
               dataKey="return_pct"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={{ r: 3, fill: "#10b981" }}
-              activeDot={{ r: 5 }}
+              stroke={c.income}
+              strokeWidth={2.5}
+              dot={{ r: 3, fill: c.income, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: c.income, stroke: c.popover, strokeWidth: 2 }}
             />
           </LineChart>
         </ResponsiveContainer>

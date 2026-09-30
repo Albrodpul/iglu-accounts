@@ -1,11 +1,18 @@
+/**
+ * Always two decimals and always a thousands separator, so amounts line up in
+ * lists. Spanish formatting skips the separator for 4-digit numbers by default
+ * ("1579,94 €" next to "14.515,43 €"); `useGrouping: "always"` avoids that.
+ */
+const currencyFormatter = new Intl.NumberFormat("es-ES", {
+  style: "currency",
+  currency: "EUR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: "always",
+});
+
 export function formatCurrency(amount: number): string {
-  const hasDecimals = amount % 1 !== 0;
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: hasDecimals ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return currencyFormatter.format(amount);
 }
 
 export function formatDate(date: string): string {

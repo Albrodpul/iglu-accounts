@@ -184,6 +184,7 @@ export function ExpenseListAll({
         <>
           <div className={filterLoading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
           <ExpenseList
+            stickyDayHeaders
             expenses={expenses}
             categories={categories}
             sortable={false}

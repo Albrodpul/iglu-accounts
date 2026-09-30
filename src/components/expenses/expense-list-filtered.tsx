@@ -87,6 +87,7 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
 
       <div className={isPending ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
         <ExpenseList
+          stickyDayHeaders
           expenses={filtered}
           categories={categories}
           sortable={false}

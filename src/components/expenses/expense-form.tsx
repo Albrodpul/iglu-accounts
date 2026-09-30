@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { daysAgo, toLocalISODate } from "@/lib/dates";
 import { haptic } from "@/lib/haptics";
 import type { ConceptHint, EntryHints } from "@/lib/entry-hints";
-import { Banknote, Landmark, Loader2, Trash2 } from "lucide-react";
+import { Banknote, Copy, Landmark, Loader2, Trash2 } from "lucide-react";
 import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
 import type { Category, Expense } from "@/types";
 
@@ -30,6 +30,10 @@ type Props = {
   onSuccess?: () => void;
   /** Edit mode only: offers a delete action (the only one on mobile besides swipe). */
   onDelete?: () => void;
+  /** Edit mode only: start a new movement copied from this one. */
+  onDuplicate?: () => void;
+  /** Create mode: start from a copy of this movement, dated today. */
+  prefill?: Expense;
   hasInvestments?: boolean;
 };
 
@@ -54,24 +58,27 @@ function detectTransferDirection(expense: Expense | undefined): "bank_to_cash" |
   return expense.payment_method === "bank" ? "cash_to_bank" : "bank_to_cash";
 }
 
-export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInvestments = false }: Props) {
+export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplicate, prefill, hasInvestments = false }: Props) {
+  // Initial values come from the edited movement or, when duplicating, its source.
+  const source = expense ?? prefill;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [type, setType] = useState<ExpenseType>(() => detectExpenseType(expense, categories));
-  const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(expense?.payment_method || "bank");
-  const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(expense));
+  const [type, setType] = useState<ExpenseType>(() => detectExpenseType(source, categories));
+  const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">(source?.payment_method || "bank");
+  const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(source));
   const [formKey, setFormKey] = useState(0);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
-  const [notes, setNotes] = useState(expense?.notes || "");
-  const [concept, setConcept] = useState(expense?.concept || "");
+  const [notes, setNotes] = useState(source?.notes || "");
+  const [concept, setConcept] = useState(source?.concept || "");
   const [date, setDate] = useState(() => expense?.expense_date || toLocalISODate());
   const [hints, setHints] = useState<EntryHints | null>(null);
   const [categoryId, setCategoryId] = useState(() => {
-    if (expense?.category_id) return expense.category_id;
+    if (source?.category_id) return source.category_id;
     const pickable = categories.filter(isSelectableCategory);
     return pickable.length === 1 ? pickable[0].id : "";
   });
-  const categoryManual = useRef(false);
+  // A duplicated category was chosen by the user once already: don't auto-suggest over it.
+  const categoryManual = useRef(Boolean(prefill));
   const formRef = useRef<HTMLFormElement>(null);
   const keepOpenRef = useRef(false);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -196,8 +203,8 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInves
     }
   }
 
-  const isExistingTransfer = expense
-    ? categories.find((c) => c.id === expense.category_id)?.name.toLowerCase() === "traspaso"
+  const isExistingTransfer = source
+    ? categories.find((c) => c.id === source.category_id)?.name.toLowerCase() === "traspaso"
     : false;
 
   const typeOptions: SegmentOption<ExpenseType>[] = [
@@ -286,7 +293,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInves
             name="amount"
             step="any"
             min="0.000000001"
-            defaultValue={expense ? Math.abs(expense.amount) : ""}
+            defaultValue={source ? Math.abs(source.amount) : ""}
             required
             ref={amountRef}
             tone={amountTone}
@@ -430,17 +437,34 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInves
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : "Actualizar"}
             </Button>
-            {onDelete && (
-              <Button
-                type="button"
-                variant="destructive"
-                className="h-12 w-full md:order-1 md:h-10 md:w-auto md:px-5"
-                disabled={loading}
-                onClick={onDelete}
-              >
-                <Trash2 className="mr-1 h-4 w-4" />
-                Eliminar
-              </Button>
+            {(onDelete || onDuplicate) && (
+              // Phones: secondary actions share a row above "Actualizar".
+              <div className="flex gap-2 md:contents">
+                {onDelete && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="h-12 flex-1 md:order-1 md:h-10 md:flex-none md:px-5"
+                    disabled={loading}
+                    onClick={onDelete}
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    Eliminar
+                  </Button>
+                )}
+                {onDuplicate && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 flex-1 md:order-1 md:h-10 md:flex-none md:px-5"
+                    disabled={loading}
+                    onClick={onDuplicate}
+                  >
+                    <Copy className="mr-1 h-4 w-4" />
+                    Duplicar
+                  </Button>
+                )}
+              </div>
             )}
           </>
         ) : (

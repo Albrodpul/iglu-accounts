@@ -20,6 +20,10 @@ type Props = {
   onSuccess?: () => void;
   /** Edit mode: delete the movement (the dialog should close first). */
   onDelete?: () => void;
+  /** Edit mode: start a new movement copied from this one. */
+  onDuplicate?: () => void;
+  /** Create mode: prefill from this movement (dated today). */
+  prefill?: Expense;
 };
 
 /**
@@ -34,13 +38,15 @@ export function MovementDialog({
   hasInvestments = false,
   onSuccess,
   onDelete,
+  onDuplicate,
+  prefill,
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent variant="sheet" className="sm:max-w-2xl lg:max-w-3xl">
         <DialogHeader variant="bar">
           <DialogTitle>
-            {expense ? "Editar movimiento" : "Nuevo movimiento"}
+            {expense ? "Editar movimiento" : prefill ? "Duplicar movimiento" : "Nuevo movimiento"}
           </DialogTitle>
           <DialogDescription className="hidden sm:block">
             Registra un gasto o ingreso en pocos segundos.
@@ -53,6 +59,8 @@ export function MovementDialog({
             hasInvestments={hasInvestments}
             onSuccess={onSuccess}
             onDelete={onDelete}
+            onDuplicate={onDuplicate}
+            prefill={prefill}
           />
         </div>
       </DialogContent>

@@ -58,11 +58,31 @@ export default function RootLayout({
         {/* Bottom offset clears the mobile nav plus the raised "+" button, for
             toasts that opt into bottom placement (the thumb-reachable undo). */}
         <Toaster
-          richColors
           position="top-center"
           closeButton
           offset={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
           mobileOffset={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+          // Sonner ships its own font, colours and radius; map them to the app
+          // theme tokens (these follow light/dark automatically).
+          style={
+            {
+              fontFamily: "var(--font-sans)",
+              "--normal-bg": "var(--card)",
+              "--normal-border": "var(--border)",
+              "--normal-text": "var(--foreground)",
+              "--border-radius": "14px",
+            } as React.CSSProperties
+          }
+          toastOptions={{
+            classNames: {
+              toast: "shadow-lg",
+              description: "!text-muted-foreground",
+              success: "!border-income/40 [&_[data-icon]]:text-income",
+              error: "!border-expense/40 [&_[data-icon]]:text-expense",
+              warning: "!border-debt/40 [&_[data-icon]]:text-debt",
+              actionButton: "!rounded-lg !bg-primary !font-semibold !text-primary-foreground",
+            },
+          }}
         />
       </body>
     </html>

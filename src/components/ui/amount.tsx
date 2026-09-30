@@ -2,6 +2,7 @@
 
 import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { formatCurrency } from "@/lib/format";
+import { useRollingNumber } from "@/hooks/use-rolling-number";
 
 type Props = {
   value: number;
@@ -12,6 +13,8 @@ type Props = {
   suffix?: string;
   /** Use compact format (no currency symbol) instead of formatCurrency */
   compact?: boolean;
+  /** Roll from the previous value when it changes (headline figures). */
+  animate?: boolean;
 };
 
 function formatCompact(amount: number): string {
@@ -24,10 +27,11 @@ function formatCompact(amount: number): string {
   }).format(amount);
 }
 
-export function Amount({ value, className, prefix, suffix, compact }: Props) {
+export function Amount({ value, className, prefix, suffix, compact, animate = false }: Props) {
   const { discrete } = useDiscreteMode();
+  const shown = useRollingNumber(value, animate);
 
-  const formatted = compact ? formatCompact(value) : formatCurrency(value);
+  const formatted = compact ? formatCompact(shown) : formatCurrency(shown);
 
   return (
     <span className={className} style={discrete ? { filter: "blur(8px)", userSelect: "none" } : undefined}>

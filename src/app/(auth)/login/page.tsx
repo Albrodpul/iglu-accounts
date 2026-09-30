@@ -144,7 +144,7 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Panel decorativo - solo desktop */}
-      <div className="hidden lg:flex hero-surface relative items-center justify-center overflow-hidden rounded-none border-0">
+      <div className="hidden lg:flex hero-panel relative items-center justify-center overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(126,200,240,0.25),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
         <div className="relative flex flex-col items-center gap-6 px-12 text-center">
           <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm shadow-lg">
@@ -159,14 +159,24 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Panel formulario */}
-      <div className="flex flex-col items-center justify-center px-6 py-12 sm:px-12">
-        <div className="w-full max-w-sm space-y-8">
-          {/* Header - visible en móvil, simplificado en desktop */}
-          <div className="flex flex-col items-center gap-4 text-center lg:items-start lg:text-left">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/12 lg:hidden">
-              <Image src="/iglu.svg" alt="Iglú" width={36} height={36} />
+      {/* Panel formulario. On phones: brand gradient behind, form as a sheet. */}
+      <div className="login-brand-bg flex flex-col lg:items-center lg:justify-center lg:px-12 lg:py-12">
+        <div
+          className="relative px-6 pb-14 text-center text-white lg:hidden"
+          style={{ paddingTop: "calc(3rem + env(safe-area-inset-top))" }}
+        >
+          <div className="relative flex flex-col items-center gap-3">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 shadow-lg ring-1 ring-white/25 backdrop-blur-sm">
+              <Image src="/iglu.svg" alt="Iglú" width={52} height={52} priority />
             </div>
+            <p className="text-2xl font-extrabold tracking-tight">Iglú Management</p>
+            <p className="text-sm text-white/70">Gastos y finanzas del hogar</p>
+          </div>
+        </div>
+
+        <div className="flex-1 rounded-t-[2rem] bg-card px-6 pt-9 pb-[max(2.5rem,env(safe-area-inset-bottom))] shadow-[0_-12px_32px_-20px_rgba(14,40,68,0.5)] lg:w-full lg:max-w-sm lg:flex-none lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
+        <div className="mx-auto w-full max-w-sm space-y-7">
+          <div className="text-center lg:text-left">
             <LoginGreeting />
           </div>
 
@@ -259,6 +269,7 @@ export default function LoginPage() {
               </Button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

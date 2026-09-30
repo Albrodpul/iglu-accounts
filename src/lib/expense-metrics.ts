@@ -10,19 +10,18 @@ export type FinancialTotals = {
   net: number;
 };
 
-export type MonthSummaryKpi = {
+/** Semantic tone of a KPI; each surface (dark hero / light card) maps it to its own colours. */
+export type KpiColor = "emerald" | "rose" | "amber" | "sky";
+
+export type Kpi = {
   label: string;
   value: number;
-  labelColor: string;
-  valueColor: string;
+  color: KpiColor;
   href?: string;
 };
 
-export type BalanceYearKpi = {
-  label: string;
-  value: number;
-  color: string;
-};
+export type MonthSummaryKpi = Kpi;
+export type BalanceYearKpi = Kpi;
 
 export function calculateFinancialTotals(
   expenses: ExpenseLike[],
@@ -72,14 +71,12 @@ export function buildMonthSummaryKpis({
     {
       label: "Ingresos",
       value: totalIncome,
-      labelColor: "text-white/75",
-      valueColor: "text-emerald-300",
+      color: "emerald",
     },
     {
       label: "Gastos",
       value: totalExpenses,
-      labelColor: "text-white/75",
-      valueColor: "text-rose-300",
+      color: "rose",
     },
   ];
 
@@ -87,8 +84,7 @@ export function buildMonthSummaryKpis({
     kpis.push({
       label: "Deudas",
       value: totalDebt,
-      labelColor: "text-white/75",
-      valueColor: "text-sky-300",
+      color: "amber",
       href: `/expenses?month=${month}&year=${year}&category=${debtCategoryId}`,
     });
   }
@@ -112,11 +108,11 @@ export function buildBalanceYearKpis({
   const kpis: BalanceYearKpi[] = [
     { label: "Ingresos", value: totalIncome, color: "emerald" },
     { label: "Gastos", value: totalExpenses, color: "rose" },
-    { label: "Media/mes", value: avgMonthlyExpense, color: "amber" },
+    { label: "Media/mes", value: avgMonthlyExpense, color: "sky" },
   ];
 
   if (totalDebt > 0) {
-    kpis.push({ label: "Deudas", value: totalDebt, color: "sky" });
+    kpis.push({ label: "Deudas", value: totalDebt, color: "amber" });
   } else {
     kpis.push({ label: "Fijos/mes", value: fixedExpenses, color: "emerald" });
   }

@@ -38,20 +38,18 @@ export default async function InvestmentsPage() {
         <div className="md:flex md:items-center md:gap-8">
           {/* Stats */}
           <div className="md:flex-1">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
-              Rentabilidad
-            </p>
-            <div className="mt-2 flex items-baseline gap-3">
+            <p className="text-sm font-semibold text-white/75">Rentabilidad</p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <p
-                className={`text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${
+                className={`text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
                   totalReturn >= 0 ? "text-emerald-300" : "text-rose-300"
                 }`}
               >
-                <Amount value={totalReturn} prefix={totalReturn >= 0 ? "+" : ""} />
+                <Amount value={totalReturn} prefix={totalReturn >= 0 ? "+" : ""} animate />
               </p>
               <p
-                className={`text-lg font-semibold tabular-nums md:text-xl ${
-                  totalReturn >= 0 ? "text-emerald-300/70" : "text-rose-300/70"
+                className={`rounded-full px-2.5 py-0.5 text-base font-bold tabular-nums md:text-lg ${
+                  totalReturn >= 0 ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300"
                 }`}
               >
                 {totalReturn >= 0 ? "+" : ""}{returnPct}%
@@ -60,7 +58,7 @@ export default async function InvestmentsPage() {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div className="kpi-chip">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                <p className="text-xs font-medium text-white/70">
                   Total invertido
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
@@ -68,7 +66,7 @@ export default async function InvestmentsPage() {
                 </p>
               </div>
               <div className="kpi-chip">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                <p className="text-xs font-medium text-white/70">
                   Valor actual
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">

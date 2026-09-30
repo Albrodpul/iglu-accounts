@@ -9,7 +9,7 @@ export type AmountTone = "expense" | "income" | "debt" | "neutral"
 const toneStyles: Record<AmountTone, { sign: string | null; text: string; border: string }> = {
   expense: { sign: "−", text: "text-expense", border: "border-expense/40 focus-visible:border-expense" },
   income: { sign: "+", text: "text-income", border: "border-income/40 focus-visible:border-income" },
-  debt: { sign: "+", text: "text-amber-500", border: "border-amber-500/40 focus-visible:border-amber-500" },
+  debt: { sign: "+", text: "text-debt", border: "border-debt/40 focus-visible:border-debt" },
   neutral: { sign: null, text: "", border: "" },
 }
 

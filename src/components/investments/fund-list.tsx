@@ -274,7 +274,7 @@ export function FundList({ types, funds }: Props) {
                   {/* Type header */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="min-w-0 truncate text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                      <h3 className="min-w-0 truncate text-base font-bold text-foreground">
                         {type.name}
                       </h3>
                       <span className={`shrink-0 text-xs font-semibold tabular-nums md:text-sm ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>

@@ -54,7 +54,7 @@ export function YearComparison({ availableYears }: Props) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Periodo A</p>
+          <p className="text-sm font-semibold text-muted-foreground">Periodo A</p>
           <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-2">
             <select value={yearA} onChange={(e) => { setYearA(e.target.value ? Number(e.target.value) : ""); setFetched(false); }} className={selectClass}>
               <option value="">Año</option>
@@ -70,7 +70,7 @@ export function YearComparison({ availableYears }: Props) {
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Periodo B</p>
+          <p className="text-sm font-semibold text-muted-foreground">Periodo B</p>
           <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-2">
             <select value={yearB} onChange={(e) => { setYearB(e.target.value ? Number(e.target.value) : ""); setFetched(false); }} className={selectClass}>
               <option value="">Año</option>

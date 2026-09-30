@@ -80,3 +80,4 @@ export function sumCategory(movements: AggregatableMovement[], categoryId: strin
   for (const m of movements) if (m.category_id === categoryId) total += m.amount;
   return total;
 }
+

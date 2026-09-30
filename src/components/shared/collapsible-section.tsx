@@ -18,10 +18,11 @@ export function CollapsibleSection({ label, children, variant = "hero" }: Props)
       : "text-muted-foreground hover:text-foreground";
 
   return (
-    <div className={variant === "hero" ? "mt-5" : ""}>
+    <div className={variant === "hero" ? "mt-5" : "mt-4"}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${buttonColors}`}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-1.5 text-sm font-semibold transition-colors cursor-pointer ${buttonColors}`}
       >
         <ChevronDown
           className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-0" : "-rotate-90"}`}

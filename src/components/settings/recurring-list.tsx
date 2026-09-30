@@ -21,6 +21,7 @@ import {
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { Plus, Pencil, Trash2, Play, Loader2, Repeat } from "lucide-react";
 import { SwipeRow } from "@/components/ui/swipe-row";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { Amount } from "@/components/ui/amount";
@@ -198,26 +199,15 @@ export function RecurringList({ recurring, categories }: Props) {
             className="flex min-h-0 flex-1 flex-col"
           >
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={!isIncome ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsIncome(false)}
-                className={!isIncome ? "bg-red-500 hover:bg-red-600 text-white" : ""}
-              >
-                Gasto
-              </Button>
-              <Button
-                type="button"
-                variant={isIncome ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsIncome(true)}
-                className={isIncome ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}
-              >
-                Ingreso
-              </Button>
-            </div>
+            <SegmentedControl
+              aria-label="Tipo de movimiento fijo"
+              value={isIncome ? "income" : "expense"}
+              onChange={(v) => setIsIncome(v === "income")}
+              options={[
+                { value: "expense", label: "Gasto", tone: "expense" },
+                { value: "income", label: "Ingreso", tone: "income" },
+              ]}
+            />
 
             <div className="space-y-4">
               <div className="space-y-2">
@@ -443,7 +433,7 @@ export function RecurringList({ recurring, categories }: Props) {
         <div className="space-y-5">
           {expenses.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gastos fijos</p>
+              <p className="mb-2 text-sm font-semibold text-muted-foreground">Gastos fijos</p>
               <div className="space-y-1">
                 {expenses.map((item) => (
                   <RecurringItem key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
@@ -453,7 +443,7 @@ export function RecurringList({ recurring, categories }: Props) {
           )}
           {income.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ingresos fijos</p>
+              <p className="mb-2 text-sm font-semibold text-muted-foreground">Ingresos fijos</p>
               <div className="space-y-1">
                 {income.map((item) => (
                   <RecurringItem key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />

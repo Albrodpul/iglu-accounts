@@ -471,7 +471,7 @@ export function EmojiPicker({ value, onChange }: Props) {
         ) : (
           filtered.map((group) => (
             <div key={group.label} className="mb-3 last:mb-0">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
                 {group.label}
               </p>
               <div className="flex flex-wrap gap-1">

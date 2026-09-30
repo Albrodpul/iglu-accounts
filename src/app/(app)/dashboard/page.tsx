@@ -55,6 +55,7 @@ export default async function DashboardPage() {
 
   const recentExpenses = recentPage.data as typeof monthExpenses;
 
+
   // Build KPIs for Balance year card
   const balanceKpis = buildBalanceYearKpis({
     totalIncome: yearTotals.totalIncome,
@@ -110,15 +111,13 @@ export default async function DashboardPage() {
         <>
           {/* Total acumulado — full width when investments active */}
           <section className="hero-surface p-6 md:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
-              Total acumulado
-            </p>
+            <p className="text-sm font-semibold text-white/75">Total acumulado</p>
             <p
-              className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${
+              className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
                 grandTotal >= 0 ? "text-emerald-300" : "text-rose-300"
               }`}
             >
-              <Amount value={grandTotal} />
+              <Amount value={grandTotal} animate />
             </p>
 
             {/* Asset breakdown — collapsible */}
@@ -152,7 +151,7 @@ export default async function DashboardPage() {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />}
-                                <span className="text-xs font-semibold uppercase tracking-wider text-white/70 truncate">
+                                <span className="text-xs font-medium text-white/75 truncate">
                                   {item.label}
                                 </span>
                                 {pct && <span className="text-[11px] text-white/40 shrink-0">{pct}%</span>}
@@ -180,7 +179,7 @@ export default async function DashboardPage() {
                       href={`/summary?year=${y.year}`}
                       className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                      <p className="text-xs font-medium text-white/70">
                         {y.year}
                       </p>
                       <p
@@ -198,10 +197,10 @@ export default async function DashboardPage() {
           </section>
 
           {/* Balance año + mes — second row */}
-          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible />
+          <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible variant="card" />
             <div>
-              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
+              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible variant="card" />
               <MonthProjection
                 projected={projection.projected}
                 historicalMonths={projection.historicalMonths}
@@ -214,17 +213,15 @@ export default async function DashboardPage() {
       ) : (
         <>
           {/* Sin inversiones — layout original */}
-          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+          <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
             <section className="hero-surface p-6 md:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
-                Total acumulado
-              </p>
+              <p className="text-sm font-semibold text-white/75">Total acumulado</p>
               <p
-                className={`mt-2 text-4xl font-bold tracking-tight tabular-nums md:text-5xl ${
+                className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
                   allTime.total >= 0 ? "text-emerald-300" : "text-rose-300"
                 }`}
               >
-                <Amount value={allTime.total} />
+                <Amount value={allTime.total} animate />
               </p>
 
               {allTime.years.length > 0 && (
@@ -236,7 +233,7 @@ export default async function DashboardPage() {
                         href={`/summary?year=${y.year}`}
                         className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                        <p className="text-xs font-medium text-white/70">
                           {y.year}
                         </p>
                         <p
@@ -253,7 +250,7 @@ export default async function DashboardPage() {
               )}
             </section>
 
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible />
+            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible variant="card" />
           </div>
 
           <div className="grid gap-6 md:grid-cols-[1fr_1.5fr] md:gap-8">
@@ -261,7 +258,7 @@ export default async function DashboardPage() {
               <h2 className="mb-4 text-xl font-bold md:text-2xl">
                 {MONTHS[month - 1]} {year}
               </h2>
-              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible />
+              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible variant="card" />
               <MonthProjection
                 projected={projection.projected}
                 historicalMonths={projection.historicalMonths}

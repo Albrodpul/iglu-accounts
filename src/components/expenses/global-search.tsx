@@ -58,8 +58,8 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
   }
 
   function amountColor(expense: ExpenseWithCategory) {
-    if (transferCategoryId && expense.category_id === transferCategoryId) return "text-violet-400";
-    if (debtCategoryId && expense.category_id === debtCategoryId) return "text-sky-400";
+    if (transferCategoryId && expense.category_id === transferCategoryId) return "text-transfer";
+    if (debtCategoryId && expense.category_id === debtCategoryId) return "text-debt";
     return expense.amount >= 0 ? "text-income" : "text-foreground";
   }
 

@@ -109,7 +109,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 <div className="my-1 border-t border-border/40" />
               )}
               <div className="mb-2 mt-3 flex items-center justify-between px-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="text-sm font-semibold text-muted-foreground">
                   {showYear ? formatDateWithYear(date) : formatDateShort(date)}
                 </span>
                 <span
@@ -151,9 +151,9 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                       <span
                         className={`text-[15px] font-semibold tabular-nums ${
                           transferCategoryId && expense.category_id === transferCategoryId
-                            ? "text-violet-400"
+                            ? "text-transfer"
                             : debtCategoryId && expense.category_id === debtCategoryId
-                              ? "text-sky-400"
+                              ? "text-debt"
                               : expense.amount >= 0
                                 ? "text-income"
                                 : "text-foreground"

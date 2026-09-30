@@ -40,6 +40,8 @@
   --color-card: var(--card);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-debt: var(--debt);
+  --color-transfer: var(--transfer);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -50,6 +52,10 @@
 }
 
 :root {
+  --brand-gradient:
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.22), transparent 48%),
+    radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.16), transparent 46%),
+    linear-gradient(145deg, #163a5f 0%, #1e5a8a 70%, #2d7eb5 100%);
   --background: #f0f6fb;
   --foreground: #1a2332;
   --card: #ffffff;
@@ -68,14 +74,16 @@
   --border: #c9dae8;
   --input: #c9dae8;
   --ring: #2d7eb5;
-  --income: #10B981;
-  --expense: #EF4444;
+  --income: #0e9f6e;
+  --expense: #e5484d;
+  --debt: #d97706;
+  --transfer: #7c3aed;
   --chart-1: #2d7eb5;
   --chart-2: #38bdf8;
   --chart-3: #06b6d4;
   --chart-4: #10B981;
   --chart-5: #6366f1;
-  --radius: 0.25rem;
+  --radius: 0.625rem;
   --sidebar: #1e3a5f;
   --sidebar-foreground: #f0f6fb;
   --sidebar-primary: #7ec8f0;
@@ -107,6 +115,8 @@
   --ring: #38bdf8;
   --income: #34D399;
   --expense: #F87171;
+  --debt: #FBBF24;
+  --transfer: #A78BFA;
   --chart-1: #38bdf8;
   --chart-2: #34D399;
   --chart-3: #FBBF24;
@@ -120,6 +130,15 @@
   --sidebar-accent-foreground: #e8f1fa;
   --sidebar-border: rgba(120, 180, 230, 0.18);
   --sidebar-ring: #38bdf8;
+}
+
+/* Tells native controls (date picker icon, selects, scrollbars) which theme
+   they sit on; without it they stay light and e.g. the calendar icon is black. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
 }
 
 .dark select option {
@@ -177,7 +196,7 @@
   }
 
   .glass-panel {
-    @apply rounded-lg border border-border/80 bg-card/84 shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] backdrop-blur-sm;
+    @apply rounded-2xl border border-border/80 bg-card/84 shadow-[0_10px_30px_-20px_rgba(28,35,45,0.38)] backdrop-blur-sm;
   }
   .dark .glass-panel {
     @apply border-border bg-card shadow-[0_10px_30px_-16px_rgba(0,0,0,0.5)];
@@ -189,17 +208,51 @@
     @apply border-border bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.4)];
   }
 
+  /* Full-bleed brand panel (auth screens): gradient only, no card chrome. */
+  .hero-panel {
+    background: var(--brand-gradient);
+    color: white;
+  }
+
   .hero-surface {
-    background:
-      radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.22), transparent 48%),
-      radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.16), transparent 46%),
-      linear-gradient(145deg, #163a5f 0%, #1e5a8a 70%, #2d7eb5 100%);
-    @apply rounded-lg border border-sky-900/30 text-white shadow-[0_18px_40px_-24px_rgba(14,40,68,0.78)];
+    background: var(--brand-gradient);
+    @apply rounded-2xl border border-sky-900/30 text-white shadow-[0_18px_40px_-24px_rgba(14,40,68,0.78),inset_0_1px_0_rgba(255,255,255,0.12)];
+  }
+
+  /* Login on phones: the brand gradient fills the screen behind the form sheet. */
+  @media (width < 64rem) {
+    .login-brand-bg {
+      background: var(--brand-gradient);
+    }
+  }
+
+  /* Light surface for secondary figures sitting next to a hero. */
+  .surface-card {
+    @apply rounded-2xl border border-border/70 bg-card shadow-[0_10px_28px_-22px_rgba(28,35,45,0.45)];
+  }
+  .dark .surface-card {
+    @apply border-border shadow-none;
   }
 
   .kpi-chip {
     @apply rounded-xl border border-white/20 bg-white/15 p-4 backdrop-blur-sm;
   }
+}
+
+/* Loading placeholder: a soft highlight sweeping across, instead of blinking. */
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+/* Adds only the moving highlight; the base colour comes from a bg-* utility. */
+.skeleton-shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--card) 70%, transparent) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; }
 }
 
 @keyframes page-enter {

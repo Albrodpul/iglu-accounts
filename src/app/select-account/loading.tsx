@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 export default function SelectAccountLoading() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="hidden lg:flex hero-surface relative items-center justify-center overflow-hidden rounded-none border-0" />
+      <div className="hidden lg:flex hero-panel relative items-center justify-center overflow-hidden" />
 
       <div className="flex flex-col items-center justify-center px-6 py-12 sm:px-12">
         <div className="w-full max-w-sm space-y-8">

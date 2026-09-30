@@ -40,19 +40,19 @@ export default async function SettingsPage() {
 
         <TabsContent value="recurring" className="mt-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="glass-panel p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-500">
+            <div className="surface-card p-5">
+              <p className="text-sm font-semibold text-muted-foreground">
                 Gastos fijos/mes
               </p>
-              <p className="mt-2 text-2xl font-bold text-rose-600 tabular-nums md:text-3xl">
+              <p className="mt-1 text-2xl font-extrabold text-expense tabular-nums md:text-3xl">
                 <Amount value={totalExpenses} />
               </p>
             </div>
-            <div className="glass-panel p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
+            <div className="surface-card p-5">
+              <p className="text-sm font-semibold text-muted-foreground">
                 Ingresos fijos/mes
               </p>
-              <p className="mt-2 text-2xl font-bold text-emerald-600 tabular-nums md:text-3xl">
+              <p className="mt-1 text-2xl font-extrabold text-income tabular-nums md:text-3xl">
                 <Amount value={totalIncome} />
               </p>
             </div>

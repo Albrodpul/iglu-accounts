@@ -39,7 +39,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    // Font variables must live on <html>: globals.css applies `font-sans` there,
+    // and a variable declared lower (on <body>) is invisible to it — the page
+    // silently fell back to the browser's default serif.
+    <html lang="es" suppressHydrationWarning className={`${nunito.variable} ${jetbrainsMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -48,7 +51,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${nunito.variable} ${jetbrainsMono.variable} antialiased`}
+        className="antialiased"
       >
         <ServiceWorkerRegister />
         {children}

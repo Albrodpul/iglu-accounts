@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props = {
   year: number;
@@ -39,26 +39,31 @@ export function YearSelector({ year, availableYears }: Props) {
 
   return (
     <div ref={ref} className={`relative shrink-0 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
-      <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
+      <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-card p-1 shadow-xs">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-md"
+          className="h-9 w-9 rounded-lg"
+          aria-label="Año anterior"
           onClick={() => goTo(year - 1)}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <button
           onClick={() => setOpen(!open)}
-          className="flex min-w-[55px] items-center justify-center gap-1 text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={`Elegir año (${year})`}
+          className="flex min-w-[64px] items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-base font-bold tabular-nums cursor-pointer transition-colors hover:bg-muted/60"
         >
           {year}
-          <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-md"
+          className="h-9 w-9 rounded-lg"
+          aria-label="Año siguiente"
           onClick={() => goTo(year + 1)}
         >
           <ChevronRight className="h-4 w-4" />
@@ -66,7 +71,7 @@ export function YearSelector({ year, availableYears }: Props) {
       </div>
 
       {open && (
-        <div className="absolute right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 top-full z-50 mt-2 w-[220px] rounded-lg border border-border bg-card shadow-lg">
+        <div className="absolute right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 top-full z-50 mt-2 w-[220px] rounded-xl border border-border bg-card shadow-lg">
           <div className="grid grid-cols-3 gap-1 p-2.5">
             {years.map((y) => (
               <button

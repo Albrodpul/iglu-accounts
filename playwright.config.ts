@@ -28,12 +28,16 @@ export default defineConfig({
     navigationTimeout: 60_000,
   },
   projects: [
+    // Refreshes and re-saves the session before the specs (see auth.setup.ts).
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
     {
       name: "mobile",
+      dependencies: ["setup"],
       use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
     },
     {
       name: "desktop",
+      dependencies: ["setup"],
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

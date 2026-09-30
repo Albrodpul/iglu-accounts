@@ -586,7 +586,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           </DialogHeader>
           <DialogBody className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Atajos de teclado</p>
+              <p className="text-sm font-semibold text-muted-foreground mb-2">Atajos de teclado</p>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Buscar movimientos</span>

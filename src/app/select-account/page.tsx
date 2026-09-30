@@ -33,7 +33,7 @@ export default async function SelectAccountPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Panel decorativo - solo desktop */}
-      <div className="hidden lg:flex hero-surface relative items-center justify-center overflow-hidden rounded-none border-0">
+      <div className="hidden lg:flex hero-panel relative items-center justify-center overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(126,200,240,0.25),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
         <div className="relative flex flex-col items-center gap-6 px-12 text-center">
           <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm shadow-lg">

@@ -6,6 +6,7 @@ import { createExpense, updateExpense, createTransfer, updateTransfer, checkDupl
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
+import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryPicker } from "@/components/expenses/category-picker";
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { daysAgo, toLocalISODate } from "@/lib/dates";
 import { haptic } from "@/lib/haptics";
 import type { ConceptHint, EntryHints } from "@/lib/entry-hints";
-import { Loader2, Trash2 } from "lucide-react";
+import { Banknote, Landmark, Loader2, Trash2 } from "lucide-react";
 import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
 import type { Category, Expense } from "@/types";
 
@@ -199,11 +200,13 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInves
     ? categories.find((c) => c.id === expense.category_id)?.name.toLowerCase() === "traspaso"
     : false;
 
-  const typeButtons: { value: ExpenseType; label: string; activeClass: string }[] = [
-    { value: "expense", label: "Gasto", activeClass: "bg-red-500 hover:bg-red-600 text-white" },
-    { value: "income", label: "Ingreso", activeClass: "bg-emerald-500 hover:bg-emerald-600 text-white" },
-    { value: "debt", label: "Deuda", activeClass: "bg-amber-500 hover:bg-amber-600 text-white" },
-    ...((hasInvestments && !expense) || isExistingTransfer ? [{ value: "transfer" as ExpenseType, label: "Traspaso", activeClass: "bg-violet-500 hover:bg-violet-600 text-white" }] : []),
+  const typeOptions: SegmentOption<ExpenseType>[] = [
+    { value: "expense", label: "Gasto", tone: "expense" },
+    { value: "income", label: "Ingreso", tone: "income" },
+    { value: "debt", label: "Deuda", tone: "debt" },
+    ...((hasInvestments && !expense) || isExistingTransfer
+      ? [{ value: "transfer" as ExpenseType, label: "Traspaso", tone: "transfer" as const }]
+      : []),
   ];
 
   const amountTone =
@@ -241,63 +244,38 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, hasInves
       className={cn("flex min-h-0 flex-1 flex-col", loading && "pointer-events-none")}
     >
       <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain px-5 py-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
-      <div
-        className="grid gap-2 md:col-span-2"
-        style={{ gridTemplateColumns: `repeat(${typeButtons.length}, minmax(0, 1fr))` }}
-      >
-        {typeButtons.map((btn) => (
-          <Button
-            key={btn.value}
-            type="button"
-            variant={type === btn.value ? "default" : "outline"}
-            onClick={() => setType(btn.value)}
-            className={cn("h-11 px-2 text-sm md:h-9", type === btn.value && btn.activeClass)}
-          >
-            {btn.label}
-          </Button>
-        ))}
-      </div>
+      <SegmentedControl
+        aria-label="Tipo de movimiento"
+        className="md:col-span-2"
+        value={type}
+        onChange={setType}
+        options={typeOptions}
+      />
 
       {showPaymentMethod && (
-        <div className="grid grid-cols-2 gap-2 md:col-span-2">
-          <Button
-            type="button"
-            variant={paymentMethod === "bank" ? "default" : "outline"}
-            onClick={() => setPaymentMethod("bank")}
-            className={cn("h-11 md:h-9", paymentMethod === "bank" && "bg-sky-500 hover:bg-sky-600 text-white")}
-          >
-            🏦 Banco
-          </Button>
-          <Button
-            type="button"
-            variant={paymentMethod === "cash" ? "default" : "outline"}
-            onClick={() => setPaymentMethod("cash")}
-            className={cn("h-11 md:h-9", paymentMethod === "cash" && "bg-green-600 hover:bg-green-700 text-white")}
-          >
-            💵 Efectivo
-          </Button>
-        </div>
+        <SegmentedControl
+          aria-label="Método de pago"
+          className="md:col-span-2"
+          value={paymentMethod}
+          onChange={setPaymentMethod}
+          options={[
+            { value: "bank", label: "Banco", icon: Landmark },
+            { value: "cash", label: "Efectivo", icon: Banknote },
+          ]}
+        />
       )}
 
       {isTransfer && (
-        <div className="grid grid-cols-2 gap-2 md:col-span-2">
-          <Button
-            type="button"
-            variant={transferDirection === "bank_to_cash" ? "default" : "outline"}
-            onClick={() => setTransferDirection("bank_to_cash")}
-            className={cn("h-auto min-h-11 whitespace-normal px-2 py-2 text-sm leading-tight", transferDirection === "bank_to_cash" && "bg-violet-500 hover:bg-violet-600 text-white")}
-          >
-            🏦 → 💵 Banco a Efectivo
-          </Button>
-          <Button
-            type="button"
-            variant={transferDirection === "cash_to_bank" ? "default" : "outline"}
-            onClick={() => setTransferDirection("cash_to_bank")}
-            className={cn("h-auto min-h-11 whitespace-normal px-2 py-2 text-sm leading-tight", transferDirection === "cash_to_bank" && "bg-violet-500 hover:bg-violet-600 text-white")}
-          >
-            💵 → 🏦 Efectivo a Banco
-          </Button>
-        </div>
+        <SegmentedControl
+          aria-label="Dirección del traspaso"
+          className="md:col-span-2"
+          value={transferDirection}
+          onChange={setTransferDirection}
+          options={[
+            { value: "bank_to_cash", label: "Banco → Efectivo", tone: "transfer" },
+            { value: "cash_to_bank", label: "Efectivo → Banco", tone: "transfer" },
+          ]}
+        />
       )}
 
       <div className="space-y-4 md:col-span-2">

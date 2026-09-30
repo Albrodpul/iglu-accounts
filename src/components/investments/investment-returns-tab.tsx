@@ -168,7 +168,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
       {/* Stats chips */}
       <div className="grid grid-cols-3 gap-3">
         <div className="glass-panel p-3 md:p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             Invertido
           </p>
           <p className="mt-1 text-base font-bold tabular-nums md:text-lg">
@@ -176,7 +176,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
           </p>
         </div>
         <div className="glass-panel p-3 md:p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             Valor actual
           </p>
           <p className="mt-1 text-base font-bold tabular-nums md:text-lg">
@@ -184,7 +184,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
           </p>
         </div>
         <div className="glass-panel p-3 md:p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             Rentabilidad
           </p>
           <p className={`mt-1 text-base font-bold tabular-nums md:text-lg ${pctClass(latestReturn)}`}>

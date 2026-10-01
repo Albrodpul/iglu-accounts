@@ -66,3 +66,25 @@ export function getExpenseDay(item: RecurringItem, year: number, month: number):
   // because callers only invoke this for months where getScheduledDay returned non-null.
   return resolveDayOfMonth(item.schedule_type || "monthly", item.day_of_month, year, month);
 }
+
+/**
+ * Recurring items still due this month: scheduled for today or later and not
+ * yet turned into a movement. Each comes with the day its movement will carry,
+ * sorted by that day.
+ */
+export function getPendingThisMonth<T extends RecurringItem>(
+  items: T[],
+  insertedIds: Set<string>,
+  year: number,
+  month: number,
+  today: number,
+): (T & { day: number })[] {
+  return items
+    .filter((item) => {
+      if (insertedIds.has(item.id)) return false;
+      const scheduled = getScheduledDay(item, year, month);
+      return scheduled !== null && scheduled >= today;
+    })
+    .map((item) => ({ ...item, day: getExpenseDay(item, year, month) }))
+    .sort((a, b) => a.day - b.day);
+}

@@ -289,6 +289,23 @@
   }
 }
 
+/* One-off nudge that teaches the swipe gestures (see ui/swipe-row.tsx). */
+.swipe-peek {
+  animation: swipe-peek 2.2s ease-in-out 0.7s both;
+}
+@keyframes swipe-peek {
+  0%, 100% { transform: translateX(0); }
+  18%, 34% { transform: translateX(-56px); }
+  52% { transform: translateX(0); }
+  68%, 84% { transform: translateX(56px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipe-peek {
+    animation-duration: 1ms;
+    animation-delay: 0s;
+  }
+}
+
 @keyframes nav-progress {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }

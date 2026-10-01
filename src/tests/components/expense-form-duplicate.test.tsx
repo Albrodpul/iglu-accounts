@@ -152,6 +152,31 @@ describe("ExpenseForm quick entry", () => {
   });
 });
 
+describe("ExpenseForm amount as a sum", () => {
+  it("saves the result of a quick sum, and a plain amount as is", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={categories} />);
+    const amount = screen.getByLabelText("Importe");
+
+    await userEvent.type(amount, "12,50+8");
+    expect(screen.getByText("= 20,50 €")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.createExpense.mock.calls[0][0] as FormData).get("amount")).toBe("20.5");
+  });
+
+  it("does not submit something that isn't an amount", async () => {
+    render(<ExpenseForm categories={categories} />);
+
+    await userEvent.type(screen.getByLabelText("Importe"), "12+");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    expect(screen.getByLabelText("Importe")).toBeInvalid();
+    expect(mocks.createExpense).not.toHaveBeenCalled();
+  });
+});
+
 describe("ExpenseForm duplicating a movement", () => {
   const source: Expense = {
     id: "exp-1",
@@ -173,7 +198,7 @@ describe("ExpenseForm duplicating a movement", () => {
     mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
     render(<ExpenseForm categories={categories} prefill={source} />);
 
-    expect(screen.getByLabelText("Importe")).toHaveValue(42.3);
+    expect(screen.getByLabelText("Importe")).toHaveValue("42,30");
     expect(screen.getByLabelText("Concepto")).toHaveValue("Mercadona");
     expect(screen.getByLabelText("Notas (opcional)")).toHaveValue("Compra semanal");
     expect(screen.getByRole("button", { name: "Hoy" })).toHaveAttribute("aria-pressed", "true");

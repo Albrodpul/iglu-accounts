@@ -12,13 +12,14 @@ function swipe(el: HTMLElement, dx: number, dy = 0) {
 function setup() {
   const onTap = vi.fn();
   const onDelete = vi.fn();
+  const onDuplicate = vi.fn();
   render(
-    <SwipeRow onTap={onTap} onDelete={onDelete}>
+    <SwipeRow onTap={onTap} onDelete={onDelete} onDuplicate={onDuplicate}>
       <span>Compra</span>
     </SwipeRow>,
   );
   const row = screen.getByText("Compra").parentElement as HTMLElement;
-  return { row, onTap, onDelete };
+  return { row, onTap, onDelete, onDuplicate };
 }
 
 describe("SwipeRow", () => {
@@ -33,6 +34,14 @@ describe("SwipeRow", () => {
     const { row, onTap, onDelete } = setup();
     swipe(row, -80);
     expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  it("a long right swipe duplicates, and only that", () => {
+    const { row, onTap, onDelete, onDuplicate } = setup();
+    swipe(row, 80);
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+    expect(onDelete).not.toHaveBeenCalled();
     expect(onTap).not.toHaveBeenCalled();
   });
 

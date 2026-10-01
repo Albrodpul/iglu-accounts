@@ -57,6 +57,7 @@ vi.mock("@/actions/expenses", () => ({
 
 vi.mock("@/actions/recurring", () => ({
   getRecurringExpenses: mocks.getRecurringExpenses,
+  getPendingRecurring: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/actions/passkeys", () => ({

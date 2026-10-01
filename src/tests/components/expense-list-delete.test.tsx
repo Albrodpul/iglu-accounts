@@ -90,3 +90,46 @@ describe("ExpenseList delete", () => {
     expect(mocks.deleteExpense).not.toHaveBeenCalled(); // only after the undo window
   });
 });
+
+describe("ExpenseList upcoming movements", () => {
+  const past = movement({ id: "past", concept: "Pan" });
+  const future = movement({ id: "future", concept: "Entradas concierto", amount: -99, expense_date: "2999-03-20" });
+
+  it("tucks movements dated after today into a collapsed section", async () => {
+    render(<ExpenseList expenses={[future, past]} categories={[food]} collapseFuture />);
+
+    expect(screen.getByText("Pan")).toBeInTheDocument();
+    expect(screen.queryByText("Entradas concierto")).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: /Próximos.*1 movimiento/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+
+    expect(screen.getByText("Entradas concierto")).toBeInTheDocument();
+  });
+
+  it("shows them normally when there is nothing else to show", () => {
+    render(<ExpenseList expenses={[future]} categories={[food]} collapseFuture />);
+
+    expect(screen.getByText("Entradas concierto")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Próximos/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("ExpenseList row markers", () => {
+  it("flags movements with notes, and fixed ones separately", () => {
+    render(
+      <ExpenseList
+        expenses={[
+          movement({ id: "a", concept: "Con nota", notes: "Pagado a medias" }),
+          movement({ id: "b", concept: "Fijo", notes: "auto:recurring:r1" }),
+          movement({ id: "c", concept: "Sin nota" }),
+        ]}
+        categories={[food]}
+      />,
+    );
+
+    expect(screen.getAllByLabelText("Tiene notas")).toHaveLength(1);
+    expect(screen.getAllByLabelText("Movimiento fijo")).toHaveLength(1);
+  });
+});

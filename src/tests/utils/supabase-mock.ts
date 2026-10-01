@@ -18,6 +18,7 @@ export function createQueryBuilder<T = unknown>(
     update: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     order: vi.fn(() => builder),
+    range: vi.fn(() => builder),
     eq: vi.fn(() => builder),
     neq: vi.fn(() => builder),
     gte: vi.fn(() => builder),

@@ -8,8 +8,9 @@ import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
+import type { RecurringExpenseWithCategory } from "@/types";
 import { getOrCreateIncomeCategory } from "./categories";
-import { getScheduledDay, getExpenseDay } from "@/lib/recurring";
+import { getScheduledDay, getExpenseDay, getPendingThisMonth } from "@/lib/recurring";
 
 function parseExpenseOverride(formData: FormData) {
   const rawType = formData.get("expense_schedule_type");
@@ -29,6 +30,27 @@ const findRecurringCached = cache(async (accountId: string | null) => {
 export async function getRecurringExpenses() {
   const accountId = await getSelectedAccountId();
   return findRecurringCached(accountId);
+}
+
+/** Fixed movements that will still be charged in the current month. */
+export async function getPendingRecurring() {
+  const accountId = await getSelectedAccountId();
+  const db = await getDb();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const nextMonth = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+
+  const [recurring, existingNotes] = await Promise.all([
+    findRecurringCached(accountId),
+    db.expenses.findRecurringNotesInRange(accountId, `${monthStr}-01`, nextMonth),
+  ]);
+  const inserted = new Set(
+    existingNotes.map((e) => e.notes?.replace("auto:recurring:", "")).filter((id): id is string => Boolean(id)),
+  );
+
+  return getPendingThisMonth(recurring as RecurringExpenseWithCategory[], inserted, year, month, now.getDate());
 }
 
 export async function createRecurringExpense(formData: FormData) {

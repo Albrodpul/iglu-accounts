@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ExpenseList } from "./expense-list";
 import { Search, X, ArrowUpDown, Loader2 } from "lucide-react";
+import { matchesSearch } from "@/lib/amount-search";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
@@ -22,7 +23,7 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
 
   const filtered = expenses.filter((e) => {
     if (categoryFilter && e.category_id !== categoryFilter) return false;
-    if (conceptFilter && !e.concept?.toLowerCase().includes(conceptFilter.toLowerCase())) return false;
+    if (!matchesSearch(e, conceptFilter)) return false;
     return true;
   });
 
@@ -43,7 +44,7 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
           )}
           <input
             type="text"
-            placeholder="Buscar concepto..."
+            placeholder="Buscar concepto o importe..."
             value={conceptFilter}
             onChange={(e) => {
               const val = e.target.value;
@@ -88,6 +89,8 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
       <div className={isPending ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
         <ExpenseList
           stickyDayHeaders
+          gestureHint
+          collapseFuture={!hasFilters}
           expenses={filtered}
           categories={categories}
           sortable={false}

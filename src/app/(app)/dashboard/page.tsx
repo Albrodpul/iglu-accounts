@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getExpenses, getExpensesByYear, getExpensesPaginated, getAllTimeBalance, getMonthProjection } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
-import { getRecurringExpenses } from "@/actions/recurring";
+import { getPendingRecurring, getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { getInvestmentSummary } from "@/actions/investments";
 import {
@@ -17,6 +17,7 @@ import { BalanceYear } from "@/components/shared/balance-year";
 import { MonthSummary } from "@/components/shared/month-summary";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 import { MonthProjection } from "@/components/shared/month-projection";
+import { PendingFixed } from "@/components/shared/pending-fixed";
 import { ArrowRight } from "lucide-react";
 import { AssetPieChart } from "@/components/investments/asset-pie-chart";
 
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
     getTransferCategoryId(),
   ]);
 
-  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection, recentPage] =
+  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection, recentPage, pendingFixed] =
     await Promise.all([
       getExpenses({ month, year }),
       getExpensesByYear(year),
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
       getInvestmentSummary(),
       getMonthProjection({ month, year, debtCategoryId, transferCategoryId }),
       getExpensesPaginated({ page: 0, limit: 5, ascending: false }),
+      getPendingRecurring(),
     ]);
 
   const monthTotals = calculateFinancialTotals(monthExpenses, debtCategoryId, transferCategoryId);
@@ -207,6 +209,7 @@ export default async function DashboardPage() {
                 monthProgress={projection.monthProgress}
                 pendingRecurringNet={projection.pendingRecurringNet}
               />
+              <PendingFixed items={pendingFixed} month={month} />
             </div>
           </div>
         </>
@@ -265,6 +268,7 @@ export default async function DashboardPage() {
                 monthProgress={projection.monthProgress}
                 pendingRecurringNet={projection.pendingRecurringNet}
               />
+              <PendingFixed items={pendingFixed} month={month} />
             </div>
 
             <section>

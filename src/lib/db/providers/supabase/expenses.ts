@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseAmountQuery } from "@/lib/amount-search";
+import { fetchAllRows } from "./fetch-all";
 
 type ExpenseInsert = {
   user_id: string;
@@ -12,6 +14,23 @@ type ExpenseInsert = {
   transfer_pair_id?: string;
 };
 
+/**
+ * PostgREST `or` filter matching the concept or, when the query is a number,
+ * the absolute amount. Returns null for plain-text queries (concept only).
+ * Safe to interpolate: `parseAmountQuery` only accepts digits, a sign, one
+ * decimal separator and "€", and the concept pattern is double-quoted.
+ */
+function conceptOrAmountFilter(search: string): string | null {
+  const range = parseAmountQuery(search);
+  if (!range) return null;
+  const { min, max } = range;
+  return [
+    `concept.ilike."%${search.trim()}%"`,
+    `and(amount.gte.${min},amount.lt.${max})`,
+    `and(amount.lte.${-min},amount.gt.${-max})`,
+  ].join(",");
+}
+
 export function createExpensesRepo(client: SupabaseClient) {
   return {
     async findWithCategoryByMonth(accountId: string | null, month: number, year: number) {
@@ -21,71 +40,98 @@ export function createExpensesRepo(client: SupabaseClient) {
           ? `${year + 1}-01-01`
           : `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
-      let q = client
-        .from("expenses")
-        .select("*, category:categories(*)")
-        .gte("expense_date", startDate)
-        .lt("expense_date", endDate)
-        .order("expense_date", { ascending: true });
-      if (accountId) q = q.eq("account_id", accountId);
-
-      const { data, error } = await q;
+      const { data, error } = await fetchAllRows((from, to) => {
+        let q = client
+          .from("expenses")
+          .select("*, category:categories(*)")
+          .gte("expense_date", startDate)
+          .lt("expense_date", endDate)
+          .order("expense_date", { ascending: true })
+          .order("id")
+          .range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        return q;
+      });
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
 
     async findWithCategoryByYear(accountId: string | null, year: number) {
-      let q = client
-        .from("expenses")
-        .select("*, category:categories(*)")
-        .gte("expense_date", `${year}-01-01`)
-        .lt("expense_date", `${year + 1}-01-01`)
-        .order("expense_date", { ascending: true });
-      if (accountId) q = q.eq("account_id", accountId);
-
-      const { data, error } = await q;
+      const { data, error } = await fetchAllRows((from, to) => {
+        let q = client
+          .from("expenses")
+          .select("*, category:categories(*)")
+          .gte("expense_date", `${year}-01-01`)
+          .lt("expense_date", `${year + 1}-01-01`)
+          .order("expense_date", { ascending: true })
+          .order("id")
+          .range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        return q;
+      });
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
 
     async findAllDates(accountId: string | null) {
-      let q = client.from("expenses").select("expense_date");
-      if (accountId) q = q.eq("account_id", accountId);
-      const { data, error } = await q;
+      const { data, error } = await fetchAllRows<{ expense_date: string }>((from, to) => {
+        let q = client.from("expenses").select("expense_date").order("id").range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        return q;
+      });
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
 
     async findAllAmounts(accountId: string | null) {
-      let q = client
-        .from("expenses")
-        .select("expense_date, amount, category_id, payment_method");
-      if (accountId) q = q.eq("account_id", accountId);
-      const { data, error } = await q;
+      const { data, error } = await fetchAllRows<{
+        expense_date: string;
+        amount: number;
+        category_id: string;
+        payment_method: string;
+      }>((from, to) => {
+        let q = client
+          .from("expenses")
+          .select("expense_date, amount, category_id, payment_method")
+          .order("id")
+          .range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        return q;
+      });
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
 
     async findAmountsByDateRange(accountId: string | null, start: string, end: string) {
-      let q = client
-        .from("expenses")
-        .select("amount, category_id")
-        .gte("expense_date", start)
-        .lt("expense_date", end);
-      if (accountId) q = q.eq("account_id", accountId);
-      const { data } = await q;
-      return data ?? [];
+      const { data } = await fetchAllRows<{ amount: number; category_id: string }>((from, to) => {
+        let q = client
+          .from("expenses")
+          .select("amount, category_id")
+          .gte("expense_date", start)
+          .lt("expense_date", end)
+          .order("id")
+          .range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        return q;
+      });
+      return data;
     },
 
     async findDatedAmountsByDateRange(accountId: string | null, start: string, end: string) {
-      let q = client
-        .from("expenses")
-        .select("expense_date, amount, category_id")
-        .gte("expense_date", start)
-        .lt("expense_date", end);
-      if (accountId) q = q.eq("account_id", accountId);
-      const { data } = await q;
-      return data ?? [];
+      const { data } = await fetchAllRows<{ expense_date: string; amount: number; category_id: string }>(
+        (from, to) => {
+          let q = client
+            .from("expenses")
+            .select("expense_date, amount, category_id")
+            .gte("expense_date", start)
+            .lt("expense_date", end)
+            .order("id")
+            .range(from, to);
+          if (accountId) q = q.eq("account_id", accountId);
+          return q;
+        },
+      );
+      return data;
     },
 
     async findRecurringNotesInRange(accountId: string | null, start: string, end: string) {
@@ -104,9 +150,10 @@ export function createExpensesRepo(client: SupabaseClient) {
       let q = client
         .from("expenses")
         .select("*, category:categories(*)")
-        .ilike("concept", `%${query}%`)
         .order("expense_date", { ascending: false })
         .limit(50);
+      const amountFilter = conceptOrAmountFilter(query);
+      q = amountFilter ? q.or(amountFilter) : q.ilike("concept", `%${query}%`);
       if (accountId) q = q.eq("account_id", accountId);
       const { data, error } = await q;
       if (error) throw error;
@@ -185,11 +232,16 @@ export function createExpensesRepo(client: SupabaseClient) {
     },
 
     async findForBackup(accountId: string) {
-      const { data, error } = await client
-        .from("expenses")
-        .select("id, category_id, amount, concept, expense_date, notes, payment_method, transfer_pair_id")
-        .eq("account_id", accountId)
-        .order("expense_date", { ascending: true });
+      // A truncated backup would look complete: read every page.
+      const { data, error } = await fetchAllRows((from, to) =>
+        client
+          .from("expenses")
+          .select("id, category_id, amount, concept, expense_date, notes, payment_method, transfer_pair_id")
+          .eq("account_id", accountId)
+          .order("expense_date", { ascending: true })
+          .order("id")
+          .range(from, to),
+      );
       if (error) return null;
       return data;
     },
@@ -208,7 +260,10 @@ export function createExpensesRepo(client: SupabaseClient) {
         .order("expense_date", { ascending })
         .range(from, to);
       if (accountId) q = q.eq("account_id", accountId);
-      if (search) q = q.ilike("concept", `%${search}%`);
+      if (search) {
+        const amountFilter = conceptOrAmountFilter(search);
+        q = amountFilter ? q.or(amountFilter) : q.ilike("concept", `%${search}%`);
+      }
       if (categoryId) q = q.eq("category_id", categoryId);
 
       const { data, error } = await q;
@@ -217,11 +272,16 @@ export function createExpensesRepo(client: SupabaseClient) {
     },
 
     async findForDedup(accountId: string) {
-      const { data } = await client
-        .from("expenses")
-        .select("expense_date, amount, concept")
-        .eq("account_id", accountId);
-      return data ?? [];
+      const { data } = await fetchAllRows<{ expense_date: string; amount: number; concept: string | null }>(
+        (from, to) =>
+          client
+            .from("expenses")
+            .select("expense_date, amount, concept")
+            .eq("account_id", accountId)
+            .order("id")
+            .range(from, to),
+      );
+      return data;
     },
 
     async create(data: ExpenseInsert) {

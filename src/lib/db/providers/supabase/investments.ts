@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "./fetch-all";
 
 export function createInvestmentsRepo(client: SupabaseClient) {
   return {
@@ -221,21 +222,30 @@ export function createInvestmentsRepo(client: SupabaseClient) {
     },
 
     async findContributionsForBackup(fundIds: string[]) {
-      const { data, error } = await client
-        .from("investment_contributions")
-        .select("id, fund_id, amount, purchase_price, units, contribution_date, notes")
-        .in("fund_id", fundIds)
-        .order("contribution_date", { ascending: true });
+      const { data, error } = await fetchAllRows((from, to) =>
+        client
+          .from("investment_contributions")
+          .select("id, fund_id, amount, purchase_price, units, contribution_date, notes")
+          .in("fund_id", fundIds)
+          .order("contribution_date", { ascending: true })
+          .order("id")
+          .range(from, to),
+      );
       if (error) return null;
       return data;
     },
 
     async findContributionsForDedup(fundIds: string[]) {
-      const { data } = await client
-        .from("investment_contributions")
-        .select("fund_id, amount, contribution_date")
-        .in("fund_id", fundIds);
-      return data ?? [];
+      const { data } = await fetchAllRows<{ fund_id: string; amount: number; contribution_date: string }>(
+        (from, to) =>
+          client
+            .from("investment_contributions")
+            .select("fund_id, amount, contribution_date")
+            .in("fund_id", fundIds)
+            .order("id")
+            .range(from, to),
+      );
+      return data;
     },
 
     async findContributionById(id: string, accountId: string) {

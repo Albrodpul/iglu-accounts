@@ -11,6 +11,10 @@ import { AUTH_STATE_PATH } from "./e2e/auth-state";
  * Auth: run `npm run e2e:login` once and sign in by hand in the window that
  * opens; the session is saved to e2e/.auth/ (gitignored) and reused here.
  */
+// Set E2E_PORT when 3002 is taken by something else (the server must already
+// be running on that port: `npx next dev --port <port>`).
+const BASE_URL = `http://localhost:${process.env.E2E_PORT ?? "3002"}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -20,7 +24,7 @@ export default defineConfig({
   timeout: 90_000,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: BASE_URL,
     // Use the installed Google Chrome — no separate browser download needed.
     channel: "chrome",
     storageState: AUTH_STATE_PATH,
@@ -43,7 +47,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3002/login",
+    url: `${BASE_URL}/login`,
     reuseExistingServer: true,
     timeout: 120_000,
   },

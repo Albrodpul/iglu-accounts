@@ -138,7 +138,7 @@ export function ExpenseListAll({
           )}
           <input
             type="text"
-            placeholder="Buscar concepto..."
+            placeholder="Buscar concepto o importe..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-9 w-full rounded-lg border border-border/70 bg-transparent pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
@@ -185,6 +185,9 @@ export function ExpenseListAll({
           <div className={filterLoading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
           <ExpenseList
             stickyDayHeaders
+            gestureHint
+            // While searching, every match should be visible straight away.
+            collapseFuture={!hasFilters}
             expenses={expenses}
             categories={categories}
             sortable={false}

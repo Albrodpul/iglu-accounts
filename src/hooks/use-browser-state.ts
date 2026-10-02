@@ -71,7 +71,11 @@ export function useIsOffline(): boolean {
 
 const noopSubscribe = () => () => {};
 
-/** One-off client capability check (never changes), `false` during SSR. */
-export function useClientCheck(check: () => boolean): boolean {
-  return useSyncExternalStore(noopSubscribe, check, () => false);
+/**
+ * One-off client capability check (never changes). During SSR and hydration it
+ * reports `serverValue` — pick the value that makes the first paint look right
+ * for most users (e.g. `true` for a capability nearly every browser has).
+ */
+export function useClientCheck(check: () => boolean, serverValue = false): boolean {
+  return useSyncExternalStore(noopSubscribe, check, () => serverValue);
 }

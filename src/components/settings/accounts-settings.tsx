@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2, Wallet, Loader2 } from "lucide-react";
+import { ChevronRight, Pencil, Plus, Trash2, Wallet, Loader2 } from "lucide-react";
+import { formatDate } from "@/lib/format";
+import { SettingsSection } from "./settings-section";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
@@ -107,20 +109,16 @@ export function AccountsSettings({ accounts }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[15px] font-semibold">Cuentas</p>
-          <p className="text-sm text-muted-foreground">
-            Gestiona las cuentas del hogar. Cada cuenta tiene sus propios gastos,
-            categorías e inversiones.
-          </p>
-        </div>
-        <Button type="button" onClick={openCreate} className="shrink-0">
+    <SettingsSection
+      title="Cuentas"
+      description="Cada cuenta tiene sus propios movimientos, categorías e inversiones."
+      action={
+        <Button type="button" size="sm" onClick={openCreate}>
           <Plus className="size-4" />
           Añadir
         </Button>
-      </div>
+      }
+    >
 
       {accounts.length === 0 ? (
         <EmptyState
@@ -136,20 +134,22 @@ export function AccountsSettings({ accounts }: Props) {
               disabled={isPending}
               onTap={() => openEdit(account)}
               onDelete={() => handleDelete(account)}
-              className="flex items-center justify-between rounded-md border border-border/80 px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-border/80 px-3 py-2.5"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                   <Wallet className="size-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">{account.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    Creada:{" "}
-                    {new Date(account.created_at).toLocaleDateString("es-ES")}
+                    Creada el{" "}
+                    {formatDate(account.created_at)}
                   </p>
                 </div>
               </div>
+              {/* Phones: tapping the row opens it (rename or delete); say so. */}
+              <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground md:hidden" />
               <div className="hidden gap-1 md:flex">
                 <Button
                   type="button"
@@ -233,6 +233,6 @@ export function AccountsSettings({ accounts }: Props) {
       </Dialog>
 
       {ConfirmDialog}
-    </div>
+    </SettingsSection>
   );
 }

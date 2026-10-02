@@ -54,18 +54,19 @@ function formatSchedule(item: RecurringExpenseWithCategory): string {
 
   if (!item.expense_schedule_type) return trigger;
 
+  // Charged on one day but dated on another: say both plainly.
   let stamp: string;
   switch (item.expense_schedule_type) {
     case "last_day":
-      stamp = "último día";
+      stamp = "de fin de mes";
       break;
     case "last_weekday":
-      stamp = `último ${WEEKDAYS[item.expense_day_of_month ?? 0].toLowerCase()}`;
+      stamp = `del último ${WEEKDAYS[item.expense_day_of_month ?? 0].toLowerCase()}`;
       break;
     default:
-      stamp = item.expense_day_of_month ? `día ${item.expense_day_of_month}` : "mismo día";
+      stamp = item.expense_day_of_month ? `del día ${item.expense_day_of_month}` : "del mismo día";
   }
-  return `${trigger} → fecha: ${stamp}`;
+  return `${trigger} · se anota con fecha ${stamp}`;
 }
 
 export function RecurringList({ recurring, categories }: Props) {

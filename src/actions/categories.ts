@@ -51,6 +51,7 @@ export async function createCategory(formData: FormData) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
   return { success: true };
@@ -79,6 +80,7 @@ export async function updateCategory(id: string, formData: FormData) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
   revalidatePath("/summary");
@@ -172,5 +174,6 @@ export async function deleteCategory(id: string) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   return { success: true };
 }

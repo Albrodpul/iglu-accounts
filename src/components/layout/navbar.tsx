@@ -21,7 +21,7 @@ import {
   EyeOff,
   Search,
   CircleHelp,
-  Menu,
+  Repeat,
   Sun,
   Moon,
   Monitor,
@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { MovementDialog } from "@/components/expenses/movement-dialog";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { GlobalSearch } from "@/components/expenses/global-search";
 import type { Category } from "@/types";
 
@@ -54,8 +55,14 @@ const navItemsLeft = [
 
 const navItemsRight = [
   { href: "/summary", label: "Resumen", icon: BarChart3 },
+  { href: "/recurring", label: "Movimientos fijos", icon: Repeat },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
+
+const menuRowClass =
+  "flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-[15px] font-semibold transition-colors hover:bg-muted/50";
+const menuIconClass = "h-[18px] w-[18px] shrink-0 text-muted-foreground";
+const menuGroupLabelClass = "px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
 
 type Props = {
@@ -126,7 +133,6 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(() => pathname.startsWith("/import"));
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
@@ -210,6 +216,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
     : [{ href: "/summary", label: "Resumen", icon: BarChart3 }];
   const moreSheetRoutes = [
     "/settings",
+    "/recurring",
     "/import",
     ...(hasInvestments ? ["/summary"] : []),
   ];
@@ -415,14 +422,6 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
           >
             <Search className="h-3.5 w-3.5" />
           </button>
-          <button
-            type="button"
-            onClick={() => setHeaderMenuOpen(true)}
-            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-            aria-label="Menú"
-          >
-            <Menu className="h-3.5 w-3.5" />
-          </button>
         </div>
       </header>
 
@@ -477,129 +476,96 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         </div>
       </nav>
 
-      {/* Mobile more sheet */}
+      {/* Mobile menu: everything that isn't in the bottom bar, in one place. */}
       <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) setExportError(null); }}>
-        <DialogContent variant="sheet" showCloseButton={false} className="md:hidden">
-          <DialogHeader className="px-5 pt-7 pb-1">
-            <DialogTitle>Más opciones</DialogTitle>
-            <DialogDescription>
-              Accesos rápidos para módulos secundarios.
-            </DialogDescription>
+        <DialogContent variant="menu" showCloseButton={false} className="md:hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Menú</DialogTitle>
+            <DialogDescription>Otras pantallas, copia de seguridad y preferencias</DialogDescription>
           </DialogHeader>
-          <DialogBody className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <DialogBody className="px-3 pt-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {hasInvestments && (
-              <Link
-                href="/summary"
-                onClick={() => setMoreOpen(false)}
-                className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
-              >
-                <span className="flex items-center gap-3 text-sm font-semibold">
-                  <BarChart3 className="h-[18px] w-[18px] text-muted-foreground" />
-                  Resumen
-                </span>
+              <Link href="/summary" onClick={() => setMoreOpen(false)} className={menuRowClass}>
+                <BarChart3 className={menuIconClass} />
+                <span className="flex-1">Resumen</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
             )}
-            <Link
-              href="/settings"
-              onClick={() => setMoreOpen(false)}
-              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
-            >
-              <span className="flex items-center gap-3 text-sm font-semibold">
-                <Settings className="h-[18px] w-[18px] text-muted-foreground" />
-                Ajustes
-              </span>
+            <Link href="/recurring" onClick={() => setMoreOpen(false)} className={menuRowClass}>
+              <Repeat className={menuIconClass} />
+              <span className="flex-1">Movimientos fijos</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
-            <Link
-              href="/import"
-              onClick={() => setMoreOpen(false)}
-              className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
-            >
-              <span className="flex items-center gap-3 text-sm font-semibold">
-                <Upload className="h-[18px] w-[18px] text-muted-foreground" />
-                Importar
-              </span>
+            <Link href="/settings" onClick={() => setMoreOpen(false)} className={menuRowClass}>
+              <Settings className={menuIconClass} />
+              <span className="flex-1">Ajustes</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-muted/50 disabled:opacity-60"
-            >
-              <span className="flex items-center gap-3 text-sm font-semibold">
-                <Download className="h-[18px] w-[18px] text-muted-foreground" />
-                {exporting ? "Exportando..." : "Exportar"}
-              </span>
-            </button>
-            {exportError && (
-              <p className="px-3 text-xs text-rose-500">{exportError}</p>
-            )}
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
 
-      {/* Mobile header menu */}
-      <Dialog open={headerMenuOpen} onOpenChange={setHeaderMenuOpen}>
-        <DialogContent variant="sheet" showCloseButton={false} className="md:hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Menú</DialogTitle>
-            <DialogDescription>Opciones de la aplicación</DialogDescription>
-          </DialogHeader>
-          <DialogBody className="space-y-0.5 px-3 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button
-              type="button"
-              onClick={() => { toggleDiscrete(); setHeaderMenuOpen(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors hover:bg-muted/50"
-            >
-              {discrete ? <EyeOff className="h-[18px] w-[18px] text-muted-foreground" /> : <Eye className="h-[18px] w-[18px] text-muted-foreground" />}
-              {discrete ? "Mostrar importes" : "Ocultar importes"}
+            <p className={menuGroupLabelClass}>Copia de seguridad</p>
+            <Link href="/import" onClick={() => setMoreOpen(false)} className={menuRowClass}>
+              <Upload className={menuIconClass} />
+              <span className="flex-1">Importar</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <button type="button" onClick={handleExport} disabled={exporting} className={cn(menuRowClass, "disabled:opacity-60")}>
+              <Download className={menuIconClass} />
+              {exporting ? "Exportando..." : "Exportar"}
             </button>
-            <div className="flex items-center gap-1 px-3 py-2">
-              <span className="text-sm font-semibold mr-auto">Tema</span>
-              <button
-                type="button"
-                onClick={() => setTheme("light")}
-                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "light" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
-              >
-                <Sun className="h-4 w-4" />
+            {exportError && <p className="px-3 text-xs text-expense">{exportError}</p>}
+
+            <p className={menuGroupLabelClass}>Preferencias</p>
+            <div className={cn(menuRowClass, "cursor-default hover:bg-transparent")}>
+              {discrete ? <EyeOff className={menuIconClass} /> : <Eye className={menuIconClass} />}
+              <span id="menu-discrete-label" className="flex-1">Ocultar importes</span>
+              <ToggleSwitch enabled={discrete} onToggle={toggleDiscrete} aria-labelledby="menu-discrete-label" />
+            </div>
+            <div className={cn(menuRowClass, "cursor-default hover:bg-transparent")}>
+              <Sun className={menuIconClass} />
+              <span className="flex-1">Tema</span>
+              <div role="group" aria-label="Tema" className="flex items-center gap-1 rounded-lg bg-muted/70 p-1">
+                {(
+                  [
+                    ["light", "Claro", Sun],
+                    ["dark", "Oscuro", Moon],
+                    ["system", "Sistema", Monitor],
+                  ] as const
+                ).map(([value, label, Icon]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTheme(value)}
+                    aria-label={label}
+                    aria-pressed={theme === value}
+                    className={cn(
+                      "flex h-9 w-10 cursor-pointer items-center justify-center rounded-md transition-colors",
+                      theme === value ? "bg-card text-foreground shadow-sm dark:bg-white/10" : "text-muted-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-2 border-t border-border/60 pt-2">
+              <button type="button" onClick={() => { setMoreOpen(false); setHelpOpen(true); }} className={menuRowClass}>
+                <CircleHelp className={menuIconClass} />
+                Ayuda
               </button>
               <button
                 type="button"
-                onClick={() => setTheme("dark")}
-                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "dark" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
+                onClick={() => {
+                  setMoreOpen(false);
+                  startSigningOutTransition(async () => { await signOut(); });
+                }}
+                disabled={isSigningOut}
+                className={cn(menuRowClass, "text-expense disabled:opacity-70")}
               >
-                <Moon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setTheme("system")}
-                className={`rounded-md p-2 transition-colors cursor-pointer ${theme === "system" ? "bg-primary/15 text-foreground" : "text-muted-foreground"}`}
-              >
-                <Monitor className="h-4 w-4" />
+                <LogOut className="h-[18px] w-[18px] shrink-0" />
+                Cerrar sesión
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => { setHeaderMenuOpen(false); setHelpOpen(true); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors hover:bg-muted/50"
-            >
-              <CircleHelp className="h-[18px] w-[18px] text-muted-foreground" />
-              Ayuda
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setHeaderMenuOpen(false);
-                startSigningOutTransition(async () => { await signOut(); });
-              }}
-              disabled={isSigningOut}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-rose-500 transition-colors hover:bg-muted/50 disabled:opacity-70"
-            >
-              <LogOut className="h-[18px] w-[18px]" />
-              Cerrar sesión
-            </button>
           </DialogBody>
         </DialogContent>
       </Dialog>
@@ -611,7 +577,16 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
             <DialogTitle>Ayuda</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div>
+            <div className="md:hidden">
+              <p className="mb-2 text-sm font-semibold text-muted-foreground">Gestos en las listas</p>
+              <ul className="space-y-2 text-sm">
+                <li>Toca un movimiento para editarlo.</li>
+                <li>Deslízalo a la izquierda para borrarlo (se puede deshacer).</li>
+                <li>Deslízalo a la derecha para duplicarlo.</li>
+                <li>Arrastra una hoja hacia abajo para cerrarla.</li>
+              </ul>
+            </div>
+            <div className="hidden md:block">
               <p className="text-sm font-semibold text-muted-foreground mb-2">Atajos de teclado</p>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

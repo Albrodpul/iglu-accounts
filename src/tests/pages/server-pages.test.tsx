@@ -168,6 +168,7 @@ import DashboardPage from "@/app/(app)/dashboard/page";
 import ExpensesPage from "@/app/(app)/expenses/page";
 import SummaryPage from "@/app/(app)/summary/page";
 import SettingsPage from "@/app/(app)/settings/page";
+import RecurringPage from "@/app/(app)/recurring/page";
 import InvestmentsPage from "@/app/(app)/investments/page";
 import ImportPage from "@/app/(app)/import/page";
 
@@ -277,11 +278,24 @@ describe("app pages", () => {
     expect(screen.getByTestId("balance-year")).toBeInTheDocument();
   });
 
-  it("renders settings page", async () => {
+  it("renders settings page as one column of sections, without the fixed movements", async () => {
     const element = await SettingsPage();
     render(element);
 
-    expect(screen.getByText("Ajustes")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Ajustes" })).toBeInTheDocument();
+    for (const id of ["accounts-settings", "modules-settings", "passkeys-settings"]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument();
+    }
+    expect(screen.getByRole("heading", { name: "Apariencia" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeInTheDocument();
+    expect(screen.queryByTestId("recurring-list")).not.toBeInTheDocument();
+  });
+
+  it("renders fixed movements on their own page", async () => {
+    const element = await RecurringPage();
+    render(element);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Movimientos fijos" })).toBeInTheDocument();
     expect(screen.getByTestId("recurring-list")).toBeInTheDocument();
   });
 

@@ -1,5 +1,6 @@
 import { Amount } from "@/components/ui/amount";
 import { MONTHS } from "@/lib/format";
+import Link from "next/link";
 import { CalendarClock } from "lucide-react";
 import { ChargeNowButton } from "./charge-now-button";
 import type { RecurringExpenseWithCategory } from "@/types";
@@ -22,7 +23,11 @@ export function PendingFixed({ items, month }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <CalendarClock className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-muted-foreground">Fijos pendientes en {monthName}</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            <Link href="/recurring" className="hover:text-foreground hover:underline">
+              Fijos pendientes en {monthName}
+            </Link>
+          </h3>
         </div>
         <span className={`text-base font-extrabold tabular-nums ${total >= 0 ? "text-income" : "text-expense"}`}>
           <Amount value={total} />

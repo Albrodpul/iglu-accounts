@@ -12,40 +12,13 @@ import {
 } from "@/lib/push-client";
 import { toast } from "sonner";
 import { TrendingUp, Bell } from "lucide-react";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { SettingsRow, SettingsSection } from "./settings-section";
 
 type Props = {
   hasInvestments: boolean;
   hasNotifications: boolean;
 };
-
-function ToggleSwitch({
-  enabled,
-  loading,
-  onToggle,
-}: {
-  enabled: boolean;
-  loading: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      disabled={loading}
-      onClick={onToggle}
-      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-        enabled ? "bg-primary" : "bg-muted"
-      }`}
-    >
-      <span
-        className={`pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${
-          enabled ? "translate-x-5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
 
 export function ModulesSettings({ hasInvestments, hasNotifications }: Props) {
   const [investEnabled, setInvestEnabled] = useState(hasInvestments);
@@ -128,91 +101,80 @@ export function ModulesSettings({ hasInvestments, hasNotifications }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Activa o desactiva módulos opcionales para esta cuenta
-      </p>
+    <SettingsSection title="Módulos" description="Funciones opcionales de esta cuenta.">
+      <div className="divide-y divide-border/60">
+        <SettingsRow
+          icon={<TrendingUp className="h-[18px] w-[18px] text-debt" />}
+          title={<span id="module-investments">Inversiones</span>}
+          description="Fondos, rentabilidades y desglose de activos."
+          control={
+            <ToggleSwitch
+              enabled={investEnabled}
+              loading={investLoading}
+              onToggle={handleInvestToggle}
+              aria-labelledby="module-investments"
+            />
+          }
+        />
 
-      {/* Inversiones */}
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-border/80 bg-card p-5">
-        <div className="flex min-w-0 items-center gap-3.5 md:gap-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 md:h-10 md:w-10">
-            <TrendingUp className="h-[18px] w-[18px] text-amber-500" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[15px] font-semibold">Inversiones</p>
-            <p className="text-sm text-muted-foreground">
-              Control de fondos, rentabilidades y desglose de activos
-            </p>
-          </div>
-        </div>
-        <ToggleSwitch enabled={investEnabled} loading={investLoading} onToggle={handleInvestToggle} />
-      </div>
-
-      {/* Notificaciones */}
-      <div className="rounded-lg border border-border/80 bg-card p-5 space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3.5 md:gap-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 md:h-10 md:w-10">
-              <Bell className="h-[18px] w-[18px] text-violet-500" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[15px] font-semibold">Notificaciones</p>
-              <p className="text-sm text-muted-foreground">
-                Aviso cuando se añaden movimientos fijos automáticamente
-              </p>
-            </div>
-          </div>
-          <ToggleSwitch enabled={notifEnabled} loading={notifLoading} onToggle={handleNotifToggle} />
-        </div>
-
-        {notifEnabled && pushSupported && (
-          <div className="ml-[52px] md:ml-[56px]">
-            {deviceSubscribed ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-income">Este dispositivo recibe notificaciones</p>
+        <SettingsRow
+          icon={<Bell className="h-[18px] w-[18px] text-transfer" />}
+          title={<span id="module-notifications">Notificaciones</span>}
+          description="Aviso cuando se cargan los movimientos fijos."
+          control={
+            <ToggleSwitch
+              enabled={notifEnabled}
+              loading={notifLoading}
+              onToggle={handleNotifToggle}
+              aria-labelledby="module-notifications"
+            />
+          }
+        >
+          {notifEnabled &&
+            (pushSupported ? (
+              deviceSubscribed ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  <span className="text-income">Este dispositivo las recibe</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await sendTestNotification();
+                      if (result?.error) toast.error(result.error);
+                      else toast.success("Notificación de prueba enviada");
+                    }}
+                    disabled={notifLoading}
+                    className="cursor-pointer font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    Enviar prueba
+                  </button>
                   <button
                     type="button"
                     onClick={handleUnsubscribeDevice}
                     disabled={notifLoading}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
+                    className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                   >
-                    Desuscribir
+                    Dejar de recibirlas aquí
                   </button>
                 </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={async () => {
-                    const result = await sendTestNotification();
-                    if (result?.error) toast.error(result.error);
-                    else toast.success("Notificación de prueba enviada");
-                  }}
+                  onClick={handleSubscribeDevice}
                   disabled={notifLoading}
-                  className="text-xs font-medium text-violet-500 hover:underline cursor-pointer disabled:opacity-50"
+                  className="cursor-pointer text-xs font-medium text-primary hover:underline disabled:opacity-50"
                 >
-                  Enviar prueba
+                  Activar en este dispositivo
                 </button>
-              </div>
+              )
             ) : (
-              <button
-                type="button"
-                onClick={handleSubscribeDevice}
-                disabled={notifLoading}
-                className="text-xs font-medium text-primary hover:underline cursor-pointer disabled:opacity-50"
-              >
-                Activar en este dispositivo
-              </button>
-            )}
-          </div>
-        )}
-
-        {notifEnabled && !pushSupported && (
-          <p className="ml-[52px] md:ml-[56px] text-xs text-muted-foreground">
-            Este navegador no soporta notificaciones push
-          </p>
-        )}
+              // The switch is the account's setting; this browser just can't be one of the receivers.
+              <p className="text-xs text-muted-foreground">
+                Activadas para la cuenta. Este navegador no puede recibirlas; llegarán a los dispositivos donde
+                las actives.
+              </p>
+            ))}
+        </SettingsRow>
       </div>
-    </div>
+    </SettingsSection>
   );
 }

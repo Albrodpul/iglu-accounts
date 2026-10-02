@@ -148,6 +148,7 @@ export async function createRecurringExpense(formData: FormData) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/summary");
   revalidatePath("/dashboard");
   return { success: true };
@@ -197,6 +198,7 @@ export async function updateRecurringExpense(id: string, formData: FormData) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/summary");
   revalidatePath("/dashboard");
   return { success: true };
@@ -287,6 +289,7 @@ export async function triggerRecurringExpenses() {
   }
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/summary");
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
@@ -306,6 +309,7 @@ export async function deleteRecurringExpense(id: string) {
   if (error) return { error };
 
   revalidatePath("/settings");
+  revalidatePath("/recurring");
   revalidatePath("/summary");
   revalidatePath("/dashboard");
   return { success: true };

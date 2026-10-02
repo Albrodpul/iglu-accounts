@@ -46,6 +46,11 @@ const dialogContentVariants = {
   // Bottom sheet on phones, centered modal from `sm` up.
   sheet:
     "fixed inset-x-0 bottom-0 z-50 flex h-[94dvh] max-h-[94dvh] w-full translate-x-0 translate-y-0 flex-col overflow-hidden rounded-t-2xl border border-border bg-card p-0 text-sm ring-1 ring-foreground/10 duration-200 outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:h-auto sm:max-h-[88dvh] sm:max-w-[calc(100%-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:duration-100 sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
+  // Like `sheet`, but only as tall as its content: for menus and short
+  // confirmations, where a full-height sheet would be mostly empty and put the
+  // options far from the thumb.
+  menu:
+    "fixed inset-x-0 bottom-0 z-50 flex h-auto max-h-[88dvh] w-full translate-x-0 translate-y-0 flex-col overflow-hidden rounded-t-2xl border border-border bg-card p-0 text-sm ring-1 ring-foreground/10 duration-200 outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:h-auto sm:max-h-[88dvh] sm:max-w-[calc(100%-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:duration-100 sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
 } as const
 
 /**
@@ -144,7 +149,7 @@ function DialogContent({
   showCloseButton?: boolean
   variant?: keyof typeof dialogContentVariants
 }) {
-  const isSheet = variant === "sheet"
+  const isSheet = variant !== "default"
   const { popupRef, closeRef, handlers } = useSwipeToDismiss(isSheet)
   return (
     <DialogPortal>

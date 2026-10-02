@@ -268,6 +268,7 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
   revalidatePath("/summary");
   revalidatePath("/investments");
   revalidatePath("/settings");
+  revalidatePath("/recurring");
 
   return {
     categories: { imported: categoriesImported, existing: categoriesExisting },

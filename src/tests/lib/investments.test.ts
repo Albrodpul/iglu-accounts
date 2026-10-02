@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatPercent } from "@/lib/format";
-import { fundColors, groupPieSlices, OTHERS_COLOR, positionValue } from "@/lib/investments";
+import { formatPercent, formatWhen } from "@/lib/format";
+import { fundColors, groupPieSlices, lastPriceUpdate, OTHERS_COLOR, positionValue } from "@/lib/investments";
 import { pieColor } from "@/lib/chart-colors";
 
 // Intl puts a non-breaking space before "%".
@@ -43,5 +43,27 @@ describe("fund colours", () => {
     expect(colors.get("f1")).toBe(OTHERS_COLOR);
     expect(colors.get("f0")).toBe(OTHERS_COLOR);
     expect(groupPieSlices(funds.map((f) => ({ value: f.current_value }))).others).toHaveLength(2);
+  });
+});
+
+describe("price update time", () => {
+  it("takes the latest update among automatically priced positions only", () => {
+    const fund = (updated_at: string, isin: string | null = null, ticker: string | null = null) => ({ isin, ticker, updated_at });
+    expect(
+      lastPriceUpdate([
+        fund("2026-10-02T16:00:00Z", "IE00BYX5NX33"),
+        fund("2026-10-02T17:00:05Z", null, "MU"),
+        fund("2026-10-03T09:00:00Z"), // manual position edited later: not a price update
+      ]),
+    ).toBe("2026-10-02T17:00:05Z");
+    expect(lastPriceUpdate([fund("2026-10-03T09:00:00Z")])).toBeNull();
+  });
+
+  it("says when in words", () => {
+    const now = new Date(2026, 9, 2, 20, 30);
+    expect(formatWhen(new Date(2026, 9, 2, 18, 2), now)).toBe("hoy a las 18:02");
+    expect(formatWhen(new Date(2026, 9, 1, 23, 0), now)).toBe("ayer a las 23:00");
+    expect(formatWhen(new Date(2026, 8, 28, 10, 0), now)).toBe("el 28 sept a las 10:00");
+    expect(formatWhen(new Date(2025, 11, 31, 9, 5), now)).toBe("el 31 dic 2025 a las 09:05");
   });
 });

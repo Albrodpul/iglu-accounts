@@ -17,7 +17,7 @@ export function NavRefreshButton() {
     if (result.error) {
       toast.error(result.error);
     } else if (result.updated === 0) {
-      toast.info("Todos los NAV ya estaban actualizados");
+      toast.info("No se ha podido actualizar ningún precio");
     } else {
       toast.success(
         result.updated === 1

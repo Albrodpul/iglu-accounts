@@ -350,7 +350,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       </nav>
 
       {/* Desktop header */}
-      <header className="fixed top-0 left-64 right-0 z-30 hidden h-14 items-center justify-end border-b border-border/50 bg-card/95 backdrop-blur-sm px-6 md:flex gap-2">
+      <header className="desktop-header fixed top-0 left-64 right-0 z-30 hidden h-14 items-center justify-end border-b border-border/50 bg-card/95 backdrop-blur-sm px-6 md:flex gap-2">
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
@@ -427,7 +427,7 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
 
       {/* Offline banner */}
       {offline && (
-        <div className="fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:left-64 md:top-14">
+        <div className="offline-banner fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:left-64 md:top-14">
           Sin conexión — datos en caché
         </div>
       )}

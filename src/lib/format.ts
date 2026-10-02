@@ -49,6 +49,25 @@ export function formatDateWithYear(date: string): string {
   }).format(new Date(date));
 }
 
+const timeFormatter = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" });
+const dayMonthFormatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+
+/**
+ * When something last happened, relative to `now` and in the viewer's time
+ * zone: "hoy a las 18:02", "ayer a las 23:00", "el 28 sept a las 10:00"
+ * (with the year once it isn't the current one).
+ */
+export function formatWhen(date: Date, now: Date = new Date()): string {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  const time = timeFormatter.format(date);
+  if (days === 0) return `hoy a las ${time}`;
+  if (days === 1) return `ayer a las ${time}`;
+  const day = dayMonthFormatter.format(date);
+  const year = date.getFullYear() === now.getFullYear() ? "" : ` ${date.getFullYear()}`;
+  return `el ${day}${year} a las ${time}`;
+}
+
 const decimalFormatters = new Map<number, Intl.NumberFormat>();
 
 /** Plain number the Spanish way, with up to `maxDecimals` decimals: "67,15", "14,2049", "1.234,5". */

@@ -13,6 +13,18 @@ export function positionValue(fund: Position): number {
 }
 
 /**
+ * When the automatically priced positions (the ones with an ISIN or ticker)
+ * were last refreshed, by the scheduled job or the manual button: the most
+ * recent `updated_at` among them. `null` when nothing is priced automatically.
+ */
+export function lastPriceUpdate(
+  funds: { isin: string | null; ticker: string | null; updated_at: string }[],
+): string | null {
+  const stamps = funds.filter((fund) => fund.isin || fund.ticker).map((fund) => fund.updated_at);
+  return stamps.length > 0 ? stamps.reduce((latest, stamp) => (stamp > latest ? stamp : latest)) : null;
+}
+
+/**
  * Splits chart items into the slices drawn on their own and the ones grouped
  * as "Otros". Up to MAX_PIE_SLICES everything is drawn, in the given order;
  * beyond that, the biggest ones are.

@@ -7,6 +7,8 @@ import { InvestmentPieChart } from "@/components/investments/investment-pie-char
 import { NavRefreshButton } from "@/components/investments/nav-refresh-button";
 import { Amount } from "@/components/ui/amount";
 import { formatPercent } from "@/lib/format";
+import { lastPriceUpdate } from "@/lib/investments";
+import { PricesUpdated } from "@/components/investments/prices-updated";
 
 export default async function InvestmentsPage() {
   const enabled = await hasInvestmentsEnabled();
@@ -17,6 +19,7 @@ export default async function InvestmentsPage() {
     getInvestmentFunds(),
   ]);
 
+  const pricesUpdatedAt = lastPriceUpdate(funds);
   const totalInvested = funds.reduce((s, f) => s + f.invested_amount, 0);
   const totalValue = funds.reduce((s, f) => s + f.current_value, 0);
   const totalReturn = totalValue - totalInvested;
@@ -28,8 +31,11 @@ export default async function InvestmentsPage() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold md:text-3xl">Inversiones</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold md:text-3xl">Inversiones</h1>
+          {pricesUpdatedAt && <PricesUpdated at={pricesUpdatedAt} />}
+        </div>
         <div className="flex items-center gap-2">
           {funds.some((f) => f.isin) && <NavRefreshButton />}
           <InvestmentTypeManager types={types} funds={funds} />

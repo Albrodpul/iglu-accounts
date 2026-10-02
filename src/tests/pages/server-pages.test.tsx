@@ -273,9 +273,11 @@ describe("app pages", () => {
     });
     render(element);
 
-    expect(screen.getByText("Resumen")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Resumen" })).toBeInTheDocument();
     expect(screen.getByTestId("year-selector")).toBeInTheDocument();
+    // Balance and the month-by-month chart share the first view.
     expect(screen.getByTestId("balance-year")).toBeInTheDocument();
+    expect(screen.getByTestId("monthly-chart")).toBeInTheDocument();
   });
 
   it("renders settings page as one column of sections, without the fixed movements", async () => {

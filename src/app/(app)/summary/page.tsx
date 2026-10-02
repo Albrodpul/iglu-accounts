@@ -40,8 +40,13 @@ export default async function SummaryPage({ searchParams }: Props) {
   const specialCategories = { debtCategoryId, transferCategoryId };
 
   // Monthly totals (including debts as separate bar)
+  const today = new Date();
+  // Months that have not started yet only hold what was entered ahead of time.
+  const isFutureMonth = (i: number) =>
+    year > today.getFullYear() || (year === today.getFullYear() && i > today.getMonth());
   const monthlyData = summarizeMonths(expenses, specialCategories).map((m, i) => ({
     name: MONTHS[i].substring(0, 3),
+    future: isFutureMonth(i),
     gastos: Math.abs(m.gastos),
     ingresos: m.ingresos,
     deudas: m.deudas,
@@ -53,7 +58,10 @@ export default async function SummaryPage({ searchParams }: Props) {
   // Category breakdown
   const spent = spentByCategory(expenses);
   const categoryTotals = categories
+    // A transfer between your own bank and cash moves money; it is not spending.
+    .filter((cat) => cat.id !== transferCategoryId)
     .map((cat) => ({
+      id: cat.id,
       name: cat.name,
       color: cat.color || "#64748b",
       icon: cat.icon || "",
@@ -68,6 +76,7 @@ export default async function SummaryPage({ searchParams }: Props) {
     const debtTotal = sumCategory(expenses, debtCat.id);
     if (debtTotal > 0) {
       categoryTotals.push({
+        id: debtCat.id,
         name: debtCat.name,
         color: debtCat.color || "#f59e0b",
         icon: debtCat.icon || "🤝",
@@ -101,8 +110,7 @@ export default async function SummaryPage({ searchParams }: Props) {
 
       <SummaryTabs
         tabs={[
-          { value: "resumen", label: "Balance del año", short: "Balance" },
-          { value: "mensual", label: "Ingresos vs. gastos por mes", short: "Mes a mes" },
+          { value: "resumen", label: "Resumen del año", short: "Resumen" },
           { value: "anual", label: "Tabla por categoría y mes", short: "Categoría × mes" },
           { value: "categorias", label: "Ranking de gasto por categoría", short: "Por categoría" },
           { value: "comparar", label: "Comparar dos periodos", short: "Comparar" },
@@ -111,14 +119,12 @@ export default async function SummaryPage({ searchParams }: Props) {
             : []),
         ]}
       >
-        <TabsContent value="resumen" className="mt-4">
+        <TabsContent value="resumen" className="mt-4 space-y-4">
           <BalanceYear year={year} neto={totals.net} kpis={kpis} />
-        </TabsContent>
-
-        <TabsContent value="mensual" className="mt-4">
-          <div className="glass-panel p-5 md:p-6">
-            <MonthlyChart data={monthlyData} showDebts={hasAnyDebts} />
-          </div>
+          <section className="glass-panel p-5 md:p-6" aria-label="Ingresos y gastos por mes">
+            <h2 className="mb-3 text-base font-bold">Mes a mes</h2>
+            <MonthlyChart data={monthlyData} year={year} showDebts={hasAnyDebts} />
+          </section>
         </TabsContent>
 
         <TabsContent value="anual" className="mt-4">
@@ -134,14 +140,14 @@ export default async function SummaryPage({ searchParams }: Props) {
         </TabsContent>
 
         <TabsContent value="categorias" className="mt-4">
-          <div className="glass-panel p-5 md:p-6">
-            <CategoryBreakdown data={categoryTotals} />
+          <div className="glass-panel max-w-2xl p-5 md:p-6">
+            <CategoryBreakdown data={categoryTotals} year={year} />
           </div>
         </TabsContent>
 
         <TabsContent value="comparar" className="mt-4">
           <div className="glass-panel p-5 md:p-6">
-            <YearComparison availableYears={availablePeriods.map((p) => p.year)} />
+            <YearComparison key={year} year={year} availableYears={availablePeriods.map((p) => p.year)} />
           </div>
         </TabsContent>
 

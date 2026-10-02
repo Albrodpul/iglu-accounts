@@ -14,6 +14,8 @@ const PAGE_SIZE = 50;
 type Props = {
   initialExpenses: ExpenseWithCategory[];
   initialHasMore: boolean;
+  /** Category the initial page was already filtered by (from `?category=`). */
+  initialCategoryFilter?: string;
   categories: Category[];
   debtCategoryId?: string | null;
   transferCategoryId?: string | null;
@@ -36,6 +38,7 @@ function SkeletonRow() {
 export function ExpenseListAll({
   initialExpenses,
   initialHasMore,
+  initialCategoryFilter = "",
   categories,
   debtCategoryId,
   transferCategoryId,
@@ -47,7 +50,7 @@ export function ExpenseListAll({
   const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
   const [sortAsc, setSortAsc] = useState(false);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");

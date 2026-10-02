@@ -107,7 +107,8 @@ export function MonthSelector({ month, year, nullable = false, basePath = "/expe
           // With a month picked, phones drop the fixed width so the title and the arrows share one row.
           className={`flex items-center justify-center gap-1 text-sm font-semibold cursor-pointer hover:text-primary transition-colors ${noSelection ? "min-w-[110px]" : "px-1.5 sm:min-w-[110px]"}`}
         >
-          {noSelection ? "Todos los meses" : `${MONTHS[month! - 1].substring(0, 3)} ${year}`}
+          {/* A year without a month is "all of that year". */}
+          {noSelection ? (year ? `Todo ${year}` : "Todos los meses") : `${MONTHS[month! - 1].substring(0, 3)} ${year}`}
           <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${view !== "closed" ? "rotate-90" : ""}`} />
         </button>
         {hasSelection && (
@@ -154,7 +155,7 @@ export function MonthSelector({ month, year, nullable = false, basePath = "/expe
                   <button
                     onClick={clearMonth}
                     className={`col-span-3 mb-1 rounded-md px-2 py-2 text-xs font-medium transition-colors cursor-pointer ${
-                      noSelection ? "bg-primary text-primary-foreground" : "hover:bg-muted/60 text-muted-foreground"
+                      noSelection && !year ? "bg-primary text-primary-foreground" : "hover:bg-muted/60 text-muted-foreground"
                     }`}
                   >
                     Todos los meses

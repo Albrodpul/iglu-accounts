@@ -1,4 +1,4 @@
-import { getExpenses, getExpensesPaginated, getAvailablePeriods } from "@/actions/expenses";
+import { getExpenses, getExpensesByYear, getExpensesPaginated, getAvailablePeriods } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
@@ -30,8 +30,13 @@ export default async function ExpensesPage({ searchParams }: Props) {
     getTransferCategoryId(),
   ]);
 
+  // `?year=` without a month: the whole year (the yearly summary links here).
+  const wholeYear = !hasMonth && !!params.year && Number.isInteger(year);
   const monthExpenses = hasMonth ? await getExpenses({ month, year }) : null;
-  const allExpensesPage = !hasMonth ? await getExpensesPaginated({ page: 0, limit: 50, ascending: false }) : null;
+  const yearExpenses = wholeYear ? await getExpensesByYear(year) : null;
+  const allExpensesPage = !hasMonth && !wholeYear
+    ? await getExpensesPaginated({ page: 0, limit: 50, ascending: false, categoryId: categoryFilter || undefined })
+    : null;
 
   const totals = monthExpenses
     ? calculateFinancialTotals(monthExpenses, debtCategoryId, transferCategoryId)
@@ -59,7 +64,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
           </div>
           <MonthSelector
             month={hasMonth ? month : null}
-            year={hasMonth ? year : null}
+            year={hasMonth || wholeYear ? year : null}
             availablePeriods={availablePeriods}
             nullable
           />
@@ -70,11 +75,12 @@ export default async function ExpensesPage({ searchParams }: Props) {
         <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} collapsible />
       )}
 
-      <section aria-label={hasMonth ? `Movimientos de ${MONTHS[month - 1]}` : "Todos los movimientos"}>
-        {hasMonth && monthExpenses ? (
+      <section aria-label={hasMonth ? `Movimientos de ${MONTHS[month - 1]}` : wholeYear ? `Movimientos de ${year}` : "Todos los movimientos"}>
+        {(monthExpenses ?? yearExpenses) ? (
             <ExpenseListFiltered
-              periodLabel={`${MONTHS[month - 1]} ${year}`}
-              expenses={monthExpenses}
+              key={`${year}-${hasMonth ? month : "all"}-${categoryFilter}`}
+              periodLabel={hasMonth ? `${MONTHS[month - 1]} ${year}` : `Año ${year}`}
+              expenses={(monthExpenses ?? yearExpenses)!}
               categories={categories}
               initialCategoryFilter={categoryFilter}
               hasInvestments={hasInvestments}
@@ -85,6 +91,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
             <ExpenseListAll
               initialExpenses={allExpensesPage.data as never}
               initialHasMore={allExpensesPage.hasMore}
+              initialCategoryFilter={categoryFilter}
               categories={categories}
               debtCategoryId={debtCategoryId}
               transferCategoryId={transferCategoryId}

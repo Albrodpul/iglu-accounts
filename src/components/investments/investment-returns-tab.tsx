@@ -212,7 +212,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
               tick={tick}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `${v}%`}
+              tickFormatter={(v) => formatPercent(Number(v), { decimals: 1 })}
             />
             <Tooltip content={<ReturnTooltip />} />
             <ReferenceLine y={0} stroke={c["muted-foreground"]} strokeOpacity={0.5} strokeDasharray="4 4" />

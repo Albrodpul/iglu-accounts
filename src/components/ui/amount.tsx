@@ -15,6 +15,8 @@ type Props = {
   compact?: boolean;
   /** Roll from the previous value when it changes (headline figures). */
   animate?: boolean;
+  /** Round to whole euros: for dense tables where cents are noise. */
+  whole?: boolean;
 };
 
 function formatCompact(amount: number): string {
@@ -27,9 +29,11 @@ function formatCompact(amount: number): string {
   }).format(amount);
 }
 
-export function Amount({ value, className, prefix, suffix, compact, animate = false }: Props) {
+export function Amount({ value, className, prefix, suffix, compact, animate = false, whole = false }: Props) {
   const { discrete } = useDiscreteMode();
-  const shown = useRollingNumber(value, animate);
+  const rolled = useRollingNumber(value, animate);
+  // `|| 0` turns a rounded "-0" into a plain 0.
+  const shown = whole ? Math.round(rolled) || 0 : rolled;
 
   const formatted = compact ? formatCompact(shown) : formatCurrency(shown);
 

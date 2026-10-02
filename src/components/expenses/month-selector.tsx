@@ -96,7 +96,7 @@ export function MonthSelector({ month, year, nullable = false, basePath = "/expe
       document.body,
     )}
     <div ref={ref} className={`relative shrink-0 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm">
+      <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-card/80 p-1.5 backdrop-blur-sm sm:gap-1.5">
         {!noSelection && (
           <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-4 w-4" />
@@ -104,13 +104,15 @@ export function MonthSelector({ month, year, nullable = false, basePath = "/expe
         )}
         <button
           onClick={toggleDropdown}
-          className="flex min-w-[110px] items-center justify-center gap-1 text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
+          // With a month picked, phones drop the fixed width so the title and the arrows share one row.
+          className={`flex items-center justify-center gap-1 text-sm font-semibold cursor-pointer hover:text-primary transition-colors ${noSelection ? "min-w-[110px]" : "px-1.5 sm:min-w-[110px]"}`}
         >
           {noSelection ? "Todos los meses" : `${MONTHS[month! - 1].substring(0, 3)} ${year}`}
           <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${view !== "closed" ? "rotate-90" : ""}`} />
         </button>
         {hasSelection && (
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-md" onClick={clearMonth} title="Ver todos">
+          // Phones: no room next to the page title; "Todos los meses" tops the dropdown instead.
+          <Button variant="outline" size="icon" className="hidden h-8 w-8 rounded-md sm:inline-flex" onClick={clearMonth} title="Ver todos">
             <X className="h-4 w-4" />
           </Button>
         )}

@@ -280,6 +280,21 @@ export function createExpensesRepo(client: SupabaseClient) {
       return data ?? [];
     },
 
+    /** Amounts of every movement matching the list filters (not just one page). */
+    async findAmountsFiltered(accountId: string | null, opts: { search?: string }) {
+      const { data, error } = await fetchAllRows<{ amount: number; category_id: string | null }>((from, to) => {
+        let q = client.from("expenses").select("amount, category_id").order("id").range(from, to);
+        if (accountId) q = q.eq("account_id", accountId);
+        if (opts.search) {
+          const amountFilter = conceptOrAmountFilter(opts.search);
+          q = amountFilter ? q.or(amountFilter) : q.ilike("concept", `%${opts.search}%`);
+        }
+        return q;
+      });
+      if (error) throw error;
+      return data;
+    },
+
     async findForDedup(accountId: string) {
       const { data } = await fetchAllRows<{ expense_date: string; amount: number; concept: string | null }>(
         (from, to) =>

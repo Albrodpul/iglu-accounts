@@ -9,7 +9,7 @@ import {
   buildMonthSummaryKpis,
   calculateFinancialTotals,
 } from "@/lib/expense-metrics";
-import { MONTHS } from "@/lib/format";
+import { MONTHS, formatPercent } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
@@ -114,10 +114,10 @@ export default async function DashboardPage() {
         <>
           {/* Total acumulado — full width when investments active */}
           <section className="hero-surface p-6 md:p-8">
-            <p className="text-sm font-semibold text-white/75">Total acumulado</p>
+            <p className="text-sm font-semibold text-white/85">Total acumulado</p>
             <p
               className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
-                grandTotal >= 0 ? "text-emerald-300" : "text-rose-300"
+                grandTotal >= 0 ? "text-emerald-300" : "text-rose-200"
               }`}
             >
               <Amount value={grandTotal} animate />
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
                           // Only positive assets are slices of the pie; keep the same index it uses.
                           const isSlice = !item.highlight && item.value > 0;
                           const color = isSlice ? pieColor(pieIndex) : null;
-                          const pct = isSlice && total > 0 ? ((item.value / total) * 100).toFixed(0) : null;
+                          const pct = isSlice && total > 0 ? formatPercent((item.value / total) * 100, { decimals: 0 }) : null;
                           if (isSlice) pieIndex++;
                           return (
                             <div
@@ -148,12 +148,12 @@ export default async function DashboardPage() {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />}
-                                <span className="text-xs font-medium text-white/75 truncate">
+                                <span className="text-xs font-medium text-white/85 truncate">
                                   {item.label}
                                 </span>
-                                {pct && <span className="text-[11px] text-white/40 shrink-0">{pct}%</span>}
+                                {pct && <span className="text-[11px] text-white/65 shrink-0">{pct}</span>}
                               </div>
-                              <span className={`text-sm font-semibold tabular-nums shrink-0 pl-2 ${item.highlight ? item.value >= 0 ? "text-emerald-300" : "text-rose-300" : "text-white/90"}`}>
+                              <span className={`text-sm font-semibold tabular-nums shrink-0 pl-2 ${item.highlight ? item.value >= 0 ? "text-emerald-300" : "text-rose-200" : "text-white/90"}`}>
                                 <Amount value={item.value} />
                               </span>
                             </div>
@@ -176,12 +176,12 @@ export default async function DashboardPage() {
                       href={`/summary?year=${y.year}`}
                       className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
                     >
-                      <p className="text-xs font-medium text-white/70">
+                      <p className="text-xs font-medium text-white/80">
                         {y.year}
                       </p>
                       <p
                         className={`mt-0.5 text-sm font-semibold tabular-nums truncate ${
-                          y.neto >= 0 ? "text-emerald-300" : "text-rose-300"
+                          y.neto >= 0 ? "text-emerald-300" : "text-rose-200"
                         }`}
                       >
                         <Amount value={y.neto} />
@@ -213,10 +213,10 @@ export default async function DashboardPage() {
           {/* Sin inversiones — layout original */}
           <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
             <section className="hero-surface p-6 md:p-8">
-              <p className="text-sm font-semibold text-white/75">Total acumulado</p>
+              <p className="text-sm font-semibold text-white/85">Total acumulado</p>
               <p
                 className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
-                  allTime.total >= 0 ? "text-emerald-300" : "text-rose-300"
+                  allTime.total >= 0 ? "text-emerald-300" : "text-rose-200"
                 }`}
               >
                 <Amount value={allTime.total} animate />
@@ -231,12 +231,12 @@ export default async function DashboardPage() {
                         href={`/summary?year=${y.year}`}
                         className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
                       >
-                        <p className="text-xs font-medium text-white/70">
+                        <p className="text-xs font-medium text-white/80">
                           {y.year}
                         </p>
                         <p
                           className={`mt-0.5 text-sm font-semibold tabular-nums truncate ${
-                            y.neto >= 0 ? "text-emerald-300" : "text-rose-300"
+                            y.neto >= 0 ? "text-emerald-300" : "text-rose-200"
                           }`}
                         >
                           <Amount value={y.neto} />

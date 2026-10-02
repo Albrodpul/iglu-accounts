@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { pieColor } from "@/lib/chart-colors";
+import { formatPercent } from "@/lib/format";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" }).format(v);
@@ -17,7 +18,7 @@ export function AssetPieChart({ items }: { items: Entry[] }) {
   const tooltipProps = {
     formatter: (value: unknown, _name: unknown, entry: unknown) => {
       const v = Number(value);
-      return [`${fmt(v)} (${((v / total) * 100).toFixed(1)}%)`, (entry as { payload: Entry }).payload.label];
+      return [`${fmt(v)} (${formatPercent((v / total) * 100)})`, (entry as { payload: Entry }).payload.label];
     },
     contentStyle: {
       borderRadius: "10px",

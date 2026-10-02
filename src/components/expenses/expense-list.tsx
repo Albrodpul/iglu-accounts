@@ -15,7 +15,7 @@ import { MovementDialog } from "./movement-dialog";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { openAddMovement } from "@/lib/add-movement";
-import { Pencil, Trash2, ArrowUp, ArrowUpDown, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X } from "lucide-react";
+import { Pencil, Trash2, ArrowUp, ArrowUpDown, Copy, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Category, ExpenseWithCategory } from "@/types";
 
@@ -140,7 +140,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
             "mb-2 mt-3 flex items-center justify-between px-1",
             stickyDayHeaders &&
               // Mobile header is 53px tall; tuck 1px under its border so no content peeks through.
-              "sticky top-[52px] z-10 md:top-14 -mx-1 mt-2 rounded-lg bg-card/95 px-2 py-1.5 backdrop-blur-md"
+              "sticky top-[52px] z-10 md:top-14 -mx-1 mt-2 rounded-lg bg-card/95 px-3 py-1.5 backdrop-blur-md"
           )}
         >
           <span className="text-sm font-semibold text-muted-foreground">
@@ -168,10 +168,10 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 setDuplicatingExpense(expense);
               }}
               peek={showHint && expense.id === firstRowId}
-              className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35"
+              className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:py-1.5"
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 md:h-9 md:w-9"
                 style={{
                   backgroundColor: (expense.category?.color || "#64748b") + "15",
                 }}
@@ -206,6 +206,36 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
+                {/* Hover actions sit before the amount, so amounts stay in one column with the day total. */}
+                <div className="hidden items-center md:flex md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                  <button
+                    type="button"
+                    aria-label={`Editar ${expense.concept || "movimiento"}`}
+                    title="Editar"
+                    className="cursor-pointer rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); setEditingExpense(expense); }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Duplicar ${expense.concept || "movimiento"}`}
+                    title="Duplicar"
+                    className="cursor-pointer rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); setDuplicatingExpense(expense); }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Eliminar ${expense.concept || "movimiento"}`}
+                    title="Eliminar"
+                    className="cursor-pointer rounded p-1.5 text-muted-foreground transition-colors hover:text-expense"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(expense); }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <span
                   className={`text-[15px] font-semibold tabular-nums ${
                     transferCategoryId && expense.category_id === transferCategoryId
@@ -219,20 +249,6 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 >
                   <Amount value={expense.amount} />
                 </span>
-                <div className="hidden items-center md:flex md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
-                  <button
-                    className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                    onClick={(e) => { e.stopPropagation(); setEditingExpense(expense); }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors disabled:opacity-100"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(expense); }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
               </div>
             </SwipeRow>
             );

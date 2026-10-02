@@ -9,7 +9,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
 import { daysAgo, toLocalISODate } from "@/lib/dates";
-import { getOrCreateIncomeCategory, getOrCreateDebtCategory, getOrCreateTransferCategory } from "./categories";
+import {
+  getOrCreateIncomeCategory,
+  getOrCreateDebtCategory,
+  getOrCreateTransferCategory,
+  getDebtCategoryId,
+  getTransferCategoryId,
+} from "./categories";
+import { breakdownByCategory, summarizeMovements } from "@/lib/filter-summary";
 
 export async function getExpenses(params: {
   month: number;
@@ -44,6 +51,24 @@ export async function getExpensesPaginated(params: {
     until,
   });
   return { data, hasMore: data.length === limit };
+}
+
+/**
+ * Overview of everything matching the list filters, across all pages: count and
+ * total of the matches, plus the per-category breakdown of the search (taken
+ * before the category filter, so the other categories stay visible to switch to).
+ */
+export async function getFilteredOverview(params: { search?: string; categoryId?: string }) {
+  const accountId = await getSelectedAccountId();
+  const db = await getDb();
+  const [rows, debtCategoryId, transferCategoryId] = await Promise.all([
+    db.expenses.findAmountsFiltered(accountId, { search: params.search?.trim() || undefined }),
+    getDebtCategoryId(),
+    getTransferCategoryId(),
+  ]);
+  const opts = { categoryId: params.categoryId, debtCategoryId, transferCategoryId };
+  const matches = params.categoryId ? rows.filter((row) => row.category_id === params.categoryId) : rows;
+  return { summary: summarizeMovements(matches, opts), breakdown: breakdownByCategory(rows, opts) };
 }
 
 export async function suggestCategory(concept: string) {

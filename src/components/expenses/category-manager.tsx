@@ -19,9 +19,11 @@ import type { Category } from "@/types";
 
 type Props = {
   categories: Category[];
+  /** `link`: quiet text button, for placing the shortcut inside another sheet. */
+  trigger?: "button" | "link";
 };
 
-export function CategoryManager({ categories }: Props) {
+export function CategoryManager({ categories, trigger = "button" }: Props) {
   const [listOpen, setListOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -65,9 +67,19 @@ export function CategoryManager({ categories }: Props) {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setListOpen(true)}>
-        <Settings2 className="h-4 w-4 mr-1" /> Categorías
-      </Button>
+      {trigger === "link" ? (
+        <button
+          type="button"
+          onClick={() => setListOpen(true)}
+          className="flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 text-sm font-medium text-primary"
+        >
+          <Settings2 className="h-4 w-4" /> Gestionar categorías
+        </button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setListOpen(true)}>
+          <Settings2 className="h-4 w-4 mr-1" /> Categorías
+        </Button>
+      )}
 
       {/* Category list dialog */}
       <Dialog open={listOpen} onOpenChange={setListOpen}>

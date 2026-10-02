@@ -14,7 +14,7 @@ export function CollapsibleSection({ label, children, variant = "hero" }: Props)
 
   const buttonColors =
     variant === "hero"
-      ? "text-white/60 hover:text-white/90"
+      ? "text-white/80 hover:text-white"
       : "text-muted-foreground hover:text-foreground";
 
   return (

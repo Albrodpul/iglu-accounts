@@ -2,11 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { ExpenseList } from "./expense-list";
-import { Search, X, ArrowUpDown, Loader2 } from "lucide-react";
 import { matchesSearch } from "@/lib/amount-search";
+import { breakdownByCategory, summarizeMovements } from "@/lib/filter-summary";
+import { CategoryBreakdown, MovementsLayout } from "./category-breakdown";
+import { MovementFilters } from "./movement-filters";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
+  /** What the list covers, shown on the breakdown panel (e.g. "Septiembre 2026"). */
+  periodLabel: string;
   expenses: ExpenseWithCategory[];
   categories: Category[];
   initialCategoryFilter?: string;
@@ -15,17 +19,16 @@ type Props = {
   transferCategoryId?: string | null;
 };
 
-export function ExpenseListFiltered({ expenses, categories, initialCategoryFilter = "", hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
+export function ExpenseListFiltered({ periodLabel, expenses, categories, initialCategoryFilter = "", hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
   const [conceptFilter, setConceptFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const filtered = expenses.filter((e) => {
-    if (categoryFilter && e.category_id !== categoryFilter) return false;
-    if (!matchesSearch(e, conceptFilter)) return false;
-    return true;
-  });
+  const searched = expenses.filter((e) => matchesSearch(e, conceptFilter));
+  const filtered = categoryFilter ? searched.filter((e) => e.category_id === categoryFilter) : searched;
+  const totalsOptions = { categoryId: categoryFilter, debtCategoryId, transferCategoryId };
+  const selectCategory = (id: string) => startTransition(() => setCategoryFilter(id));
 
   const usedCategories = categories.filter((cat) =>
     expenses.some((e) => e.category_id === cat.id)
@@ -34,57 +37,30 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
   const hasFilters = categoryFilter || conceptFilter;
 
   return (
-    <>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          {isPending ? (
-            <Loader2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground animate-spin" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          )}
-          <input
-            type="text"
-            placeholder="Buscar concepto o importe..."
-            value={conceptFilter}
-            onChange={(e) => {
-              const val = e.target.value;
-              startTransition(() => setConceptFilter(val));
-            }}
-            className="h-9 w-full rounded-lg border border-border/70 bg-transparent pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => {
-            const val = e.target.value;
-            startTransition(() => setCategoryFilter(val));
-          }}
-          className="h-9 rounded-lg border border-border/70 bg-transparent px-3 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Todas las categorías</option>
-          {usedCategories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => startTransition(() => setSortAsc((s) => !s))}
-          className="flex h-9 items-center gap-1.5 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-        >
-          <ArrowUpDown className="h-3.5 w-3.5" />
-          {sortAsc ? "Más antiguo primero" : "Más reciente primero"}
-        </button>
-        {hasFilters && (
-          <button
-            onClick={() => startTransition(() => { setCategoryFilter(""); setConceptFilter(""); })}
-            className="flex h-9 items-center gap-1 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-            Limpiar
-          </button>
-        )}
-      </div>
+    <MovementsLayout
+      aside={
+        <CategoryBreakdown
+          // Before the category filter, so the other categories stay there to switch to.
+          entries={breakdownByCategory(searched, totalsOptions)}
+          categories={categories}
+          selectedId={categoryFilter}
+          onSelect={selectCategory}
+          caption={conceptFilter ? `${periodLabel} · «${conceptFilter}»` : periodLabel}
+        />
+      }
+    >
+      <MovementFilters
+        search={conceptFilter}
+        onSearchChange={(value) => startTransition(() => setConceptFilter(value))}
+        categoryId={categoryFilter}
+        onCategoryChange={selectCategory}
+        sortAsc={sortAsc}
+        onSortChange={(ascending) => startTransition(() => setSortAsc(ascending))}
+        categories={usedCategories}
+        manageCategories={categories}
+        loading={isPending}
+        summary={summarizeMovements(filtered, totalsOptions)}
+      />
 
       <div className={isPending ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
         <ExpenseList
@@ -101,6 +77,6 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
           transferCategoryId={transferCategoryId}
         />
       </div>
-    </>
+    </MovementsLayout>
   );
 }

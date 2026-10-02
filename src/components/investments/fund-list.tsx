@@ -30,8 +30,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, TrendingDown, MoreVertical, Percent, Loader2 } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { Plus, Pencil, Trash2, History, TrendingUp, MoreVertical, Percent, Loader2 } from "lucide-react";
+import { formatCurrency, formatPercent } from "@/lib/format";
+import { fundColors, positionValue } from "@/lib/investments";
+import { cn } from "@/lib/utils";
 import { toLocalISODate } from "@/lib/dates";
 import { Amount } from "@/components/ui/amount";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -43,6 +45,33 @@ type Props = {
   types: InvestmentType[];
   funds: InvestmentFundWithType[];
 };
+
+/** From `xl` up, type headers and fund rows share these columns so figures line up. */
+const TABLE_COLS = "xl:grid xl:grid-cols-[minmax(0,1fr)_7rem_7rem_11rem_3.5rem_2rem] xl:items-center xl:gap-x-4";
+
+/** Share of the portfolio, as on the chart legend: "30 %", or "<1 %" for crumbs. */
+function formatWeight(value: number, total: number): string {
+  if (total <= 0) return formatPercent(0, { decimals: 0 });
+  const pct = (value / total) * 100;
+  return pct > 0 && pct < 1 ? `<${formatPercent(1, { decimals: 0 })}` : formatPercent(pct, { decimals: 0 });
+}
+
+/** Gain or loss: green or red with its percentage, and neutral when there is none. */
+function ReturnText({ amount, pct, className }: { amount: number; pct: number; className?: string }) {
+  const cents = Math.round(amount * 100);
+  if (cents === 0) {
+    return (
+      <span className={cn("tabular-nums text-muted-foreground", className)}>
+        <Amount value={0} />
+      </span>
+    );
+  }
+  return (
+    <span className={cn("tabular-nums", cents > 0 ? "text-income" : "text-expense", className)}>
+      <Amount value={amount} prefix={cents > 0 ? "+" : ""} suffix={` (${formatPercent(pct, { signed: true })})`} />
+    </span>
+  );
+}
 
 export function FundList({ types, funds }: Props) {
 
@@ -231,12 +260,15 @@ export function FundList({ types, funds }: Props) {
   }
 
   const today = toLocalISODate();
+  // Weights are over the whole portfolio, and colours match the distribution chart.
+  const portfolioValue = funds.reduce((sum, fund) => sum + positionValue(fund), 0);
+  const colors = fundColors(funds);
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold md:text-xl">Fondos de inversión</h2>
+          <h2 className="text-lg font-semibold md:text-xl">Posiciones</h2>
           <div className="flex items-center gap-2 shrink-0">
             {types.length > 0 && (
               <Button size="sm" onClick={openCreateFund}>
@@ -258,91 +290,37 @@ export function FundList({ types, funds }: Props) {
             action={{ label: "Añadir fondo", onClick: openCreateFund }}
           />
         ) : (
-          Array.from(fundsByType.values())
-            .filter((group) => group.funds.length > 0)
-            .map(({ type, funds: typeFunds }) => {
-              const totalInvested = typeFunds.reduce((s, f) => s + f.invested_amount, 0);
-              const totalDisplayValue = typeFunds.reduce((s, f) => {
-                const displayRet = getDisplayReturn(f);
-                return s + f.invested_amount + displayRet;
-              }, 0);
-              const totalReturnAmt = totalDisplayValue - totalInvested;
-              const totalReturnPct = getReturnPct(totalInvested, totalDisplayValue);
+          <>
+            {/* Wide screens read this as a table: one column per figure. */}
+            <div className={cn("hidden border-b border-border/60 px-3 pb-2 text-xs font-semibold text-muted-foreground", TABLE_COLS)}>
+              <span>Posición</span>
+              <span className="text-right">Invertido</span>
+              <span className="text-right">Valor</span>
+              <span className="text-right">Rentabilidad</span>
+              <span className="text-right">Peso</span>
+              <span />
+            </div>
 
-              return (
-                <div key={type.id} className="space-y-3">
-                  {/* Type header */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="min-w-0 truncate text-base font-bold text-foreground">
-                        {type.name}
-                      </h3>
-                      <span className={`shrink-0 text-xs font-semibold tabular-nums md:text-sm ${totalReturnAmt >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                        <Amount value={totalReturnAmt} prefix={totalReturnAmt >= 0 ? "+" : ""} suffix={` (${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(1)}%)`} />
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:text-sm">
-                      <span>
-                        Inv: <Amount value={totalInvested} className="font-semibold text-foreground tabular-nums" />
-                      </span>
-                      <span>
-                        Val: <Amount value={totalDisplayValue} className="font-semibold text-foreground tabular-nums" />
-                      </span>
-                    </div>
-                  </div>
+            {Array.from(fundsByType.values())
+              .filter((group) => group.funds.length > 0)
+              .map(({ type, funds: typeFunds }) => {
+                return (
+                  <section key={type.id} aria-label={type.name} className="space-y-1.5">
+                    {/* A plain label: group totals were noise next to the per-position figures. */}
+                    <h3 className="truncate px-3 text-sm font-bold text-foreground">{type.name}</h3>
 
-                  {/* Fund items */}
-                  <div className="space-y-2 md:space-y-1">
-                    {typeFunds.map((fund) => {
-                      const displayReturn = getDisplayReturn(fund);
-                      const displayValue = fund.invested_amount + displayReturn;
-                      const returnPct = getReturnPct(fund.invested_amount, displayValue);
-                      const weight = totalDisplayValue > 0
-                        ? ((displayValue / totalDisplayValue) * 100).toFixed(1)
-                        : "0.0";
-
-                      return (
-                        <div
-                          key={fund.id}
-                          className="group flex flex-wrap items-center gap-x-3 gap-y-2.5 rounded-xl border border-border/60 bg-card px-3 py-3 transition-colors md:flex-nowrap md:rounded-lg md:border-transparent md:bg-transparent md:px-3 md:hover:border-border/70 md:hover:bg-muted/35"
-                        >
-                          {/* Icon */}
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
-                            {displayReturn >= 0 ? (
-                              <TrendingUp className="h-4 w-4 text-emerald-500" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4 text-rose-500" />
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div className="order-1 min-w-0 flex-1">
-                            <p className="text-[15px] font-medium text-foreground truncate">
-                              {fund.name}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              Inv: <Amount value={fund.invested_amount} /> · Peso: {weight}%
-                              {fund.ticker && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.ticker}</span>}
-                              {!fund.ticker && fund.isin && <span className="ml-1 font-mono text-[10px] opacity-60">{fund.isin}</span>}
-                            </p>
-                          </div>
-
-                          {/* Values — wraps to its own line on mobile, inline on desktop */}
-                          <div className="order-3 flex w-full items-baseline justify-between gap-2 pl-[52px] md:order-2 md:block md:w-auto md:pl-0 md:text-right">
-                            <span className="text-xs text-muted-foreground md:hidden">Valor</span>
-                            <div className="flex items-baseline gap-2 md:block md:gap-0">
-                              <p className="text-[15px] font-semibold tabular-nums">
-                                <Amount value={displayValue} />
-                              </p>
-                              <p className={`text-xs font-medium tabular-nums ${displayReturn >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                                <Amount value={displayReturn} prefix={displayReturn >= 0 ? "+" : ""} suffix={` (${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%)`} />
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Actions dropdown */}
+                    <div className="space-y-1.5 xl:space-y-0">
+                      {typeFunds.map((fund) => {
+                        const displayReturn = getDisplayReturn(fund);
+                        const displayValue = fund.invested_amount + displayReturn;
+                        const code = fund.ticker || fund.isin;
+                        const color = colors.get(fund.id);
+                        const menu = (
                           <DropdownMenu>
-                            <DropdownMenuTrigger className="order-2 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0 md:order-3 md:h-8 md:w-8 md:opacity-0 md:group-hover:opacity-100">
+                            <DropdownMenuTrigger
+                              aria-label={`Acciones de ${fund.name}`}
+                              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:h-8 xl:w-8"
+                            >
                               <MoreVertical className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" side="bottom" className="min-w-44">
@@ -364,13 +342,81 @@ export function FundList({ types, funds }: Props) {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })
+                        );
+
+                        // Nothing in it (yet, or any more): one quiet line instead of a full card.
+                        if (positionValue(fund) === 0) {
+                          return (
+                            <div key={fund.id} className={cn("flex items-center gap-2.5 px-3 text-muted-foreground", TABLE_COLS)}>
+                              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-muted-foreground/50" />
+                                <span className="truncate text-sm">{fund.name}</span>
+                              </div>
+                              <span className="shrink-0 text-xs xl:col-span-4 xl:text-right">Sin posición</span>
+                              {menu}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={fund.id}
+                            className={cn(
+                              "flex items-start gap-2.5 rounded-xl border border-border/60 bg-card py-2.5 pl-3 pr-1.5 transition-colors xl:rounded-lg xl:border-transparent xl:bg-transparent xl:px-3 xl:py-1 xl:hover:bg-muted/35",
+                              TABLE_COLS
+                            )}
+                          >
+                            <div className="flex min-w-0 flex-1 items-start gap-2.5 xl:items-center">
+                              {/* Same colour as this position's slice in the distribution chart. */}
+                              <span
+                                aria-hidden
+                                className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full xl:mt-0"
+                                style={{ backgroundColor: color }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[15px] font-medium text-foreground">{fund.name}</p>
+                                {code && (
+                                  <p className="hidden truncate font-mono text-[10px] text-muted-foreground/80 xl:block">{code}</p>
+                                )}
+                                {/* Narrow screens: the figures flow under the name and wrap if they must. */}
+                                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 xl:hidden">
+                                  <span className="text-[15px] font-semibold tabular-nums">
+                                    <Amount value={displayValue} />
+                                  </span>
+                                  <ReturnText
+                                    amount={displayReturn}
+                                    pct={getReturnPct(fund.invested_amount, displayValue)}
+                                    className="text-xs font-medium"
+                                  />
+                                </p>
+                                <p className="text-xs text-muted-foreground xl:hidden">
+                                  Invertido <Amount value={fund.invested_amount} /> · {formatWeight(positionValue(fund), portfolioValue)} de la cartera
+                                </p>
+                              </div>
+                            </div>
+                            <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
+                              <Amount value={fund.invested_amount} />
+                            </span>
+                            <span className="hidden text-right text-[15px] font-semibold tabular-nums xl:block">
+                              <Amount value={displayValue} />
+                            </span>
+                            <ReturnText
+                              amount={displayReturn}
+                              pct={getReturnPct(fund.invested_amount, displayValue)}
+                              className="hidden text-right text-sm font-medium xl:block"
+                            />
+                            <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
+                              {formatWeight(positionValue(fund), portfolioValue)}
+                            </span>
+                            {menu}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+          </>
         )}
       </div>
 

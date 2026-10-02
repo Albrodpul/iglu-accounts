@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getExpensesPaginated } from "@/actions/expenses";
+import { getExpensesPaginated, getFilteredOverview } from "@/actions/expenses";
+import { CategoryBreakdown, MovementsLayout } from "./category-breakdown";
+import { useMediaQuery } from "@/hooks/use-browser-state";
+import { MovementFilters } from "./movement-filters";
+import type { CategoryTotal, FilterSummary } from "@/lib/filter-summary";
 import { ExpenseList } from "./expense-list";
-import { Search, X, ArrowUpDown, Loader2 } from "lucide-react";
 import type { Category, ExpenseWithCategory } from "@/types";
 
 const PAGE_SIZE = 50;
@@ -125,54 +128,58 @@ export function ExpenseListAll({
     return () => observer.disconnect();
   }, [loadMore]);
 
-  const hasFilters = search || categoryFilter;
+  const hasFilters = Boolean(debouncedSearch || categoryFilter);
+
+  // Totals of *all* matches (the list only holds the pages loaded so far). The
+  // side panel needs them even unfiltered, but it only exists on wide viewports:
+  // phones don't pay for reading the whole history just to hide it.
+  const showsBreakdown = useMediaQuery("(min-width: 1024px)");
+  const needsOverview = hasFilters || showsBreakdown;
+  const overviewKey = JSON.stringify([debouncedSearch, categoryFilter, reloadToken]);
+  const [overview, setOverview] = useState<{
+    key: string;
+    summary: FilterSummary;
+    breakdown: CategoryTotal[];
+  } | null>(null);
+  useEffect(() => {
+    if (!needsOverview) return;
+    let cancelled = false;
+    getFilteredOverview({ search: debouncedSearch || undefined, categoryId: categoryFilter || undefined })
+      .then((value) => {
+        if (!cancelled) setOverview({ key: overviewKey, ...value });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [needsOverview, overviewKey, debouncedSearch, categoryFilter]);
+  const currentOverview = overview?.key === overviewKey ? overview : null;
 
   return (
-    <>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          {filterLoading ? (
-            <Loader2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground animate-spin" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          )}
-          <input
-            type="text"
-            placeholder="Buscar concepto o importe..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-full rounded-lg border border-border/70 bg-transparent pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-9 rounded-lg border border-border/70 bg-transparent px-3 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Todas las categorías</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => setSortAsc((s) => !s)}
-          className="flex h-9 items-center gap-1.5 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-        >
-          <ArrowUpDown className="h-3.5 w-3.5" />
-          {sortAsc ? "Más antiguo primero" : "Más reciente primero"}
-        </button>
-        {hasFilters && (
-          <button
-            onClick={() => { setSearch(""); setCategoryFilter(""); }}
-            className="flex h-9 items-center gap-1 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-            Limpiar
-          </button>
-        )}
-      </div>
+    <MovementsLayout
+      aside={
+        <CategoryBreakdown
+          // Keep the previous rows on screen while the next ones load.
+          entries={currentOverview?.breakdown ?? overview?.breakdown ?? null}
+          categories={categories}
+          selectedId={categoryFilter}
+          onSelect={setCategoryFilter}
+          caption={debouncedSearch ? `Resultados de «${debouncedSearch}»` : "Todo el histórico"}
+        />
+      }
+    >
+      <MovementFilters
+        search={search}
+        onSearchChange={setSearch}
+        categoryId={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+        sortAsc={sortAsc}
+        onSortChange={setSortAsc}
+        categories={categories}
+        manageCategories={categories}
+        loading={filterLoading}
+        summary={currentOverview?.summary ?? null}
+      />
 
       {loading && expenses.length === 0 ? (
         <div className="space-y-0">
@@ -218,6 +225,6 @@ export function ExpenseListAll({
           )}
         </>
       )}
-    </>
+    </MovementsLayout>
   );
 }

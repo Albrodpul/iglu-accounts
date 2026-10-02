@@ -12,8 +12,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { MONTHS } from "@/lib/format";
-import { formatCurrency } from "@/lib/format";
+import { MONTHS, formatCurrency, formatPercent } from "@/lib/format";
 import { recordMonthlyReturnSnapshot } from "@/actions/investments";
 
 const MONTHS_SHORT = MONTHS.map((m) => m.substring(0, 3));
@@ -33,8 +32,7 @@ type Props = {
 
 function fmtPct(v: number | null) {
   if (v === null) return "—";
-  const sign = v >= 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)}%`;
+  return formatPercent(v, { decimals: 2, signed: true });
 }
 
 function pctClass(v: number | null) {

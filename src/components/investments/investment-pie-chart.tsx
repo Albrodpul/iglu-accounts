@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { pieColor } from "@/lib/chart-colors";
+import { formatPercent } from "@/lib/format";
+import { groupPieSlices, OTHERS_COLOR, positionValue } from "@/lib/investments";
 import type { InvestmentFundWithType } from "@/types";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 
-const OTHERS_COLOR = "#94a3b8";
-const MAX_VISIBLE = 7;
 
 const fmt = (value: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: "always" }).format(value);
@@ -29,7 +29,7 @@ function CustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
       y={cy + r * Math.sin(-midAngle * R)}
       fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}
     >
-      {`${(percent * 100).toFixed(0)}%`}
+      {formatPercent(percent * 100, { decimals: 0 })}
     </text>
   );
 }
@@ -49,17 +49,17 @@ function PieTooltip({
 }) {
   if (!active || !payload?.length) return null;
   const item = payload[0].payload;
-  const pct = ((item.value / total) * 100).toFixed(1);
+  const pct = formatPercent((item.value / total) * 100);
   return (
     <div style={{ borderRadius: 12, borderColor: "rgba(148,163,184,0.3)", backgroundColor: "rgba(15,23,42,0.92)", color: "#f1f5f9", fontSize: 13, padding: "10px 14px", minWidth: 180 }}>
       <p style={{ fontWeight: 600, marginBottom: item.breakdown ? 6 : 0 }}>{item.name}</p>
-      <p style={{ color: "#94a3b8" }}>{fmt(item.value)} · {pct}%</p>
+      <p style={{ color: "#94a3b8" }}>{fmt(item.value)} · {pct}</p>
       {item.breakdown && (
         <div style={{ marginTop: 8, borderTop: "1px solid rgba(148,163,184,0.2)", paddingTop: 8 }}>
           {item.breakdown.map((b, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: i > 0 ? 3 : 0 }}>
               <span style={{ color: "#cbd5e1" }}>{b.name}</span>
-              <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>{((b.value / total) * 100).toFixed(1)}%</span>
+              <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>{formatPercent((b.value / total) * 100)}</span>
             </div>
           ))}
         </div>
@@ -83,7 +83,7 @@ function LegendItem({
   // every parent render and lose this open/closed state.
   const [open, setOpen] = useState(false);
   const fs = size === "md" ? "text-[13px]" : "text-[11px]";
-  const pct = ((d.value / total) * 100).toFixed(0);
+  const pct = formatPercent((d.value / total) * 100, { decimals: 0 });
 
   if (d.breakdown) {
     return (
@@ -93,12 +93,12 @@ function LegendItem({
       >
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
         <span className={`truncate ${fs} text-white/80 underline decoration-dotted underline-offset-2`}>{d.name}</span>
-        <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
+        <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/80`}>{pct}</span>
         <div className={`pointer-events-none absolute top-full left-0 z-50 mt-1 w-52 rounded-xl border border-white/10 bg-[rgba(15,23,42,0.95)] p-3 shadow-xl group-hover:block ${open ? "block" : "hidden"}`}>
           {d.breakdown.map((b, j) => (
             <div key={j} className="flex justify-between gap-3 text-[12px]" style={{ marginTop: j > 0 ? 4 : 0 }}>
               <span className="truncate text-slate-300">{b.name}</span>
-              <span className="shrink-0 text-slate-400">{((b.value / total) * 100).toFixed(1)}%</span>
+              <span className="shrink-0 text-slate-400">{formatPercent((b.value / total) * 100)}</span>
             </div>
           ))}
         </div>
@@ -110,7 +110,7 @@ function LegendItem({
     <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       <span className={`truncate ${fs} text-white/80`}>{d.name}</span>
-      <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/60`}>{pct}%</span>
+      <span className={`ml-auto shrink-0 pl-2 ${fs} font-semibold text-white/80`}>{pct}</span>
     </div>
   );
 }
@@ -123,7 +123,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
           key={v}
           onClick={() => onChange(v)}
           className={`rounded-md px-2.5 py-1 transition-colors cursor-pointer ${
-            view === v ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
+            view === v ? "bg-white/20 text-white" : "text-white/70 hover:text-white"
           }`}
         >
           {v === "fund" ? "Por fondo" : "Por tipo"}
@@ -137,13 +137,13 @@ export function InvestmentPieChart({ funds }: Props) {
   const [view, setView] = useState<View>("fund");
 
   const fundData: RawItem[] = funds
-    .map((f) => ({ name: f.name, value: f.current_value > 0 ? f.current_value : f.invested_amount }))
+    .map((f) => ({ name: f.name, value: positionValue(f) }))
     .filter((d) => d.value > 0);
 
   const typeData: RawItem[] = Object.values(
     funds.reduce<Record<string, RawItem>>((acc, f) => {
       const name = f.investment_type.name;
-      const value = f.current_value > 0 ? f.current_value : f.invested_amount;
+      const value = positionValue(f);
       if (!acc[name]) acc[name] = { name, value: 0 };
       acc[name].value += value;
       return acc;
@@ -156,17 +156,19 @@ export function InvestmentPieChart({ funds }: Props) {
 
   const total = data.reduce((s, d) => s + d.value, 0);
 
-  // Group smallest items into "Otros" when there are more than MAX_VISIBLE
-  let chartData: ChartItem[];
-  let othersItems: RawItem[] = [];
-  if (data.length > MAX_VISIBLE) {
-    const sorted = [...data].sort((a, b) => b.value - a.value);
-    chartData = sorted.slice(0, MAX_VISIBLE);
-    othersItems = sorted.slice(MAX_VISIBLE);
-    chartData.push({ name: `Otros (${othersItems.length})`, value: othersItems.reduce((s, d) => s + d.value, 0), breakdown: othersItems });
-  } else {
-    chartData = data;
-  }
+  // Group the smallest items into "Otros" (same rule the fund list uses for its colours).
+  const { visible, others: othersItems } = groupPieSlices(data);
+  const chartData: ChartItem[] =
+    othersItems.length > 0
+      ? [
+          ...visible,
+          {
+            name: `Otros (${othersItems.length})`,
+            value: othersItems.reduce((s, d) => s + d.value, 0),
+            breakdown: othersItems,
+          },
+        ]
+      : visible;
 
   const desktopLegendItems = chartData.map((d, i) => (
     <LegendItem key={i} d={d} color={sliceColor(i, d)} total={total} size="md" />

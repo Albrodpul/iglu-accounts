@@ -109,7 +109,8 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
       {onDuplicate && (
         <div
           aria-hidden
-          className="absolute inset-y-0 left-0 flex items-center justify-start bg-primary pl-5 text-primary-foreground"
+          // Kept 1px inside the rounded clip: on its antialiased edge the colour would bleed around the row.
+          className="absolute inset-y-px left-px flex items-center justify-start rounded-lg bg-primary pl-5 text-primary-foreground"
           style={{ width: ACTION_WIDTH + 20, opacity: offset > 0 || peeking ? 1 : 0 }}
         >
           <Copy className="h-5 w-5" />
@@ -118,7 +119,7 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
       {onDelete && (
         <div
           aria-hidden
-          className="absolute inset-y-0 right-0 flex items-center justify-end bg-expense pr-5 text-white"
+          className="absolute inset-y-px right-px flex items-center justify-end rounded-lg bg-expense pr-5 text-white"
           style={{ width: ACTION_WIDTH + 20, opacity: offset < 0 || peeking ? 1 : 0 }}
         >
           <Trash2 className="h-5 w-5" />
@@ -138,7 +139,9 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
         }}
         className={cn(
           "relative touch-pan-y",
-          moved && "bg-card",
+          // Square corners while displaced: rounded ones would let the action
+          // colours underneath show through at the four corners.
+          moved && "bg-card !rounded-none",
           peeking && "swipe-peek",
           onTap && "cursor-pointer",
           className

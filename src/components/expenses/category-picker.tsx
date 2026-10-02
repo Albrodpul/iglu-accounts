@@ -25,6 +25,41 @@ type Props = {
   id?: string;
 };
 
+/** One cell of a category grid: tinted icon over the name. */
+export function CategoryTile({
+  name,
+  icon,
+  color,
+  selected,
+  onClick,
+}: {
+  name: string;
+  icon: React.ReactNode;
+  color?: string | null;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={cn(
+        "flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-border/70 px-2 py-3 text-center transition-colors",
+        selected ? "border-primary bg-primary/10 ring-1 ring-primary" : "hover:bg-muted/40"
+      )}
+    >
+      <span
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-xl"
+        style={{ backgroundColor: (color || "#64748b") + "18" }}
+      >
+        {icon}
+      </span>
+      <span className="w-full truncate text-xs font-medium leading-snug">{name}</span>
+    </button>
+  );
+}
+
 /**
  * Category selector: a trigger showing the current pick, backed by a sheet with
  * an icon grid. Replaces a native `<select>`, which cannot render the icons.
@@ -103,30 +138,17 @@ export function CategoryPicker({ categories, usage, value, onChange, name = "cat
             ) : (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {filtered.map((cat) => (
-                  <button
+                  <CategoryTile
                     key={cat.id}
-                    type="button"
+                    name={cat.name}
+                    icon={cat.icon || "📦"}
+                    color={cat.color}
+                    selected={cat.id === value}
                     onClick={() => {
                       onChange(cat.id);
                       handleOpenChange(false);
                     }}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-xl border border-border/70 px-2 py-3 text-center transition-colors",
-                      cat.id === value
-                        ? "border-primary bg-primary/10 ring-1 ring-primary"
-                        : "hover:bg-muted/40"
-                    )}
-                  >
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-xl text-xl"
-                      style={{ backgroundColor: (cat.color || "#64748b") + "18" }}
-                    >
-                      {cat.icon || "📦"}
-                    </span>
-                    <span className="w-full truncate text-xs font-medium leading-snug">
-                      {cat.name}
-                    </span>
-                  </button>
+                  />
                 ))}
               </div>
             )}

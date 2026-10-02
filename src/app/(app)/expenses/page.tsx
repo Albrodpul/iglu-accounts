@@ -49,9 +49,14 @@ export default async function ExpensesPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      {/* One row when it fits; with a month picked on a narrow phone the selector wraps below. */}
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold md:text-3xl">Movimientos</h1>
-        <div className="ml-auto w-fit">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* Phones reach category management from the filters sheet instead. */}
+          <div className="hidden sm:block">
+            <CategoryManager categories={categories} />
+          </div>
           <MonthSelector
             month={hasMonth ? month : null}
             year={hasMonth ? year : null}
@@ -65,16 +70,10 @@ export default async function ExpensesPage({ searchParams }: Props) {
         <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} collapsible />
       )}
 
-      <section>
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold md:text-xl">
-            {hasMonth ? `Detalle · ${MONTHS[month - 1]}` : "Todos los movimientos"}
-          </h2>
-          <CategoryManager categories={categories} />
-        </div>
-        <div className="glass-panel p-5 md:p-6">
-          {hasMonth && monthExpenses ? (
+      <section aria-label={hasMonth ? `Movimientos de ${MONTHS[month - 1]}` : "Todos los movimientos"}>
+        {hasMonth && monthExpenses ? (
             <ExpenseListFiltered
+              periodLabel={`${MONTHS[month - 1]} ${year}`}
               expenses={monthExpenses}
               categories={categories}
               initialCategoryFilter={categoryFilter}
@@ -92,7 +91,6 @@ export default async function ExpensesPage({ searchParams }: Props) {
               hasInvestments={hasInvestments}
             />
           ) : null}
-        </div>
       </section>
 
       <AddExpenseFab categories={categories} hasInvestments={hasInvestments} />

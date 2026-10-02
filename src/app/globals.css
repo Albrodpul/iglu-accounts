@@ -55,7 +55,7 @@
   --brand-gradient:
     radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.22), transparent 48%),
     radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.16), transparent 46%),
-    linear-gradient(145deg, #163a5f 0%, #1e5a8a 70%, #2d7eb5 100%);
+    linear-gradient(145deg, #163a5f 0%, #1c5380 70%, #246a9e 100%);
   --background: #f0f6fb;
   --foreground: #1a2332;
   --card: #ffffff;
@@ -95,24 +95,31 @@
 }
 
 .dark {
-  --background: #0b1622;
-  --foreground: #e8f1fa;
-  --card: #162030;
-  --card-foreground: #e8f1fa;
-  --popover: #162030;
-  --popover-foreground: #e8f1fa;
-  --primary: #38bdf8;
-  --primary-foreground: #0b1622;
-  --secondary: #1c2d42;
-  --secondary-foreground: #e8f1fa;
-  --muted: #1c2d42;
-  --muted-foreground: #8baac4;
-  --accent: #1c2d42;
-  --accent-foreground: #e8f1fa;
+  /* Surfaces a step up from near-black and text a step down from white:
+     very bright text on a very dark surface glares, and that tires the eyes
+     more than it helps. Contrast stays well above what small text needs. */
+  --background: #111c2a;
+  --foreground: #dce6f0;
+  --card: #1d2a3c;
+  --card-foreground: #dce6f0;
+  --popover: #1d2a3c;
+  --popover-foreground: #dce6f0;
+  /* A calmer blue than the old cyan (#38bdf8), which outshone everything on
+     large fills. Still light enough to read as link text on a card, so it
+     keeps dark text on top (white would not reach a readable contrast). */
+  --primary: #4f9fe0;
+  --primary-foreground: #0d1826;
+  --secondary: #283850;
+  --secondary-foreground: #dce6f0;
+  --muted: #283850;
+  --muted-foreground: #a9bfd3;
+  --accent: #283850;
+  --accent-foreground: #dce6f0;
   --destructive: #F87171;
-  --border: rgba(120, 180, 230, 0.18);
-  --input: rgba(120, 180, 230, 0.20);
-  --ring: #38bdf8;
+  --border: rgba(120, 180, 230, 0.26);
+  /* Field outlines a step stronger than card borders: controls must show their edges. */
+  --input: rgba(120, 180, 230, 0.36);
+  --ring: #4f9fe0;
   --income: #34D399;
   --expense: #F87171;
   --debt: #FBBF24;
@@ -122,14 +129,14 @@
   --chart-3: #FBBF24;
   --chart-4: #60A5FA;
   --chart-5: #A78BFA;
-  --sidebar: #0f1a28;
-  --sidebar-foreground: #e8f1fa;
-  --sidebar-primary: #38bdf8;
-  --sidebar-primary-foreground: #0b1622;
-  --sidebar-accent: #1c2d42;
-  --sidebar-accent-foreground: #e8f1fa;
+  --sidebar: #0e1824;
+  --sidebar-foreground: #dce6f0;
+  --sidebar-primary: #4f9fe0;
+  --sidebar-primary-foreground: #0d1826;
+  --sidebar-accent: #283850;
+  --sidebar-accent-foreground: #dce6f0;
   --sidebar-border: rgba(120, 180, 230, 0.18);
-  --sidebar-ring: #38bdf8;
+  --sidebar-ring: #4f9fe0;
 }
 
 /* Tells native controls (date picker icon, selects, scrollbars) which theme
@@ -235,7 +242,11 @@
   }
 
   .kpi-chip {
-    @apply rounded-xl border border-white/20 bg-white/15 p-4 backdrop-blur-sm;
+    @apply rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm;
+  }
+  /* On a dark page the card's dark corner needs a visible edge. */
+  .dark .hero-surface {
+    @apply border-sky-300/25;
   }
 }
 

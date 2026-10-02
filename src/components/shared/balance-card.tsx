@@ -12,7 +12,7 @@ export type SurfaceVariant = "hero" | "card";
 const kpiValueColor: Record<SurfaceVariant, Record<KpiColor, string>> = {
   hero: {
     emerald: "text-emerald-300",
-    rose: "text-rose-300",
+    rose: "text-rose-200",
     amber: "text-amber-300",
     sky: "text-sky-300",
   },
@@ -30,7 +30,7 @@ function KpiGrid({ kpis, variant, columns }: { kpis: Kpi[]; variant: SurfaceVari
       ? "kpi-chip overflow-hidden"
       : "overflow-hidden rounded-xl border border-border/60 bg-muted/40 p-3";
   const chipHover = variant === "hero" ? "transition-colors hover:bg-white/25" : "transition-colors hover:bg-muted/70";
-  const label = variant === "hero" ? "text-white/70" : "text-muted-foreground";
+  const label = variant === "hero" ? "text-white/80" : "text-muted-foreground";
 
   return (
     <div className={cn("grid gap-3", columns === 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2")}>
@@ -81,14 +81,14 @@ export function BalanceCard({
   const hero = variant === "hero";
   const positive = neto >= 0;
   const netColor = hero
-    ? positive ? "text-emerald-300" : "text-rose-300"
+    ? positive ? "text-emerald-300" : "text-rose-200"
     : positive ? "text-income" : "text-expense";
 
   const grid = <KpiGrid kpis={kpis} variant={variant} columns={columns} />;
 
   return (
     <section className={cn(hero ? "hero-surface p-6 md:p-8" : "surface-card p-5 md:p-6")}>
-      <p className={cn("text-sm font-semibold", hero ? "text-white/75" : "text-muted-foreground")}>{title}</p>
+      <p className={cn("text-sm font-semibold", hero ? "text-white/85" : "text-muted-foreground")}>{title}</p>
       <p
         className={cn(
           "mt-1 font-extrabold tracking-tight tabular-nums",

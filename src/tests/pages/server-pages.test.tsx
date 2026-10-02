@@ -262,7 +262,7 @@ describe("app pages", () => {
     render(element);
 
     expect(screen.getByText("Movimientos")).toBeInTheDocument();
-    expect(screen.getByText("Detalle · Enero")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Movimientos de Enero" })).toBeInTheDocument();
     expect(screen.getByTestId("expense-list-filtered")).toBeInTheDocument();
   });
 

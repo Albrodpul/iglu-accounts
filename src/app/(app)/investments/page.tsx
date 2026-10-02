@@ -6,6 +6,7 @@ import { FundList } from "@/components/investments/fund-list";
 import { InvestmentPieChart } from "@/components/investments/investment-pie-chart";
 import { NavRefreshButton } from "@/components/investments/nav-refresh-button";
 import { Amount } from "@/components/ui/amount";
+import { formatPercent } from "@/lib/format";
 
 export default async function InvestmentsPage() {
   const enabled = await hasInvestmentsEnabled();
@@ -19,9 +20,11 @@ export default async function InvestmentsPage() {
   const totalInvested = funds.reduce((s, f) => s + f.invested_amount, 0);
   const totalValue = funds.reduce((s, f) => s + f.current_value, 0);
   const totalReturn = totalValue - totalInvested;
-  const returnPct = totalInvested > 0
-    ? ((totalReturn / totalInvested) * 100).toFixed(2)
-    : "0.00";
+  const returnPct = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
+  // No gain and no loss is neither good nor bad news: keep it neutral.
+  const tone = Math.round(totalReturn * 100) === 0 ? "flat" : totalReturn > 0 ? "up" : "down";
+  const toneText = { up: "text-emerald-300", down: "text-rose-200", flat: "text-white/85" }[tone];
+  const toneChip = { up: "bg-emerald-400/15", down: "bg-rose-400/15", flat: "bg-white/10" }[tone];
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -38,27 +41,23 @@ export default async function InvestmentsPage() {
         <div className="md:flex md:items-center md:gap-8">
           {/* Stats */}
           <div className="md:flex-1">
-            <p className="text-sm font-semibold text-white/75">Rentabilidad</p>
+            <p className="text-sm font-semibold text-white/85">Rentabilidad</p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <p
-                className={`text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
-                  totalReturn >= 0 ? "text-emerald-300" : "text-rose-300"
-                }`}
+                className={`text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${toneText}`}
               >
-                <Amount value={totalReturn} prefix={totalReturn >= 0 ? "+" : ""} animate />
+                <Amount value={totalReturn} prefix={tone === "up" ? "+" : ""} animate />
               </p>
               <p
-                className={`rounded-full px-2.5 py-0.5 text-base font-bold tabular-nums md:text-lg ${
-                  totalReturn >= 0 ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-300"
-                }`}
+                className={`rounded-full px-2.5 py-0.5 text-base font-bold tabular-nums md:text-lg ${toneChip} ${toneText}`}
               >
-                {totalReturn >= 0 ? "+" : ""}{returnPct}%
+                {formatPercent(returnPct, { decimals: 2, signed: true })}
               </p>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div className="kpi-chip">
-                <p className="text-xs font-medium text-white/70">
+                <p className="text-xs font-medium text-white/80">
                   Total invertido
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
@@ -66,7 +65,7 @@ export default async function InvestmentsPage() {
                 </p>
               </div>
               <div className="kpi-chip">
-                <p className="text-xs font-medium text-white/70">
+                <p className="text-xs font-medium text-white/80">
                   Valor actual
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
@@ -78,7 +77,7 @@ export default async function InvestmentsPage() {
 
           {/* Pie chart — right on desktop, below on mobile */}
           {funds.length > 0 && (
-            <div className="mt-4 border-t border-white/20 pt-2 md:mt-0 md:w-[540px] md:border-l md:border-t-0 md:pl-8 md:pt-0">
+            <div className="mt-4 border-t border-white/20 pt-2 md:mt-0 md:w-[540px] md:min-w-0 md:border-l md:border-t-0 md:pl-8 md:pt-0">
               <InvestmentPieChart funds={funds} />
             </div>
           )}

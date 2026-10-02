@@ -9,7 +9,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f0f6fb",
+    // The launch screen is drawn by the OS from this colour + the icon + the
+    // name. Brand blue (same as the status bar) instead of the light page
+    // colour: it looks intentional and doesn't flash white in dark mode.
+    background_color: "#2d7eb5",
     theme_color: "#2d7eb5",
     lang: "es",
     shortcuts: [
@@ -28,22 +31,24 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     icons: [
+      // PNGs (see scripts/generate-icons.mjs): launch screens and launchers
+      // are built from raster icons; SVG ones are not honoured everywhere.
       {
-        src: "/pwa-icon-192.svg",
+        src: "/pwa-icon-192.png",
         sizes: "192x192",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/pwa-icon-512.svg",
+        src: "/pwa-icon-512.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/pwa-icon-512.svg",
+        src: "/pwa-icon-maskable-512.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "maskable",
       },
     ],

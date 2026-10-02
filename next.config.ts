@@ -48,6 +48,16 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@supabase/ssr", "@supabase/supabase-js"],
+  experimental: {
+    staleTimes: {
+      // How long a prefetched loading skeleton stays usable. With the 5-minute
+      // default, coming back to the PWA after a while left every tab without
+      // its skeleton: the first tap then showed nothing until the server
+      // answered. Skeletons hold no data, so they can be kept all day; page
+      // data itself is still fetched fresh on every navigation (`dynamic: 0`).
+      static: 60 * 60 * 24,
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

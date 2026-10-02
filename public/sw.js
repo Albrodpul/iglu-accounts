@@ -1,10 +1,10 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "iglu-v3";
+const CACHE_NAME = "iglu-v4";
 
 const PRECACHE_ASSETS = [
-  "/pwa-icon-192.svg",
-  "/pwa-icon-512.svg",
+  "/pwa-icon-192.png",
+  "/pwa-icon-512.png",
   "/iglu.svg",
   "/manifest.webmanifest",
 ];
@@ -104,8 +104,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Iglu";
   const options = {
     body: data.body || "",
-    icon: "/pwa-icon-192.svg",
-    badge: "/pwa-icon-192.svg",
+    icon: "/pwa-icon-192.png",
+    badge: "/pwa-icon-192.png",
     data: { url: data.url || "/dashboard" },
   };
 

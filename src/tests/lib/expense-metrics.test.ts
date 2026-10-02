@@ -50,7 +50,7 @@ describe("expense metrics", () => {
     expect(kpis[3]).toEqual({
       label: "Fijos/mes",
       value: -350,
-      color: "emerald",
+      color: "neutral",
     });
   });
 });

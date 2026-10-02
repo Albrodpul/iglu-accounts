@@ -11,7 +11,7 @@ export type FinancialTotals = {
 };
 
 /** Semantic tone of a KPI; each surface (dark hero / light card) maps it to its own colours. */
-export type KpiColor = "emerald" | "rose" | "amber" | "sky";
+export type KpiColor = "emerald" | "rose" | "amber" | "neutral";
 
 export type Kpi = {
   label: string;
@@ -108,13 +108,14 @@ export function buildBalanceYearKpis({
   const kpis: BalanceYearKpi[] = [
     { label: "Ingresos", value: totalIncome, color: "emerald" },
     { label: "Gastos", value: totalExpenses, color: "rose" },
-    { label: "Media/mes", value: avgMonthlyExpense, color: "sky" },
+    // Derived figures, not money in or out: no green or red of their own.
+    { label: "Media/mes", value: avgMonthlyExpense, color: "neutral" },
   ];
 
   if (totalDebt > 0) {
     kpis.push({ label: "Deudas", value: totalDebt, color: "amber" });
   } else {
-    kpis.push({ label: "Fijos/mes", value: fixedExpenses, color: "emerald" });
+    kpis.push({ label: "Fijos/mes", value: fixedExpenses, color: "neutral" });
   }
 
   return kpis;

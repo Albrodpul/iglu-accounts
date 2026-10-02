@@ -4,7 +4,7 @@ import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { CategoryManager } from "@/components/expenses/category-manager";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
-import { MonthSummary } from "@/components/shared/month-summary";
+import { PeriodCard } from "@/components/dashboard/period-card";
 import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
 import { ExpenseListAll } from "@/components/expenses/expense-list-all";
 import { buildMonthSummaryKpis, calculateFinancialTotals } from "@/lib/expense-metrics";
@@ -72,7 +72,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
       </div>
 
       {hasMonth && totals && (
-        <MonthSummary month={month} year={year} neto={totals.net} kpis={kpis} collapsible />
+        <PeriodCard title={`Neto ${MONTHS[month - 1].toLowerCase()} ${year}`} neto={totals.net} kpis={kpis} />
       )}
 
       <section aria-label={hasMonth ? `Movimientos de ${MONTHS[month - 1]}` : wholeYear ? `Movimientos de ${year}` : "Todos los movimientos"}>

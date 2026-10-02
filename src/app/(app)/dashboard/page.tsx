@@ -9,18 +9,17 @@ import {
   buildMonthSummaryKpis,
   calculateFinancialTotals,
 } from "@/lib/expense-metrics";
-import { MONTHS, formatPercent } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
-import { BalanceYear } from "@/components/shared/balance-year";
-import { MonthSummary } from "@/components/shared/month-summary";
+import { PeriodCard } from "@/components/dashboard/period-card";
+import { MONTHS } from "@/lib/format";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 import { MonthProjection } from "@/components/shared/month-projection";
 import { PendingFixed } from "@/components/shared/pending-fixed";
 import { ArrowRight } from "lucide-react";
-import { AssetPieChart } from "@/components/investments/asset-pie-chart";
-import { pieColor } from "@/lib/chart-colors";
+import { AssetBreakdown, type AssetItem } from "@/components/dashboard/asset-breakdown";
+import { YearBalances } from "@/components/dashboard/year-balances";
 
 export default async function DashboardPage() {
   const now = new Date();
@@ -90,200 +89,112 @@ export default async function DashboardPage() {
   const cashBalance = allTime.cashTotal;
   const grandTotal = bankBalance + cashBalance + totalInvestmentValue;
 
-  // Build asset breakdown items
-  type AssetItem = { label: string; value: number; highlight?: boolean };
+  // Where the total is held (only meaningful with the investments module).
   const assetBreakdown: AssetItem[] = [];
-
   if (hasInvestments && investmentSummary) {
     assetBreakdown.push({ label: "Banco", value: bankBalance });
-
-    if (cashBalance !== 0) {
-      assetBreakdown.push({ label: "Efectivo", value: cashBalance });
-    }
-
+    if (cashBalance !== 0) assetBreakdown.push({ label: "Efectivo", value: cashBalance });
     for (const type of investmentSummary.types) {
       assetBreakdown.push({ label: type.name, value: type.totalValue });
     }
-
     assetBreakdown.push({ label: "Neto inversiones", value: totalReturn, highlight: true });
   }
+  const hasAssets = assetBreakdown.length > 0;
+  const total = hasInvestments ? grandTotal : allTime.total;
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {hasInvestments ? (
-        <>
-          {/* Total acumulado — full width when investments active */}
-          <section className="hero-surface p-6 md:p-8">
+      <section className="hero-surface p-6 md:p-8">
+        <div className="xl:flex xl:items-center xl:gap-8">
+          <div className="xl:flex-1">
             <p className="text-sm font-semibold text-white/85">Total acumulado</p>
             <p
               className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
-                grandTotal >= 0 ? "text-emerald-300" : "text-rose-200"
+                total >= 0 ? "text-emerald-300" : "text-rose-200"
               }`}
             >
-              <Amount value={grandTotal} animate />
+              <Amount value={total} animate />
             </p>
-
-            {/* Asset breakdown — collapsible */}
-            {assetBreakdown.length > 0 && (
-              <CollapsibleSection label="Desglose de activos">
-                {(() => {
-                  const total = assetBreakdown.filter((i) => !i.highlight && i.value > 0).reduce((s, i) => s + i.value, 0);
-                  let pieIndex = 0;
-                  return (
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-                      <div className="shrink-0 flex justify-center">
-                        <AssetPieChart items={assetBreakdown.filter((i) => !i.highlight)} />
-                      </div>
-                      <div className="flex-1 space-y-1.5">
-                        {assetBreakdown.map((item) => {
-                          // Only positive assets are slices of the pie; keep the same index it uses.
-                          const isSlice = !item.highlight && item.value > 0;
-                          const color = isSlice ? pieColor(pieIndex) : null;
-                          const pct = isSlice && total > 0 ? formatPercent((item.value / total) * 100, { decimals: 0 }) : null;
-                          if (isSlice) pieIndex++;
-                          return (
-                            <div
-                              key={item.label}
-                              className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${item.highlight ? "bg-white/10" : ""}`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />}
-                                <span className="text-xs font-medium text-white/85 truncate">
-                                  {item.label}
-                                </span>
-                                {pct && <span className="text-[11px] text-white/65 shrink-0">{pct}</span>}
-                              </div>
-                              <span className={`text-sm font-semibold tabular-nums shrink-0 pl-2 ${item.highlight ? item.value >= 0 ? "text-emerald-300" : "text-rose-200" : "text-white/90"}`}>
-                                <Amount value={item.value} />
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </CollapsibleSection>
-            )}
-
-            {/* Year chips — collapsible */}
-            {allTime.years.length > 0 && (
-              <CollapsibleSection label="Balance por año">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
-                  {allTime.years.map((y) => (
-                    <Link
-                      key={y.year}
-                      href={`/summary?year=${y.year}`}
-                      className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
-                    >
-                      <p className="text-xs font-medium text-white/80">
-                        {y.year}
-                      </p>
-                      <p
-                        className={`mt-0.5 text-sm font-semibold tabular-nums truncate ${
-                          y.neto >= 0 ? "text-emerald-300" : "text-rose-200"
-                        }`}
-                      >
-                        <Amount value={y.neto} />
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </CollapsibleSection>
-            )}
-          </section>
-
-          {/* Balance año + mes — second row */}
-          <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible variant="card" />
-            <div>
-              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible variant="card" />
-              <MonthProjection
-                projected={projection.projected}
-                historicalMonths={projection.historicalMonths}
-                monthProgress={projection.monthProgress}
-                pendingRecurringNet={projection.pendingRecurringNet}
-              />
-              <PendingFixed items={pendingFixed} month={month} />
-            </div>
           </div>
-        </>
-      ) : (
-        <>
-          {/* Sin inversiones — layout original */}
-          <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
-            <section className="hero-surface p-6 md:p-8">
-              <p className="text-sm font-semibold text-white/85">Total acumulado</p>
-              <p
-                className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
-                  allTime.total >= 0 ? "text-emerald-300" : "text-rose-200"
-                }`}
-              >
-                <Amount value={allTime.total} animate />
-              </p>
+          {/* Wide screens have the room to keep the breakdown in sight. */}
+          {hasAssets && (
+            <AssetBreakdown
+              items={assetBreakdown}
+              className="hidden xl:flex xl:w-[520px] xl:border-l xl:border-white/20 xl:pl-8"
+            />
+          )}
+        </div>
 
-              {allTime.years.length > 0 && (
-                <CollapsibleSection label="Balance por año">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {allTime.years.map((y) => (
-                      <Link
-                        key={y.year}
-                        href={`/summary?year=${y.year}`}
-                        className="kpi-chip transition-colors hover:bg-white/25 overflow-hidden"
-                      >
-                        <p className="text-xs font-medium text-white/80">
-                          {y.year}
-                        </p>
-                        <p
-                          className={`mt-0.5 text-sm font-semibold tabular-nums truncate ${
-                            y.neto >= 0 ? "text-emerald-300" : "text-rose-200"
-                          }`}
-                        >
-                          <Amount value={y.neto} />
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              )}
-            </section>
-
-            <BalanceYear year={year} neto={yearTotals.net} kpis={balanceKpis} collapsible variant="card" />
+        {hasAssets && (
+          <div className="xl:hidden">
+            <CollapsibleSection label="Desglose de activos">
+              <AssetBreakdown items={assetBreakdown} />
+            </CollapsibleSection>
           </div>
+        )}
 
-          <div className="grid gap-6 md:grid-cols-[1fr_1.5fr] md:gap-8">
-            <div>
-              <h2 className="mb-4 text-xl font-bold md:text-2xl">
-                {MONTHS[month - 1]} {year}
-              </h2>
-              <MonthSummary month={month} year={year} neto={monthTotals.net} kpis={monthKpis} collapsible variant="card" />
-              <MonthProjection
-                projected={projection.projected}
-                historicalMonths={projection.historicalMonths}
-                monthProgress={projection.monthProgress}
-                pendingRecurringNet={projection.pendingRecurringNet}
-              />
-              <PendingFixed items={pendingFixed} month={month} />
-            </div>
+        {allTime.years.length > 0 && (
+          <CollapsibleSection label="Balance por año">
+            <YearBalances years={allTime.years} currentYear={year} />
+          </CollapsibleSection>
+        )}
+      </section>
 
-            <section>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold md:text-2xl">Últimos movimientos</h2>
-                <Link
-                  href="/expenses"
-                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                >
-                  Ver todo
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-              <div className="glass-panel p-5 md:p-6">
-                <ExpenseList expenses={recentExpenses} categories={categories} sortable={false} hasInvestments={false} debtCategoryId={debtCategoryId} transferCategoryId={transferCategoryId} />
-              </div>
-            </section>
+      {/* Phones read top to bottom: this month, what is still due, the latest
+          movements, then the year. From `md` up, month and year stack in the
+          left column (one real column, so a short month card leaves no gap
+          above the year) and the movements take the right one. On phones that
+          column dissolves (`contents`) and `order` slots the movements between. */}
+      <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
+        <div className="contents md:block md:space-y-4">
+        <div className="order-1">
+          <PeriodCard
+            title={`Neto ${MONTHS[month - 1].toLowerCase()} ${year}`}
+            href={`/expenses?month=${month}&year=${year}`}
+            neto={monthTotals.net}
+            kpis={monthKpis}
+          />
+          <MonthProjection
+            projected={projection.projected}
+            historicalMonths={projection.historicalMonths}
+            monthProgress={projection.monthProgress}
+            pendingRecurringNet={projection.pendingRecurringNet}
+          />
+          <PendingFixed items={pendingFixed} month={month} />
+        </div>
+
+        <div className="order-3">
+          <PeriodCard
+            title={`Balance ${year}`}
+            href={`/summary?year=${year}`}
+            neto={yearTotals.net}
+            kpis={balanceKpis}
+            size="lg"
+          />
+        </div>
+        </div>
+
+        <section className="order-2" aria-labelledby="recent-movements">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="recent-movements" className="text-lg font-bold md:text-xl">Últimos movimientos</h2>
+            <Link href="/expenses" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Ver todo
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-        </>
-      )}
+          <div className="glass-panel px-3 py-2 md:px-4 md:py-3">
+            <ExpenseList
+              expenses={recentExpenses}
+              categories={categories}
+              sortable={false}
+              showYear={false}
+              hasInvestments={hasInvestments}
+              debtCategoryId={debtCategoryId}
+              transferCategoryId={transferCategoryId}
+            />
+          </div>
+        </section>
+      </div>
 
       <AddExpenseFab categories={categories} hasInvestments={hasInvestments} />
     </div>

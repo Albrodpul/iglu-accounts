@@ -9,7 +9,7 @@ import { MonthlyChart } from "@/components/summary/monthly-chart";
 import { CategoryBreakdown } from "@/components/summary/category-breakdown";
 import { AnnualGrid } from "@/components/summary/annual-grid";
 import { YearComparison } from "@/components/summary/year-comparison";
-import { BalanceYear } from "@/components/shared/balance-year";
+import { PeriodCard } from "@/components/dashboard/period-card";
 import { InvestmentReturnsTab } from "@/components/investments/investment-returns-tab";
 import { TabsContent } from "@/components/ui/tabs";
 import { SummaryTabs } from "@/components/summary/summary-tabs";
@@ -120,7 +120,7 @@ export default async function SummaryPage({ searchParams }: Props) {
         ]}
       >
         <TabsContent value="resumen" className="mt-4 space-y-4">
-          <BalanceYear year={year} neto={totals.net} kpis={kpis} />
+          <PeriodCard title={`Balance ${year}`} neto={totals.net} kpis={kpis} size="lg" />
           <section className="glass-panel p-5 md:p-6" aria-label="Ingresos y gastos por mes">
             <h2 className="mb-3 text-base font-bold">Mes a mes</h2>
             <MonthlyChart data={monthlyData} year={year} showDebts={hasAnyDebts} />

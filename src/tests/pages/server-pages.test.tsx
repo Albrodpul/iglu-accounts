@@ -83,14 +83,6 @@ vi.mock("@/components/expenses/add-expense-fab", () => ({
   AddExpenseFab: () => <div data-testid="add-expense-fab" />,
 }));
 
-vi.mock("@/components/shared/balance-year", () => ({
-  BalanceYear: () => <div data-testid="balance-year" />,
-}));
-
-vi.mock("@/components/shared/month-summary", () => ({
-  MonthSummary: () => <div data-testid="month-summary" />,
-}));
-
 vi.mock("@/components/shared/collapsible-section", () => ({
   CollapsibleSection: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
@@ -276,7 +268,7 @@ describe("app pages", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Resumen" })).toBeInTheDocument();
     expect(screen.getByTestId("year-selector")).toBeInTheDocument();
     // Balance and the month-by-month chart share the first view.
-    expect(screen.getByTestId("balance-year")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Balance 2026" })).toBeInTheDocument();
     expect(screen.getByTestId("monthly-chart")).toBeInTheDocument();
   });
 

@@ -8,6 +8,7 @@ import { buildEntryHints, type EntryHints } from "@/lib/entry-hints";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
+import { daysAgo, toLocalISODate } from "@/lib/dates";
 import { getOrCreateIncomeCategory, getOrCreateDebtCategory, getOrCreateTransferCategory } from "./categories";
 
 export async function getExpenses(params: {
@@ -25,16 +26,22 @@ export async function getExpensesPaginated(params: {
   ascending?: boolean;
   search?: string;
   categoryId?: string;
+  /** Leave out movements dated after today (ones entered ahead of time). */
+  excludeFuture?: boolean;
 }) {
   const accountId = await getSelectedAccountId();
   const db = await getDb();
   const limit = params.limit ?? 50;
+  // The server runs in UTC: for a couple of hours after midnight in Spain its
+  // "today" is still yesterday, so allow one extra day rather than hide today.
+  const until = params.excludeFuture ? toLocalISODate(daysAgo(-1)) : undefined;
   const data = await db.expenses.findPaginated(accountId, {
     page: params.page,
     limit,
     ascending: params.ascending ?? false,
     search: params.search,
     categoryId: params.categoryId,
+    until,
   });
   return { data, hasMore: data.length === limit };
 }
@@ -366,13 +373,9 @@ export async function getMonthProjection(params: {
   const allRecurring = await db.recurring.findActiveMinimal(accountId);
   const existingNotes = await db.expenses.findRecurringNotesInRange(accountId, startDate, endDate);
 
-  const alreadyInserted = new Set(
-    existingNotes
-      .map((e) => e.notes?.replace("auto:recurring:", ""))
-      .filter(Boolean),
-  );
+  const { getScheduledDay, recurringIdsFromNotes } = await import("@/lib/recurring");
+  const alreadyInserted = recurringIdsFromNotes(existingNotes);
 
-  const { getScheduledDay } = await import("@/lib/recurring");
   const pendingRecurring = allRecurring.filter((r) => {
     if (alreadyInserted.has(r.id)) return false;
     const day = getScheduledDay(r, year, month);

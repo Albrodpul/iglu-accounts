@@ -123,13 +123,14 @@ describe("ExpenseList row markers", () => {
         expenses={[
           movement({ id: "a", concept: "Con nota", notes: "Pagado a medias" }),
           movement({ id: "b", concept: "Fijo", notes: "auto:recurring:r1" }),
+          movement({ id: "d", concept: "Fijo con nota", notes: "auto:recurring:r2\nSubió de precio" }),
           movement({ id: "c", concept: "Sin nota" }),
         ]}
         categories={[food]}
       />,
     );
 
-    expect(screen.getAllByLabelText("Tiene notas")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Movimiento fijo")).toHaveLength(1);
+    expect(screen.getAllByLabelText("Tiene notas")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Movimiento fijo")).toHaveLength(2);
   });
 });

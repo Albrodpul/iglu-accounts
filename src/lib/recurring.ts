@@ -88,3 +88,40 @@ export function getPendingThisMonth<T extends RecurringItem>(
     .map((item) => ({ ...item, day: getExpenseDay(item, year, month) }))
     .sort((a, b) => a.day - b.day);
 }
+
+/**
+ * Movements generated from a fixed (recurring) one are tagged in `notes` with
+ * `auto:recurring:<id>` — that tag is how "already charged this month" is
+ * decided, so it must survive edits and must never be copied to another
+ * movement. The user's own note, if any, follows on the next line.
+ */
+const RECURRING_MARKER = /^auto:recurring:([^\s]+)/;
+
+export function recurringMarker(recurringId: string): string {
+  return `auto:recurring:${recurringId}`;
+}
+
+/** Id of the fixed movement a note is tagged with, or `null`. */
+export function recurringIdFromNotes(notes: string | null | undefined): string | null {
+  return notes ? (RECURRING_MARKER.exec(notes)?.[1] ?? null) : null;
+}
+
+/** Splits stored notes into the internal tag and the text the user wrote. */
+export function splitRecurringNotes(notes: string | null | undefined): { marker: string | null; text: string } {
+  const id = recurringIdFromNotes(notes);
+  if (!notes || !id) return { marker: null, text: notes ?? "" };
+  const marker = recurringMarker(id);
+  return { marker, text: notes.slice(marker.length).trim() };
+}
+
+/** Inverse of `splitRecurringNotes`. */
+export function joinRecurringNotes(marker: string | null, text: string): string {
+  const trimmed = text.trim();
+  if (!marker) return trimmed;
+  return trimmed ? `${marker}\n${trimmed}` : marker;
+}
+
+/** Ids of the fixed movements already charged, from the notes of a month's movements. */
+export function recurringIdsFromNotes(rows: { notes: string | null }[]): Set<string> {
+  return new Set(rows.map((row) => recurringIdFromNotes(row.notes)).filter((id): id is string => id !== null));
+}

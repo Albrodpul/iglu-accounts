@@ -20,6 +20,7 @@ import { MonthProjection } from "@/components/shared/month-projection";
 import { PendingFixed } from "@/components/shared/pending-fixed";
 import { ArrowRight } from "lucide-react";
 import { AssetPieChart } from "@/components/investments/asset-pie-chart";
+import { pieColor } from "@/lib/chart-colors";
 
 export default async function DashboardPage() {
   const now = new Date();
@@ -41,7 +42,7 @@ export default async function DashboardPage() {
       hasInvestmentsEnabled(),
       getInvestmentSummary(),
       getMonthProjection({ month, year, debtCategoryId, transferCategoryId }),
-      getExpensesPaginated({ page: 0, limit: 5, ascending: false }),
+      getExpensesPaginated({ page: 0, limit: 5, ascending: false, excludeFuture: true }),
       getPendingRecurring(),
     ]);
 
@@ -126,13 +127,6 @@ export default async function DashboardPage() {
             {assetBreakdown.length > 0 && (
               <CollapsibleSection label="Desglose de activos">
                 {(() => {
-                  const PIE_COLORS = [
-                    "#f43f5e","#38bdf8","#facc15","#a78bfa",
-                    "#34d399","#f97316","#818cf8","#e879f9",
-                    "#4ade80","#fb7185","#2dd4bf","#fbbf24",
-                    "#67e8f9","#c084fc","#fdba74","#60a5fa",
-                    "#f472b6","#d946ef","#a3e635","#fde68a",
-                  ];
                   const total = assetBreakdown.filter((i) => !i.highlight && i.value > 0).reduce((s, i) => s + i.value, 0);
                   let pieIndex = 0;
                   return (
@@ -142,10 +136,11 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 space-y-1.5">
                         {assetBreakdown.map((item) => {
-                          const isAsset = !item.highlight;
-                          const color = isAsset ? PIE_COLORS[pieIndex % PIE_COLORS.length] : null;
-                          const pct = isAsset && total > 0 ? ((item.value / total) * 100).toFixed(0) : null;
-                          if (isAsset) pieIndex++;
+                          // Only positive assets are slices of the pie; keep the same index it uses.
+                          const isSlice = !item.highlight && item.value > 0;
+                          const color = isSlice ? pieColor(pieIndex) : null;
+                          const pct = isSlice && total > 0 ? ((item.value / total) * 100).toFixed(0) : null;
+                          if (isSlice) pieIndex++;
                           return (
                             <div
                               key={item.label}

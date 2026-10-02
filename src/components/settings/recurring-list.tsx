@@ -391,7 +391,7 @@ export function RecurringList({ recurring, categories }: Props) {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
+              <p role="alert" className="rounded-lg bg-expense/10 p-2 text-sm text-expense">
                 {error}
               </p>
             )}

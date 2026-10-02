@@ -8,9 +8,16 @@ import { parseSignedAmount } from "@/lib/amounts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSelectedAccountId } from "./accounts";
+import { daysAgo, toLocalISODate } from "@/lib/dates";
 import type { RecurringExpenseWithCategory } from "@/types";
 import { getOrCreateIncomeCategory } from "./categories";
-import { getScheduledDay, getExpenseDay, getPendingThisMonth } from "@/lib/recurring";
+import {
+  getScheduledDay,
+  getExpenseDay,
+  getPendingThisMonth,
+  recurringIdsFromNotes,
+  recurringMarker,
+} from "@/lib/recurring";
 
 function parseExpenseOverride(formData: FormData) {
   const rawType = formData.get("expense_schedule_type");
@@ -46,11 +53,55 @@ export async function getPendingRecurring() {
     findRecurringCached(accountId),
     db.expenses.findRecurringNotesInRange(accountId, `${monthStr}-01`, nextMonth),
   ]);
-  const inserted = new Set(
-    existingNotes.map((e) => e.notes?.replace("auto:recurring:", "")).filter((id): id is string => Boolean(id)),
+  return getPendingThisMonth(
+    recurring as RecurringExpenseWithCategory[],
+    recurringIdsFromNotes(existingNotes),
+    year,
+    month,
+    now.getDate(),
   );
+}
 
-  return getPendingThisMonth(recurring as RecurringExpenseWithCategory[], inserted, year, month, now.getDate());
+/**
+ * Turns one pending fixed movement into a real movement dated `date` (the
+ * user's today), tagged so this month's automatic charge skips it.
+ */
+export async function chargeRecurringNow(recurringId: string, date: string) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  // `date` comes from the client's clock: accept only "around today".
+  const allowed = [-1, 0, 1].map((offset) => toLocalISODate(daysAgo(offset)));
+  if (!allowed.includes(date)) return { error: "Fecha no válida" };
+
+  const accountId = await getSelectedAccountId();
+  const db = await getDb();
+  const recurring = (await findRecurringCached(accountId)).find((r) => r.id === recurringId);
+  if (!recurring) return { error: "Movimiento fijo no encontrado" };
+
+  const [year, month] = date.split("-").map(Number);
+  const monthStart = `${date.slice(0, 7)}-01`;
+  const nextMonth = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const existingNotes = await db.expenses.findRecurringNotesInRange(accountId, monthStart, nextMonth);
+  if (recurringIdsFromNotes(existingNotes).has(recurring.id)) {
+    return { error: "Este movimiento fijo ya está cargado este mes" };
+  }
+
+  const { error } = await db.expenses.create({
+    user_id: user.id,
+    account_id: recurring.account_id,
+    category_id: recurring.category_id,
+    amount: recurring.amount,
+    concept: recurring.concept || (recurring.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
+    expense_date: date,
+    notes: recurringMarker(recurring.id),
+  });
+  if (error) return { error };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/expenses");
+  revalidatePath("/summary");
+  return { success: true };
 }
 
 export async function createRecurringExpense(formData: FormData) {
@@ -179,11 +230,7 @@ export async function triggerRecurringExpenses() {
 
   const existingNotes = await db.expenses.findRecurringNotesInRange(accountId, startDate, endDate);
 
-  const alreadyInserted = new Set(
-    existingNotes
-      .map((e) => e.notes?.replace("auto:recurring:", ""))
-      .filter(Boolean),
-  );
+  const alreadyInserted = recurringIdsFromNotes(existingNotes);
 
   const toInsert = recurring
     .filter((r) => {
@@ -200,7 +247,7 @@ export async function triggerRecurringExpenses() {
         amount: r.amount,
         concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
         expense_date: `${monthStr}-${String(expenseDay).padStart(2, "0")}`,
-        notes: `auto:recurring:${r.id}`,
+        notes: recurringMarker(r.id),
       };
     });
 

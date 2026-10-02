@@ -186,6 +186,7 @@ export function ExpenseListAll({
           <ExpenseList
             stickyDayHeaders
             gestureHint
+            backToStart
             // While searching, every match should be visible straight away.
             collapseFuture={!hasFilters}
             expenses={expenses}

@@ -2,14 +2,10 @@
 
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { pieColor } from "@/lib/chart-colors";
 import type { InvestmentFundWithType } from "@/types";
 import { CollapsibleSection } from "@/components/shared/collapsible-section";
 
-const COLORS = [
-  "#f43f5e", "#38bdf8", "#facc15", "#a78bfa", "#34d399",
-  "#f97316", "#818cf8", "#e879f9", "#4ade80", "#fb7185",
-  "#2dd4bf", "#fbbf24", "#67e8f9", "#c084fc", "#fdba74",
-];
 const OTHERS_COLOR = "#94a3b8";
 const MAX_VISIBLE = 7;
 
@@ -39,7 +35,7 @@ function CustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
 }
 
 function sliceColor(i: number, item: ChartItem) {
-  return item.breakdown ? OTHERS_COLOR : COLORS[i % COLORS.length];
+  return item.breakdown ? OTHERS_COLOR : pieColor(i);
 }
 
 function PieTooltip({

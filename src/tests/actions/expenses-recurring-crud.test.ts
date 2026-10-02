@@ -33,6 +33,7 @@ import {
   updateExpense,
 } from "@/actions/expenses";
 import {
+  chargeRecurringNow,
   createRecurringExpense,
   deleteRecurringExpense,
   updateRecurringExpense,
@@ -308,5 +309,60 @@ describe("recurring CRUD actions", () => {
     );
     expect(recurringQuery.eq).toHaveBeenCalledWith("id", "rec-2");
     expect(recurringQuery.eq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+});
+
+describe("charging a pending fixed movement now", () => {
+  const RECURRING_ID = "55555555-5555-4555-8555-555555555555";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const now = new Date();
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const netflix = { id: RECURRING_ID, account_id: ACCOUNT_ID, category_id: CATEGORY_ID, amount: -8.99, concept: "Netflix" };
+
+  function mockDb(existingNotes: { notes: string }[]) {
+    const expensesQuery = createQueryBuilder<unknown>({ data: existingNotes, error: null });
+    mocks.createClient.mockResolvedValue(
+      createSupabaseMock({
+        user: { id: "user-1" },
+        tables: {
+          recurring_expenses: createQueryBuilder<unknown>({ data: [netflix], error: null }),
+          expenses: expensesQuery,
+        },
+      }),
+    );
+    return expensesQuery;
+  }
+
+  it("creates today's movement tagged as the fixed one", async () => {
+    const expensesQuery = mockDb([]);
+
+    const result = await chargeRecurringNow(RECURRING_ID, today);
+
+    expect(result).toEqual({ success: true });
+    expect(expensesQuery.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: -8.99,
+        concept: "Netflix",
+        expense_date: today,
+        notes: `auto:recurring:${RECURRING_ID}`,
+        account_id: ACCOUNT_ID,
+      }),
+    );
+  });
+
+  it("refuses when this month's charge already exists, even with a user note after the tag", async () => {
+    const expensesQuery = mockDb([{ notes: `auto:recurring:${RECURRING_ID}\nSubió de precio` }]);
+
+    const result = await chargeRecurringNow(RECURRING_ID, today);
+
+    expect(result).toEqual({ error: "Este movimiento fijo ya está cargado este mes" });
+    expect(expensesQuery.insert).not.toHaveBeenCalled();
+  });
+
+  it("rejects a date that isn't around today", async () => {
+    const expensesQuery = mockDb([]);
+
+    expect(await chargeRecurringNow(RECURRING_ID, "2020-01-01")).toEqual({ error: "Fecha no válida" });
+    expect(expensesQuery.insert).not.toHaveBeenCalled();
   });
 });

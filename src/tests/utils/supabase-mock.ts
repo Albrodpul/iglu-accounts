@@ -23,6 +23,7 @@ export function createQueryBuilder<T = unknown>(
     neq: vi.fn(() => builder),
     gte: vi.fn(() => builder),
     lt: vi.fn(() => builder),
+    lte: vi.fn(() => builder),
     ilike: vi.fn(() => builder),
     like: vi.fn(() => builder),
     in: vi.fn(() => builder),

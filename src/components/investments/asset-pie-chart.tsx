@@ -1,14 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
-
-const COLORS = [
-  "#f43f5e", "#38bdf8", "#facc15", "#a78bfa",
-  "#34d399", "#f97316", "#818cf8", "#e879f9",
-  "#4ade80", "#fb7185", "#2dd4bf", "#fbbf24",
-  "#67e8f9", "#c084fc", "#fdba74", "#60a5fa",
-  "#f472b6", "#d946ef", "#a3e635", "#fde68a",
-];
+import { pieColor } from "@/lib/chart-colors";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" }).format(v);
@@ -38,7 +31,7 @@ export function AssetPieChart({ items }: { items: Entry[] }) {
   };
 
   const renderCells = () =>
-    data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />);
+    data.map((_, i) => <Cell key={i} fill={pieColor(i)} />);
 
   return (
     <>

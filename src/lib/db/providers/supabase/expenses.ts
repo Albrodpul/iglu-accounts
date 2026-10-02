@@ -248,9 +248,17 @@ export function createExpensesRepo(client: SupabaseClient) {
 
     async findPaginated(
       accountId: string | null,
-      opts: { page: number; limit: number; ascending: boolean; search?: string; categoryId?: string },
+      opts: {
+        page: number;
+        limit: number;
+        ascending: boolean;
+        search?: string;
+        categoryId?: string;
+        /** Latest `expense_date` to include (YYYY-MM-DD). */
+        until?: string;
+      },
     ) {
-      const { page, limit, ascending, search, categoryId } = opts;
+      const { page, limit, ascending, search, categoryId, until } = opts;
       const from = page * limit;
       const to = from + limit - 1;
 
@@ -265,6 +273,7 @@ export function createExpensesRepo(client: SupabaseClient) {
         q = amountFilter ? q.or(amountFilter) : q.ilike("concept", `%${search}%`);
       }
       if (categoryId) q = q.eq("category_id", categoryId);
+      if (until) q = q.lte("expense_date", until);
 
       const { data, error } = await q;
       if (error) throw error;

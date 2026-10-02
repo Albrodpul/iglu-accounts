@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceDb } from "@/lib/db/service";
-import { getScheduledDay, getExpenseDay } from "@/lib/recurring";
+import { getScheduledDay, getExpenseDay, recurringIdsFromNotes, recurringMarker } from "@/lib/recurring";
 import { sendPushToMany, formatRecurringPushBody, formatWeeklySummaryBody } from "@/lib/web-push";
 
 const MONTHS_ES = [
@@ -49,9 +49,7 @@ export async function GET(request: Request) {
 
       const existingNotes = await db.expenses.findRecurringNotesInRange(null, startDate, endDate);
 
-      const alreadyInserted = new Set(
-        existingNotes.map((e) => e.notes?.replace("auto:recurring:", "")).filter(Boolean),
-      );
+      const alreadyInserted = recurringIdsFromNotes(existingNotes);
 
       const toInsert = recurring
         .filter((r) => {
@@ -68,7 +66,7 @@ export async function GET(request: Request) {
             amount: r.amount,
             concept: r.concept || (r.amount > 0 ? "Ingreso fijo" : "Gasto fijo"),
             expense_date: `${monthStr}-${String(expenseDay).padStart(2, "0")}`,
-            notes: `auto:recurring:${r.id}`,
+            notes: recurringMarker(r.id),
           };
         });
 

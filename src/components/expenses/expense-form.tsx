@@ -20,6 +20,7 @@ import { haptic } from "@/lib/haptics";
 import type { ConceptHint, EntryHints } from "@/lib/entry-hints";
 import { Banknote, Copy, Landmark, Loader2, Trash2 } from "lucide-react";
 import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
+import { joinRecurringNotes, splitRecurringNotes } from "@/lib/recurring";
 import type { Category, Expense } from "@/types";
 
 type ExpenseType = "expense" | "income" | "debt" | "transfer";
@@ -68,7 +69,10 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
   const [transferDirection, setTransferDirection] = useState<"bank_to_cash" | "cash_to_bank">(() => detectTransferDirection(source));
   const [formKey, setFormKey] = useState(0);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
-  const [notes, setNotes] = useState(source?.notes || "");
+  // The fixed-movement tag stays out of sight: kept when editing, never copied to a duplicate.
+  const storedNotes = splitRecurringNotes(source?.notes);
+  const recurringTag = expense ? storedNotes.marker : null;
+  const [notes, setNotes] = useState(storedNotes.text);
   const [concept, setConcept] = useState(source?.concept || "");
   const [date, setDate] = useState(() => expense?.expense_date || toLocalISODate());
   const [hints, setHints] = useState<EntryHints | null>(null);
@@ -116,6 +120,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
     setLoading(true);
     try {
       setError(null);
+      formData.set("notes", joinRecurringNotes(recurringTag, notes));
 
       let result;
 
@@ -418,7 +423,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           name="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          maxLength={NOTES_MAX_LENGTH}
+          maxLength={NOTES_MAX_LENGTH - (recurringTag ? recurringTag.length + 1 : 0)}
           placeholder="Detalles adicionales..."
           rows={2}
           className="max-h-60 min-h-20"
@@ -426,7 +431,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
       </div>
 
       {error && (
-        <p className="rounded bg-red-50 p-2 text-sm text-red-600 md:col-span-2">{error}</p>
+        <p role="alert" className="rounded-lg bg-expense/10 p-2 text-sm text-expense md:col-span-2">{error}</p>
       )}
       </div>
 

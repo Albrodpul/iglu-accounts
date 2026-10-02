@@ -5,6 +5,7 @@ import type { Category, Expense } from "@/types";
 
 const mocks = vi.hoisted(() => ({
   createExpense: vi.fn(),
+  updateExpense: vi.fn(),
   checkDuplicate: vi.fn(),
   suggestCategory: vi.fn(),
   getEntryHints: vi.fn(),
@@ -12,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/actions/expenses", () => ({
   createExpense: mocks.createExpense,
-  updateExpense: vi.fn(),
+  updateExpense: mocks.updateExpense,
   createTransfer: vi.fn(),
   updateTransfer: vi.fn(),
   checkDuplicate: mocks.checkDuplicate,
@@ -210,6 +211,30 @@ describe("ExpenseForm duplicating a movement", () => {
     expect(data.get("concept")).toBe("Mercadona");
     expect(data.get("category_id")).toBe("cat-food");
     expect(data.get("expense_date")).not.toBe("2026-01-15");
+  });
+
+  it("never copies the fixed-movement tag to the duplicate", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={categories} prefill={{ ...source, notes: "auto:recurring:r1\nSubió de precio" }} />);
+
+    expect(screen.getByLabelText("Notas (opcional)")).toHaveValue("Subió de precio");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.createExpense.mock.calls[0][0] as FormData).get("notes")).toBe("Subió de precio");
+  });
+
+  it("hides the tag when editing a fixed movement, but keeps it on save", async () => {
+    mocks.updateExpense.mockResolvedValue({ success: true });
+    render(<ExpenseForm categories={categories} expense={{ ...source, notes: "auto:recurring:r1" }} />);
+
+    const notes = screen.getByLabelText("Notas (opcional)");
+    expect(notes).toHaveValue("");
+    await userEvent.type(notes, "Subió de precio");
+    await userEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+
+    await waitFor(() => expect(mocks.updateExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.updateExpense.mock.calls[0][1] as FormData).get("notes")).toBe("auto:recurring:r1\nSubió de precio");
   });
 
   it("the edit form offers Duplicar", async () => {

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAmount, isSum, toAmountText } from "@/lib/amount-expression";
 import { matchesSearch, parseAmountQuery } from "@/lib/amount-search";
-import { getPendingThisMonth } from "@/lib/recurring";
+import {
+  getPendingThisMonth,
+  joinRecurringNotes,
+  recurringIdsFromNotes,
+  splitRecurringNotes,
+} from "@/lib/recurring";
+import { formatDayHeader } from "@/lib/format";
 
 describe("evaluateAmount", () => {
   it("reads a plain amount with comma or dot", () => {
@@ -78,5 +84,40 @@ describe("getPendingThisMonth", () => {
     const bimonthly = [item("bi", 15, { schedule_type: "bimonthly" })]; // created in January (odd)
     expect(getPendingThisMonth(bimonthly, new Set(), 2026, 10, 1)).toEqual([]);
     expect(getPendingThisMonth(bimonthly, new Set(), 2026, 11, 1)).toHaveLength(1);
+  });
+});
+
+describe("fixed-movement tag in notes", () => {
+  it("separates the internal tag from what the user wrote", () => {
+    expect(splitRecurringNotes("auto:recurring:r1")).toEqual({ marker: "auto:recurring:r1", text: "" });
+    expect(splitRecurringNotes("auto:recurring:r1\nSubió de precio")).toEqual({
+      marker: "auto:recurring:r1",
+      text: "Subió de precio",
+    });
+    expect(splitRecurringNotes("Pagado a medias")).toEqual({ marker: null, text: "Pagado a medias" });
+    expect(splitRecurringNotes(null)).toEqual({ marker: null, text: "" });
+  });
+
+  it("puts them back together without losing the tag", () => {
+    expect(joinRecurringNotes("auto:recurring:r1", "")).toBe("auto:recurring:r1");
+    expect(joinRecurringNotes("auto:recurring:r1", " nota ")).toBe("auto:recurring:r1\nnota");
+    expect(joinRecurringNotes(null, " nota ")).toBe("nota");
+  });
+
+  it("still recognises a charged fixed movement after the user adds a note", () => {
+    const ids = recurringIdsFromNotes([
+      { notes: "auto:recurring:r1\nnota" },
+      { notes: "auto:recurring:r2" },
+      { notes: "normal" },
+      { notes: null },
+    ]);
+    expect([...ids]).toEqual(["r1", "r2"]);
+  });
+});
+
+describe("formatDayHeader", () => {
+  it("includes the weekday, and the year on request", () => {
+    expect(formatDayHeader("2026-09-28")).toBe("lun, 28 sept");
+    expect(formatDayHeader("2026-09-28", true)).toBe("lun, 28 sept 2026");
   });
 });

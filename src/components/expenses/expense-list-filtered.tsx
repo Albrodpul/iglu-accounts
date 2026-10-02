@@ -90,6 +90,7 @@ export function ExpenseListFiltered({ expenses, categories, initialCategoryFilte
         <ExpenseList
           stickyDayHeaders
           gestureHint
+          backToStart
           collapseFuture={!hasFilters}
           expenses={filtered}
           categories={categories}

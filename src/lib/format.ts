@@ -49,6 +49,16 @@ export function formatDateWithYear(date: string): string {
   }).format(new Date(date));
 }
 
+/** Day header of the movement lists: "lun, 28 sept" (optionally with the year). */
+export function formatDayHeader(date: string, withYear = false): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    ...(withYear && { year: "numeric" }),
+  }).format(new Date(date));
+}
+
 export const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",

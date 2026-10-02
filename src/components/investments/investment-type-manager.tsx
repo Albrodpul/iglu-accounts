@@ -18,7 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Settings2, GripVertical, Loader2 } from "lucide-react";
+import { ChevronRight, Plus, Pencil, Trash2, Settings2, GripVertical, Loader2 } from "lucide-react";
+import { SwipeRow } from "@/components/ui/swipe-row";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
 import type { InvestmentType, InvestmentFundWithType } from "@/types";
@@ -154,32 +156,43 @@ export function InvestmentTypeManager({ types, funds }: Props) {
                       onDragOver={(e) => handleDragOver(e, idx)}
                       onDrop={() => handleDrop(idx)}
                       onDragEnd={handleDragEnd}
-                      className={`group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors cursor-grab active:cursor-grabbing
-                        ${isDragging ? "opacity-40" : ""}
-                        ${isOver ? "bg-muted/60 ring-1 ring-border" : "hover:bg-muted/35"}
-                      `}
+                      className={cn("rounded-lg", isDragging && "opacity-40", isOver && "bg-muted/60 ring-1 ring-border")}
                     >
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                        <span className="text-sm font-medium">{type.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {fundCount} {fundCount === 1 ? "fondo" : "fondos"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                        <button
-                          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                          onClick={() => openEdit(type)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          className="p-1.5 rounded text-muted-foreground hover:text-expense transition-colors cursor-pointer"
-                          onClick={() => handleDelete(type)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      {/* Same pattern as the movement lists: tap to edit, swipe left to delete. */}
+                      <SwipeRow
+                        onTap={() => openEdit(type)}
+                        onDelete={() => handleDelete(type)}
+                        className="group flex items-center justify-between gap-2 rounded-lg px-3 py-3 transition-colors hover:bg-muted/35 md:cursor-grab md:py-2 md:active:cursor-grabbing"
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <GripVertical className="hidden h-4 w-4 shrink-0 text-muted-foreground/40 md:block" />
+                          <span className="truncate text-[15px] font-medium md:text-sm">{type.name}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {fundCount} {fundCount === 1 ? "fondo" : "fondos"}
+                          </span>
+                        </div>
+                        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground md:hidden" />
+                        <div className="hidden items-center md:flex md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                          <button
+                            type="button"
+                            aria-label={`Editar ${type.name}`}
+                            title="Editar"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); openEdit(type); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Eliminar ${type.name}`}
+                            title="Eliminar"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:text-expense"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(type); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </SwipeRow>
                     </div>
                   );
                 })}
@@ -197,7 +210,7 @@ export function InvestmentTypeManager({ types, funds }: Props) {
 
       {/* Create/Edit type dialog */}
       <Dialog open={formOpen} onOpenChange={(v) => { setFormOpen(v); if (!v) setEditingType(null); }}>
-        <DialogContent variant="sheet" className="sm:max-w-md">
+        <DialogContent variant="menu" className="sm:max-w-md">
           <DialogHeader variant="bar">
             <DialogTitle>{editingType ? "Editar tipo" : "Nuevo tipo de inversión"}</DialogTitle>
           </DialogHeader>

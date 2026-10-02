@@ -21,6 +21,8 @@ type Props = Omit<React.ComponentProps<"input">, "type" | "value" | "defaultValu
   defaultValue?: number | string
   currency?: string
   tone?: AmountTone
+  /** Called with the amount (or `null` while it isn't a valid one) on every edit. */
+  onValueChange?: (value: number | null) => void
 }
 
 function roundToStep(value: number, step: Props["step"]): number {
@@ -48,6 +50,7 @@ function AmountInput({
   step,
   ref,
   onBlur,
+  onValueChange,
   ...props
 }: Props) {
   const style = toneStyles[tone]
@@ -56,8 +59,16 @@ function AmountInput({
     typeof defaultValue === "number" ? toAmountText(defaultValue) : (defaultValue ?? "")
   )
 
-  const evaluated = evaluateAmount(text)
-  const value = evaluated === null ? null : roundToStep(evaluated, step)
+  const valueOf = (input: string) => {
+    const evaluated = evaluateAmount(input)
+    return evaluated === null ? null : roundToStep(evaluated, step)
+  }
+  const value = valueOf(text)
+
+  function update(next: string) {
+    setText(next)
+    onValueChange?.(valueOf(next))
+  }
   const minValue = min === undefined || min === "" ? null : Number(min)
   const error =
     text.trim() === ""
@@ -82,7 +93,7 @@ function AmountInput({
   }
 
   function appendPlus() {
-    setText((current) => (current && !/[+-]$/.test(current.trim()) ? `${current}+` : current))
+    if (text && !/[+-]$/.test(text.trim())) update(`${text}+`)
     inputRef.current?.focus()
   }
 
@@ -110,7 +121,7 @@ function AmountInput({
           {...props}
           ref={setRefs}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => update(e.target.value)}
           onBlur={(e) => {
             // Leaving the field settles a sum into its result.
             if (showResult) setText(toAmountText(value))

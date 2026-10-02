@@ -49,6 +49,18 @@ export function formatDateWithYear(date: string): string {
   }).format(new Date(date));
 }
 
+const decimalFormatters = new Map<number, Intl.NumberFormat>();
+
+/** Plain number the Spanish way, with up to `maxDecimals` decimals: "67,15", "14,2049", "1.234,5". */
+export function formatDecimal(value: number, maxDecimals = 4): string {
+  let formatter = decimalFormatters.get(maxDecimals);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: maxDecimals, useGrouping: "always" });
+    decimalFormatters.set(maxDecimals, formatter);
+  }
+  return formatter.format(value);
+}
+
 const percentFormatters = new Map<string, Intl.NumberFormat>();
 
 /**

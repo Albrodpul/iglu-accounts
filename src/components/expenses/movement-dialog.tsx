@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,9 +42,18 @@ export function MovementDialog({
   onDuplicate,
   prefill,
 }: Props) {
+  const amountRef = useRef<HTMLInputElement>(null);
+  // A brand-new movement almost always starts with the amount: focus it so the
+  // numeric keypad is already up. Editing or duplicating starts from a full form.
+  const startAtAmount = !expense && !prefill;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent variant="sheet" className="sm:max-w-2xl lg:max-w-3xl">
+      <DialogContent
+        variant="sheet"
+        className="sm:max-w-2xl lg:max-w-3xl"
+        initialFocus={startAtAmount ? amountRef : undefined}
+      >
         <DialogHeader variant="bar">
           <DialogTitle>
             {expense ? "Editar movimiento" : prefill ? "Duplicar movimiento" : "Nuevo movimiento"}
@@ -61,6 +71,7 @@ export function MovementDialog({
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             prefill={prefill}
+            amountInputRef={amountRef}
           />
         </div>
       </DialogContent>

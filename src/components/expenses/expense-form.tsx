@@ -25,6 +25,13 @@ import type { Category, Expense } from "@/types";
 
 type ExpenseType = "expense" | "income" | "debt" | "transfer";
 
+const CONCEPT_EXAMPLES: Record<ExpenseType, string> = {
+  expense: "Ej: Compra supermercado",
+  income: "Ej: Nómina",
+  debt: "Ej: Pedro me debe cena",
+  transfer: "Ej: Retirada del cajero",
+};
+
 type Props = {
   categories: Category[];
   expense?: Expense;
@@ -35,6 +42,8 @@ type Props = {
   onDuplicate?: () => void;
   /** Create mode: start from a copy of this movement, dated today. */
   prefill?: Expense;
+  /** Lets the dialog send the initial focus to the amount field. */
+  amountInputRef?: React.RefObject<HTMLInputElement | null>;
   hasInvestments?: boolean;
 };
 
@@ -59,7 +68,7 @@ function detectTransferDirection(expense: Expense | undefined): "bank_to_cash" |
   return expense.payment_method === "bank" ? "cash_to_bank" : "bank_to_cash";
 }
 
-export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplicate, prefill, hasInvestments = false }: Props) {
+export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplicate, prefill, amountInputRef, hasInvestments = false }: Props) {
   // Initial values come from the edited movement or, when duplicating, its source.
   const source = expense ?? prefill;
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +99,8 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
 
   const today = toLocalISODate();
   const yesterday = toLocalISODate(daysAgo(1));
-  const amountRef = useRef<HTMLInputElement>(null);
+  const ownAmountRef = useRef<HTMLInputElement>(null);
+  const amountRef = amountInputRef ?? ownAmountRef;
 
   // Quick-entry hints (frequent concepts, category usage) — new movements only.
   useEffect(() => {
@@ -347,7 +357,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           name="concept"
           value={concept}
           onChange={(e) => setConcept(e.target.value)}
-          placeholder={type === "debt" ? "Ej: Pedro me debe cena" : "Ej: Compra supermercado"}
+          placeholder={CONCEPT_EXAMPLES[type]}
           className="h-12 md:h-10"
           autoCapitalize="sentences"
           enterKeyHint="next"
@@ -474,23 +484,25 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           </>
         ) : (
           <>
+            {/* First in the DOM so Enter submits it; `flex-col-reverse` puts it at
+                the bottom on phones, like "Actualizar" when editing. */}
+            <Button
+              type="submit"
+              className="h-12 w-full md:order-2 md:h-10 md:flex-1"
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? "Guardando..." : submitLabel}
+            </Button>
             <Button
               type="submit"
               variant="outline"
-              className="h-12 w-full md:h-10 md:flex-1"
+              className="h-12 w-full md:order-1 md:h-10 md:flex-1"
               disabled={loading}
               onClick={() => { keepOpenRef.current = true; }}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Guardando..." : "Guardar y crear otro"}
-            </Button>
-            <Button
-              type="submit"
-              className="h-12 w-full md:h-10 md:flex-1"
-              disabled={loading}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Guardando..." : submitLabel}
             </Button>
           </>
         )}

@@ -63,30 +63,33 @@ export function useConfirm() {
       open={open}
       onOpenChange={(v) => { if (!v && !pending) close(false); }}
     >
-      <DialogContent variant="sheet" className="sm:max-w-sm" showCloseButton={!pending}>
+      {/* A question and two buttons: as tall as that, not a full-height sheet. */}
+      <DialogContent variant="menu" className="sm:max-w-sm" showCloseButton={!pending}>
         <DialogHeader className="px-5 pt-7 pr-12 pb-2 sm:pt-5">
           <DialogTitle>{options.title || "Confirmar"}</DialogTitle>
           <DialogDescription className="pt-1">
             {options.description}
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-auto flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:mt-0 sm:flex-row sm:border-0 sm:pb-5">
-          <Button
-            variant="outline"
-            className="h-12 w-full md:h-10 md:flex-1"
-            onClick={() => close(false)}
-            disabled={pending}
-          >
-            {options.cancelLabel || "Cancelar"}
-          </Button>
+        <div className="flex shrink-0 flex-col-reverse gap-2 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:pb-5">
+          {/* The action comes first in the DOM: with `flex-col-reverse` it sits at the
+              bottom on phones, where every other sheet keeps its main button. */}
           <Button
             variant={options.variant === "destructive" ? "destructive" : "default"}
-            className="h-12 w-full md:h-10 md:flex-1"
+            className="h-12 w-full sm:order-2 md:h-10 md:flex-1"
             onClick={handleConfirm}
             disabled={pending}
           >
             {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {pending ? "Procesando..." : options.confirmLabel || "Confirmar"}
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12 w-full sm:order-1 md:h-10 md:flex-1"
+            onClick={() => close(false)}
+            disabled={pending}
+          >
+            {options.cancelLabel || "Cancelar"}
           </Button>
         </div>
       </DialogContent>

@@ -178,7 +178,7 @@ export function AccountsSettings({ accounts }: Props) {
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent variant="sheet" className="sm:max-w-sm">
+        <DialogContent variant="menu" className="sm:max-w-sm">
           <DialogHeader variant="bar">
             <DialogTitle>
               {editingAccount ? "Renombrar cuenta" : "Nueva cuenta"}

@@ -60,6 +60,14 @@ jobs:
         with:
           node-version: "22"
 
-      # Reads package-lock.json; no install needed. Fails on moderate or worse.
-      - name: Audit dependencies
+      # Reads package-lock.json; no install needed. Fails on moderate or worse
+      # in what actually ships: the dependencies of the running app.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      # Build and lint tooling (eslint, shadcn CLI...) never runs in production
+      # nor on user input, so an advisory there is reported but does not turn
+      # the build red — often there is no fixed version to move to yet.
+      - name: Audit development tooling (informational)
         run: npm audit --audit-level=moderate
+        continue-on-error: true

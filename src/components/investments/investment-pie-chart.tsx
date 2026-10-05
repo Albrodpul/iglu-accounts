@@ -179,8 +179,8 @@ export function InvestmentPieChart({ funds }: Props) {
 
   return (
     <div>
-      {/* Desktop: chart + legend side by side */}
-      <div className="hidden md:flex md:items-center md:gap-3">
+      {/* Wide screens: chart + legend side by side */}
+      <div className="hidden xl:flex xl:items-center xl:gap-3">
         <div className="shrink-0">
           <PieChart width={200} height={200}>
             <Pie data={chartData} cx={100} cy={100} outerRadius={90} dataKey="value" labelLine={false} label={CustomLabel}>
@@ -197,8 +197,8 @@ export function InvestmentPieChart({ funds }: Props) {
         </div>
       </div>
 
-      {/* Mobile: collapsible chart + legend */}
-      <div className="md:hidden">
+      {/* Narrower: behind a pill, like the other hero details */}
+      <div className="xl:hidden">
         <CollapsibleSection label="Distribución" variant="hero">
           <div className="mb-3"><ViewToggle view={view} onChange={setView} /></div>
           <div className="flex justify-center">

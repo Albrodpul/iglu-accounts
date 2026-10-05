@@ -12,17 +12,26 @@ export type AssetItem = {
 };
 
 /** Where the total is held — bank, cash and each investment type — as a pie and its legend. For the hero surface. */
-export function AssetBreakdown({ items, className }: { items: AssetItem[]; className?: string }) {
+export function AssetBreakdown({
+  items,
+  className,
+  wide = false,
+}: {
+  items: AssetItem[];
+  className?: string;
+  /** Full-width layout: a smaller pie with the legend in two columns, half as tall. */
+  wide?: boolean;
+}) {
   const slices = items.filter((item) => !item.highlight);
   const total = slices.filter((item) => item.value > 0).reduce((sum, item) => sum + item.value, 0);
   let sliceIndex = 0;
 
   return (
-    <div className={cn("flex flex-col gap-3 md:flex-row md:items-center md:gap-4", className)}>
+    <div className={cn("flex flex-col gap-3 md:flex-row md:items-center", wide ? "md:gap-8" : "md:gap-4", className)}>
       <div className="flex shrink-0 justify-center">
-        <AssetPieChart items={slices} />
+        <AssetPieChart items={slices} size={wide ? 140 : undefined} />
       </div>
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className={cn("min-w-0 flex-1", wide ? "grid grid-cols-2 gap-x-8 gap-y-0.5" : "space-y-1")}>
         {items.map((item) => {
           // Only positive assets are slices of the pie; keep the same index it uses.
           const isSlice = !item.highlight && item.value > 0;
@@ -31,7 +40,7 @@ export function AssetBreakdown({ items, className }: { items: AssetItem[]; class
           return (
             <div
               key={item.label}
-              className={cn("flex items-center justify-between rounded-lg px-3 py-1", item.highlight && "mt-1 bg-white/10 py-1.5")}
+              className={cn("flex items-center justify-between rounded-lg px-3 py-1", item.highlight && "bg-white/10 py-1.5", item.highlight && !wide && "mt-1")}
             >
               <div className="flex min-w-0 items-center gap-2">
                 {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />}

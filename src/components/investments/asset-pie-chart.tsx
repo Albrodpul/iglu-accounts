@@ -9,7 +9,8 @@ const fmt = (v: number) =>
 
 type Entry = { label: string; value: number };
 
-export function AssetPieChart({ items }: { items: Entry[] }) {
+/** `size` fixes the diameter; without it the chart is small on phones and larger from `md` up. */
+export function AssetPieChart({ items, size }: { items: Entry[]; size?: number }) {
   const data = items.filter((i) => i.value > 0);
   if (data.length === 0) return null;
 
@@ -34,26 +35,30 @@ export function AssetPieChart({ items }: { items: Entry[] }) {
   const renderCells = () =>
     data.map((_, i) => <Cell key={i} fill={pieColor(i)} />);
 
+  const chart = (size: number) => (
+    <PieChart width={size} height={size}>
+      <Pie
+        data={data}
+        dataKey="value"
+        nameKey="label"
+        cx={size / 2}
+        cy={size / 2}
+        outerRadius={size / 2 - 6}
+        innerRadius={(size / 2 - 6) * 0.4}
+        labelLine={false}
+      >
+        {renderCells()}
+      </Pie>
+      <Tooltip {...tooltipProps} />
+    </PieChart>
+  );
+
+  if (size) return chart(size);
+
   return (
     <>
-      {/* Mobile */}
-      <div className="md:hidden">
-        <PieChart width={120} height={120}>
-          <Pie data={data} dataKey="value" nameKey="label" cx={60} cy={60} outerRadius={54} innerRadius={22} labelLine={false}>
-            {renderCells()}
-          </Pie>
-          <Tooltip {...tooltipProps} />
-        </PieChart>
-      </div>
-      {/* Desktop */}
-      <div className="hidden md:block">
-        <PieChart width={200} height={200}>
-          <Pie data={data} dataKey="value" nameKey="label" cx={100} cy={100} outerRadius={90} innerRadius={36} labelLine={false}>
-            {renderCells()}
-          </Pie>
-          <Tooltip {...tooltipProps} />
-        </PieChart>
-      </div>
+      <div className="md:hidden">{chart(120)}</div>
+      <div className="hidden md:block">{chart(200)}</div>
     </>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronRight } from "lucide-react";
 import { Amount } from "@/components/ui/amount";
-import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Kpi } from "@/lib/expense-metrics";
 
@@ -25,17 +24,38 @@ const extraTone: Record<Kpi["color"], string> = {
   neutral: "text-foreground",
 };
 
+/** Money in or out: a small tinted arrow and the figure, right-aligned so the two stack into a column. */
+function Flow({ kpi, direction }: { kpi: Kpi; direction: "in" | "out" }) {
+  const Icon = direction === "in" ? ArrowUpRight : ArrowDownRight;
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <dt>
+        <span className="sr-only">{kpi.label}</span>
+        <span
+          aria-hidden
+          className={cn(
+            "flex h-5 w-5 items-center justify-center rounded-full",
+            direction === "in" ? "bg-income/12 text-income" : "bg-expense/12 text-expense"
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </dt>
+      <dd className="text-sm font-semibold tabular-nums">
+        <Amount value={kpi.value} />
+      </dd>
+    </div>
+  );
+}
+
 /**
- * Net of a period with its income and expenses in plain sight — nothing to
- * unfold. The bar shows how much of the income has been spent, so "is this
- * month tight?" reads at a glance. With `href`, the whole card is one link.
+ * Net of a period with its income and expenses beside it — nothing to unfold,
+ * and no taller than the collapsed card it replaces. Extra figures (monthly
+ * average, fixed costs, debts) sit on a quiet footer line. With `href`, the
+ * whole card is one link.
  */
 export function PeriodCard({ title, href, neto, kpis, size = "md" }: Props) {
   const [income, expenses, ...extras] = kpis;
-  const spent = Math.abs(expenses.value);
-  // Share of the income already spent; with no income, any spending fills the bar.
-  const share = income.value > 0 ? (spent / income.value) * 100 : spent > 0 ? 100 : 0;
-  const hasMovement = income.value !== 0 || spent !== 0;
 
   return (
     <section className={cn("surface-card relative p-5 md:p-6", href && "transition-colors hover:border-primary/40")}>
@@ -50,54 +70,43 @@ export function PeriodCard({ title, href, neto, kpis, size = "md" }: Props) {
           title
         )}
       </h2>
-      <p
-        className={cn(
-          "mt-1 font-extrabold tracking-tight tabular-nums",
-          size === "lg" ? "text-4xl md:text-5xl" : "text-3xl md:text-4xl",
-          neto >= 0 ? "text-income" : "text-expense"
-        )}
-      >
-        <Amount value={neto} animate />
-      </p>
 
-      {/* Kept as short as the "Desglose…" toggle it replaces: a bar and one line. */}
-      <div
-        role="img"
-        aria-label={hasMovement ? `Gastado el ${formatPercent(share, { decimals: 0 })} de los ingresos` : "Sin movimientos"}
-        className={cn("mt-3 h-1.5 overflow-hidden rounded-full", hasMovement ? "bg-income/30" : "bg-muted")}
-      >
-        <div className="h-full rounded-full bg-expense" style={{ width: `${Math.min(100, share)}%` }} />
+      {/* Net on the left, the two flows on the right; if a huge figure leaves no room they wrap below. */}
+      <div className="mt-1 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <p
+          className={cn(
+            "text-3xl font-extrabold tracking-tight tabular-nums",
+            size === "lg" ? "md:text-5xl" : "md:text-4xl",
+            neto >= 0 ? "text-income" : "text-expense"
+          )}
+        >
+          <Amount value={neto} animate />
+        </p>
+        <dl className="ml-auto space-y-1">
+          <Flow kpi={income} direction="in" />
+          <Flow kpi={expenses} direction="out" />
+        </dl>
       </div>
 
-      <dl className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-xs text-muted-foreground">
-        <div className="flex items-baseline gap-1.5">
-          <dt>{income.label}</dt>
-          <dd className="text-sm font-semibold tabular-nums text-income">
-            <Amount value={income.value} />
-          </dd>
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <dt>{expenses.label}</dt>
-          <dd className="text-sm font-semibold tabular-nums text-expense">
-            <Amount value={expenses.value} />
-          </dd>
-        </div>
-        {extras.map((kpi) => (
-          <div key={kpi.label} className="flex items-baseline gap-1.5">
-            <dt>{kpi.label}</dt>
-            <dd className={cn("font-semibold tabular-nums", extraTone[kpi.color])}>
-              {kpi.href ? (
-                // Above the stretched link, so it keeps its own destination.
-                <Link href={kpi.href} className="relative z-10 underline decoration-dotted underline-offset-2">
+      {extras.length > 0 && (
+        <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
+          {extras.map((kpi) => (
+            <div key={kpi.label} className="flex items-baseline gap-1.5">
+              <dt>{kpi.label}</dt>
+              <dd className={cn("font-semibold tabular-nums", extraTone[kpi.color])}>
+                {kpi.href ? (
+                  // Above the stretched link, so it keeps its own destination.
+                  <Link href={kpi.href} className="relative z-10 underline decoration-dotted underline-offset-2">
+                    <Amount value={kpi.value} />
+                  </Link>
+                ) : (
                   <Amount value={kpi.value} />
-                </Link>
-              ) : (
-                <Amount value={kpi.value} />
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </section>
   );
 }

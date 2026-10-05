@@ -27,16 +27,6 @@ export function createRecurringRepo(client: SupabaseClient) {
       return data ?? [];
     },
 
-    async findActiveMinimal(accountId: string | null) {
-      let q = client
-        .from("recurring_expenses")
-        .select("id, amount, schedule_type, day_of_month, expense_schedule_type, expense_day_of_month, created_at")
-        .eq("is_active", true);
-      if (accountId) q = q.eq("account_id", accountId);
-      const { data } = await q;
-      return data ?? [];
-    },
-
     async findActiveForUser(userId: string, accountId: string | null) {
       let q = client
         .from("recurring_expenses")

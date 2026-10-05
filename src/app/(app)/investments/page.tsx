@@ -5,7 +5,9 @@ import { InvestmentTypeManager } from "@/components/investments/investment-type-
 import { FundList } from "@/components/investments/fund-list";
 import { InvestmentPieChart } from "@/components/investments/investment-pie-chart";
 import { NavRefreshButton } from "@/components/investments/nav-refresh-button";
+import { LineChart, PiggyBank } from "lucide-react";
 import { Amount } from "@/components/ui/amount";
+import { HeroStat } from "@/components/dashboard/hero-stat";
 import { formatPercent } from "@/lib/format";
 import { lastPriceUpdate } from "@/lib/investments";
 import { PricesUpdated } from "@/components/investments/prices-updated";
@@ -44,9 +46,9 @@ export default async function InvestmentsPage() {
 
       {/* Hero — Rentabilidad */}
       <section className="hero-surface p-6 md:p-8">
-        <div className="md:flex md:items-center md:gap-8">
+        <div className="xl:flex xl:items-center xl:gap-8">
           {/* Stats */}
-          <div className="md:flex-1">
+          <div className="xl:flex-1">
             <p className="text-sm font-semibold text-white/85">Rentabilidad</p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <p
@@ -61,29 +63,15 @@ export default async function InvestmentsPage() {
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="kpi-chip">
-                <p className="text-xs font-medium text-white/80">
-                  Total invertido
-                </p>
-                <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
-                  <Amount value={totalInvested} />
-                </p>
-              </div>
-              <div className="kpi-chip">
-                <p className="text-xs font-medium text-white/80">
-                  Valor actual
-                </p>
-                <p className="mt-1 text-lg font-bold tabular-nums text-white md:text-xl">
-                  <Amount value={totalValue} />
-                </p>
-              </div>
+            <div className="mt-4 flex flex-wrap gap-x-7 gap-y-3">
+              <HeroStat icon={PiggyBank} label="Invertido" value={totalInvested} />
+              <HeroStat icon={LineChart} label="Valor actual" value={totalValue} />
             </div>
           </div>
 
           {/* Pie chart — right on desktop, below on mobile */}
           {funds.length > 0 && (
-            <div className="mt-4 border-t border-white/20 pt-2 md:mt-0 md:w-[540px] md:min-w-0 md:border-l md:border-t-0 md:pl-8 md:pt-0">
+            <div className="xl:w-[540px] xl:min-w-0 xl:border-l xl:border-white/20 xl:pl-8">
               <InvestmentPieChart funds={funds} />
             </div>
           )}

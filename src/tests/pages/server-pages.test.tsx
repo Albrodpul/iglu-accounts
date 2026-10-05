@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   getExpensesByYear: vi.fn(),
   getAllTimeBalance: vi.fn(),
   getAvailablePeriods: vi.fn(),
-  getMonthProjection: vi.fn(),
   getExpensesPaginated: vi.fn(),
   getRecurringExpenses: vi.fn(),
   getUserPasskeys: vi.fn(),
@@ -51,7 +50,6 @@ vi.mock("@/actions/expenses", () => ({
   getExpensesByYear: mocks.getExpensesByYear,
   getAllTimeBalance: mocks.getAllTimeBalance,
   getAvailablePeriods: mocks.getAvailablePeriods,
-  getMonthProjection: mocks.getMonthProjection,
   getExpensesPaginated: mocks.getExpensesPaginated,
 }));
 
@@ -85,6 +83,7 @@ vi.mock("@/components/expenses/add-expense-fab", () => ({
 
 vi.mock("@/components/shared/collapsible-section", () => ({
   CollapsibleSection: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  heroPillClass: "",
 }));
 
 vi.mock("@/components/expenses/month-selector", () => ({
@@ -188,13 +187,6 @@ beforeEach(() => {
     years: [{ year: 2026, neto: 1000 }],
   });
   mocks.getAvailablePeriods.mockResolvedValue([{ month: 1, year: 2026 }]);
-  mocks.getMonthProjection.mockResolvedValue({
-    currentNet: 900,
-    projected: 850,
-    avgHistoricalNet: null,
-    monthProgress: 0.5,
-    historicalMonths: 0,
-  });
   mocks.getRecurringExpenses.mockResolvedValue([{ amount: -50 }, { amount: 100 }]);
   mocks.getExpensesPaginated.mockResolvedValue({ data: sampleExpenses, hasMore: false });
   mocks.hasInvestmentsEnabled.mockResolvedValue(false);

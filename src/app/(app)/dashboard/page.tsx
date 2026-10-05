@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getExpenses, getExpensesByYear, getExpensesPaginated, getAllTimeBalance, getMonthProjection } from "@/actions/expenses";
+import { getExpenses, getExpensesByYear, getExpensesPaginated, getAllTimeBalance } from "@/actions/expenses";
 import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actions/categories";
 import { getPendingRecurring, getRecurringExpenses } from "@/actions/recurring";
 import { hasInvestmentsEnabled } from "@/actions/accounts";
@@ -14,10 +14,10 @@ import { ExpenseList } from "@/components/expenses/expense-list";
 import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { PeriodCard } from "@/components/dashboard/period-card";
 import { MONTHS } from "@/lib/format";
-import { CollapsibleSection } from "@/components/shared/collapsible-section";
-import { MonthProjection } from "@/components/shared/month-projection";
+import { HeroDetails } from "@/components/dashboard/hero-details";
+import { HeroStat } from "@/components/dashboard/hero-stat";
 import { PendingFixed } from "@/components/shared/pending-fixed";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Banknote, Landmark, TrendingUp } from "lucide-react";
 import { AssetBreakdown, type AssetItem } from "@/components/dashboard/asset-breakdown";
 import { YearBalances } from "@/components/dashboard/year-balances";
 
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     getTransferCategoryId(),
   ]);
 
-  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, projection, recentPage, pendingFixed] =
+  const [monthExpenses, yearExpenses, categories, recurring, allTime, hasInvestments, investmentSummary, recentPage, pendingFixed] =
     await Promise.all([
       getExpenses({ month, year }),
       getExpensesByYear(year),
@@ -40,7 +40,6 @@ export default async function DashboardPage() {
       getAllTimeBalance(debtCategoryId),
       hasInvestmentsEnabled(),
       getInvestmentSummary(),
-      getMonthProjection({ month, year, debtCategoryId, transferCategoryId }),
       getExpensesPaginated({ page: 0, limit: 5, ascending: false, excludeFuture: true }),
       getPendingRecurring(),
     ]);
@@ -100,13 +99,27 @@ export default async function DashboardPage() {
     assetBreakdown.push({ label: "Neto inversiones", value: totalReturn, highlight: true });
   }
   const hasAssets = assetBreakdown.length > 0;
+  // The two halves of the total: what is at hand, and what is invested (or, without
+  // the investments module, bank and cash when there is any cash).
+  const heroStats = hasInvestments
+    ? [
+        { icon: Landmark, label: "Banco y efectivo", value: bankBalance + cashBalance },
+        { icon: TrendingUp, label: "Inversiones", value: totalInvestmentValue, href: "/investments" },
+      ]
+    : cashBalance !== 0
+      ? [
+          { icon: Landmark, label: "Banco", value: allTime.bankTotal },
+          { icon: Banknote, label: "Efectivo", value: cashBalance },
+        ]
+      : [];
   const total = hasInvestments ? grandTotal : allTime.total;
 
   return (
     <div className="space-y-6 md:space-y-8">
       <section className="hero-surface p-6 md:p-8">
-        <div className="xl:flex xl:items-center xl:gap-8">
-          <div className="xl:flex-1">
+        {/* Wide screens: the total and its two halves share the first row. */}
+        <div className="xl:flex xl:items-end xl:justify-between xl:gap-8">
+          <div>
             <p className="text-sm font-semibold text-white/85">Total acumulado</p>
             <p
               className={`mt-1 text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl ${
@@ -116,28 +129,37 @@ export default async function DashboardPage() {
               <Amount value={total} animate />
             </p>
           </div>
-          {/* Wide screens have the room to keep the breakdown in sight. */}
-          {hasAssets && (
-            <AssetBreakdown
-              items={assetBreakdown}
-              className="hidden xl:flex xl:w-[520px] xl:border-l xl:border-white/20 xl:pl-8"
-            />
+          {heroStats.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-x-7 gap-y-3 xl:mt-0 xl:pb-2">
+              {heroStats.map((stat) => (
+                <HeroStat key={stat.label} {...stat} />
+              ))}
+            </div>
           )}
         </div>
 
-        {hasAssets && (
-          <div className="xl:hidden">
-            <CollapsibleSection label="Desglose de activos">
-              <AssetBreakdown items={assetBreakdown} />
-            </CollapsibleSection>
-          </div>
-        )}
-
-        {allTime.years.length > 0 && (
-          <CollapsibleSection label="Balance por año">
-            <YearBalances years={allTime.years} currentYear={year} />
-          </CollapsibleSection>
-        )}
+        <HeroDetails
+          sections={[
+            ...(hasAssets
+              ? [
+                  {
+                    id: "assets",
+                    label: "Activos",
+                    // Wide screens use the full width: smaller pie, legend in two columns.
+                    content: (
+                      <>
+                        <AssetBreakdown items={assetBreakdown} className="xl:hidden" />
+                        <AssetBreakdown wide items={assetBreakdown} className="hidden xl:flex" />
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+            ...(allTime.years.length > 0
+              ? [{ id: "years", label: "Por año", content: <YearBalances years={allTime.years} currentYear={year} /> }]
+              : []),
+          ]}
+        />
       </section>
 
       {/* Phones read top to bottom: this month, what is still due, the latest
@@ -153,12 +175,6 @@ export default async function DashboardPage() {
             href={`/expenses?month=${month}&year=${year}`}
             neto={monthTotals.net}
             kpis={monthKpis}
-          />
-          <MonthProjection
-            projected={projection.projected}
-            historicalMonths={projection.historicalMonths}
-            monthProgress={projection.monthProgress}
-            pendingRecurringNet={projection.pendingRecurringNet}
           />
           <PendingFixed items={pendingFixed} month={month} />
         </div>

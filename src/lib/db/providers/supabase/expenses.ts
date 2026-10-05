@@ -117,23 +117,6 @@ export function createExpensesRepo(client: SupabaseClient) {
       return data;
     },
 
-    async findDatedAmountsByDateRange(accountId: string | null, start: string, end: string) {
-      const { data } = await fetchAllRows<{ expense_date: string; amount: number; category_id: string }>(
-        (from, to) => {
-          let q = client
-            .from("expenses")
-            .select("expense_date, amount, category_id")
-            .gte("expense_date", start)
-            .lt("expense_date", end)
-            .order("id")
-            .range(from, to);
-          if (accountId) q = q.eq("account_id", accountId);
-          return q;
-        },
-      );
-      return data;
-    },
-
     async findRecurringNotesInRange(accountId: string | null, start: string, end: string) {
       let q = client
         .from("expenses")

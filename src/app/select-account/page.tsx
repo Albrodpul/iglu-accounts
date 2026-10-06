@@ -27,6 +27,7 @@ export default async function SelectAccountPage() {
   const accountsWithAction = accounts.map((account) => ({
     id: account.id,
     name: account.name,
+    current: account.id === currentAccountId,
     action: selectAccount.bind(null, account.id),
   }));
 

@@ -7,6 +7,8 @@ import { useFormStatus } from "react-dom";
 type Account = {
   id: string;
   name: string;
+  /** The account in use right now, when coming back to switch. */
+  current?: boolean;
   action: () => void | Promise<void>;
 };
 
@@ -21,7 +23,7 @@ type AccountOptionFormProps = {
   isSelected: boolean;
 };
 
-function SubmitButton({ name, isSelected, anyPending }: { name: string; isSelected: boolean; anyPending: boolean }) {
+function SubmitButton({ name, current, isSelected, anyPending }: { name: string; current: boolean; isSelected: boolean; anyPending: boolean }) {
   const { pending } = useFormStatus();
   const showSpinner = pending || (anyPending && isSelected);
   const disabled = pending || anyPending;
@@ -31,10 +33,13 @@ function SubmitButton({ name, isSelected, anyPending }: { name: string; isSelect
       type="submit"
       aria-busy={showSpinner}
       disabled={disabled}
-      className="w-full rounded-lg border border-border/80 bg-card px-5 py-4 text-left text-base font-medium transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-75"
+      className={`w-full cursor-pointer rounded-xl border px-5 py-4 text-left text-base font-medium transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-75 ${
+        current ? "border-primary/40 bg-primary/10" : "border-border/80 bg-card"
+      }`}
     >
       <span className="flex items-center justify-between gap-3">
         <span className="truncate">{name}</span>
+        {current && !showSpinner && <span className="shrink-0 text-xs font-semibold text-primary">Actual</span>}
         {showSpinner && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -52,7 +57,7 @@ function AccountOptionForm({ account, anyPending, onSelect, isSelected }: Accoun
       action={account.action}
       onSubmitCapture={() => onSelect(account.id)}
     >
-      <SubmitButton name={account.name} isSelected={isSelected} anyPending={anyPending} />
+      <SubmitButton name={account.name} current={account.current ?? false} isSelected={isSelected} anyPending={anyPending} />
     </form>
   );
 }

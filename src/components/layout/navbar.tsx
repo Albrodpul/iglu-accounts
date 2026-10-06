@@ -46,6 +46,7 @@ import Image from "next/image";
 import { MovementDialog } from "@/components/expenses/movement-dialog";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { GlobalSearch } from "@/components/expenses/global-search";
+import { AccountSwitcher } from "@/components/layout/account-switcher";
 import type { Category } from "@/types";
 
 const navItemsLeft = [
@@ -67,7 +68,9 @@ const menuGroupLabelClass = "px-3 pb-1 pt-3 text-xs font-semibold uppercase trac
 
 type Props = {
   accountName?: string;
-  showAccountSwitcher?: boolean;
+  /** Accounts the user can switch between; the switcher only shows with more than one. */
+  accounts?: { id: string; name: string }[];
+  currentAccountId?: string | null;
   categories?: Category[];
   hasInvestments?: boolean;
 };
@@ -123,7 +126,9 @@ function NavActionItem({
   );
 }
 
-export function Navbar({ accountName, showAccountSwitcher = true, categories = [], hasInvestments = false }: Props) {
+export function Navbar({ accountName, accounts = [], currentAccountId = null, categories = [], hasInvestments = false }: Props) {
+  const showAccountSwitcher = accounts.length > 1;
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -255,10 +260,15 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         {/* Account switcher */}
         {showAccountSwitcher && (
           <div className="border-b border-sidebar-border/50 px-4 py-3">
-            <Link href="/select-account" className="group flex items-center justify-between rounded-md px-1">
+            <button
+              type="button"
+              onClick={() => setAccountsOpen(true)}
+              aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
+              className="group flex w-full cursor-pointer items-center justify-between rounded-md px-1"
+            >
               <span className="truncate text-[13px] font-semibold text-sidebar-foreground/80">{accountName || "Seleccionar cuenta"}</span>
               <ArrowLeftRight className="h-3 w-3 text-sidebar-foreground/35 transition-colors group-hover:text-sidebar-foreground/80" />
-            </Link>
+            </button>
           </div>
         )}
 
@@ -406,13 +416,15 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
         </Link>
         <div className="flex items-center gap-3">
           {showAccountSwitcher && (
-            <Link
-              href="/select-account"
-              className="flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/40"
+            <button
+              type="button"
+              onClick={() => setAccountsOpen(true)}
+              aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/40"
             >
               <ArrowLeftRight className="h-3 w-3" />
               <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
-            </Link>
+            </button>
           )}
           <button
             type="button"
@@ -613,7 +625,14 @@ export function Navbar({ accountName, showAccountSwitcher = true, categories = [
       </Dialog>
 
       {/* Global search dialog */}
-      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} categories={categories} hasInvestments={hasInvestments} />
+
+      <AccountSwitcher
+        open={accountsOpen}
+        onOpenChange={setAccountsOpen}
+        accounts={accounts}
+        currentAccountId={currentAccountId}
+      />
 
       {/* Mobile add dialog */}
       <MovementDialog

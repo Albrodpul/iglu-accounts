@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import { searchExpenses } from "@/actions/expenses";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { deleteExpense, searchExpenses } from "@/actions/expenses";
+import { MovementDialog } from "./movement-dialog";
 import { formatDate } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import {
@@ -12,16 +15,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Search } from "lucide-react";
-import type { ExpenseWithCategory } from "@/types";
+import type { Category, ExpenseWithCategory } from "@/types";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Needed to edit a result in place. */
+  categories?: Category[];
+  hasInvestments?: boolean;
   debtCategoryId?: string | null;
   transferCategoryId?: string | null;
 };
 
-export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transferCategoryId = null }: Props) {
+export function GlobalSearch({ open, onOpenChange, categories = [], hasInvestments = false, debtCategoryId = null, transferCategoryId = null }: Props) {
+  const router = useRouter();
+  const [editing, setEditing] = useState<ExpenseWithCategory | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ExpenseWithCategory[]>([]);
   const [searched, setSearched] = useState(false);
@@ -46,6 +54,25 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
         setSearched(true);
       });
     }, 300);
+  }
+
+  /** After editing or deleting a result: reflect it here and on the page behind. */
+  function refreshAfterChange() {
+    setEditing(null);
+    router.refresh();
+    const current = query;
+    if (!current.trim()) return;
+    startTransition(async () => {
+      setResults(await searchExpenses(current));
+    });
+  }
+
+  async function handleDelete(expense: ExpenseWithCategory) {
+    setEditing(null);
+    const result = await deleteExpense(expense.id);
+    if (result?.error) toast.error(result.error);
+    else toast.success("Movimiento eliminado");
+    refreshAfterChange();
   }
 
   function handleClose(v: boolean) {
@@ -75,7 +102,7 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar en todo el historial..."
+              placeholder="Concepto o importe"
               value={query}
               onChange={(e) => handleChange(e.target.value)}
               autoFocus
@@ -98,9 +125,11 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
           {!isPending && results.length > 0 && (
             <div className="space-y-1">
               {results.map((expense) => (
-                <div
+                <button
                   key={expense.id}
-                  className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/35"
+                  type="button"
+                  onClick={() => setEditing(expense)}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/35"
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
@@ -121,7 +150,7 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
                   <span className={`text-sm font-semibold tabular-nums shrink-0 ${amountColor(expense)}`}>
                     <Amount value={expense.amount} />
                   </span>
-                </div>
+                </button>
               ))}
 
               {results.length === 50 && (
@@ -134,11 +163,23 @@ export function GlobalSearch({ open, onOpenChange, debtCategoryId = null, transf
 
           {!isPending && !searched && (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Escribe para buscar en todo el historial
+Busca en todo el historial por concepto o por importe. Toca un resultado para editarlo.
             </p>
           )}
         </DialogBody>
       </DialogContent>
+
+      {editing && (
+        <MovementDialog
+          open
+          onOpenChange={() => setEditing(null)}
+          categories={categories}
+          expense={editing}
+          hasInvestments={hasInvestments}
+          onSuccess={refreshAfterChange}
+          onDelete={() => handleDelete(editing)}
+        />
+      )}
     </Dialog>
   );
 }

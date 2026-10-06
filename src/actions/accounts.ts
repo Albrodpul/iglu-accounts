@@ -185,6 +185,21 @@ export async function updateDisplayName(name: string) {
   return { success: true };
 }
 
+/** Like `selectAccount`, but stays on the current page: the caller refreshes it. */
+export async function switchAccount(accountId: string) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  const db = await getDb();
+  if (!(await db.accounts.isMember(accountId, user.id))) {
+    return { error: "No tienes acceso a esa cuenta" };
+  }
+
+  await setSelectedAccount(accountId);
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function selectAccount(accountId: string) {
   const user = await getAuthUser();
   if (!user) redirect("/login");

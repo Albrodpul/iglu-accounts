@@ -32,7 +32,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen bg-background">
         <Navbar
           accountName={currentAccount?.name}
-          showAccountSwitcher={accounts.length > 1}
+          accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
+          currentAccountId={effectiveAccountId}
           categories={categories}
           hasInvestments={currentAccount?.has_investments ?? false}
         />

@@ -23,11 +23,7 @@ import {
   Repeat,
   Sun,
   Moon,
-  Monitor,
-  Download,
-  Upload,
 } from "lucide-react";
-import { useBackupExport } from "@/hooks/use-backup-export";
 import { useIsOffline } from "@/hooks/use-browser-state";
 import { OPEN_ADD_MOVEMENT_EVENT } from "@/lib/add-movement";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
@@ -61,6 +57,9 @@ const sidebarManageItems = [
 
 const sidebarIconButtonClass =
   "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/65 hover:text-sidebar-foreground";
+
+const mobileHeaderButtonClass =
+  "flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground";
 
 const headerIconButtonClass =
   "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground";
@@ -137,11 +136,11 @@ function SidebarLink({ href, label, icon: Icon, isActive }: { href: string; labe
 }
 
 /** Initial of the account on a tinted square: the sidebar's "who is this" anchor. */
-function AccountBadge({ name }: { name?: string }) {
+function AccountBadge({ name, className }: { name?: string; className?: string }) {
   return (
     <span
       aria-hidden
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/20 text-sm font-bold uppercase text-sidebar-foreground"
+      className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold uppercase", className)}
     >
       {name?.trim().charAt(0) || "·"}
     </span>
@@ -178,12 +177,11 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { exporting, error: exportError, exportBackup, clearError: clearExportError } = useBackupExport();
   const [helpOpen, setHelpOpen] = useState(false);
   const titleScrolledAway = useSyncExternalStore(subscribeScroll, () => window.scrollY > TITLE_SCROLLED, () => false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
-  const { theme, resolved: resolvedTheme, setTheme } = useTheme();
+  const { resolved: resolvedTheme, setTheme } = useTheme();
   const offline = useIsOffline();
 
   // PWA shortcut (?add=1) opens the add dialog. State is adjusted during render
@@ -225,10 +223,6 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-
-  async function handleExport() {
-    if (await exportBackup()) setMoreOpen(false);
-  }
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
@@ -309,7 +303,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
               aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
               className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors hover:bg-sidebar-accent/65"
             >
-              <AccountBadge name={accountName} />
+              <AccountBadge name={accountName} className="bg-sidebar-primary/20 text-sidebar-foreground" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-semibold text-sidebar-foreground">{accountName || "Seleccionar cuenta"}</span>
                 <span className="flex items-center gap-1 text-[11px] text-sidebar-foreground/60">
@@ -320,7 +314,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
             </button>
           ) : (
             <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1.5">
-              <AccountBadge name={accountName} />
+              <AccountBadge name={accountName} className="bg-sidebar-primary/20 text-sidebar-foreground" />
               <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-sidebar-foreground">{accountName || "Mi cuenta"}</span>
             </div>
           )}
@@ -381,33 +375,29 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
         </div>
       </header>
 
-      {/* Mobile top header */}
-      <header className="mobile-header fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 backdrop-blur-sm px-4 py-2.5 md:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/12">
-            <Image src="/iglu.svg" alt="Iglú" width={22} height={22} className="block" />
-          </div>
-          <span className="text-sm font-bold tracking-tight leading-none mt-1">Iglú</span>
+      {/* Mobile top header: 40px targets inside the same 53px bar. */}
+      <header className="mobile-header fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 bg-card/95 py-1.5 pl-4 pr-2 backdrop-blur-sm md:hidden">
+        <Link href="/dashboard" className="flex h-10 min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/12">
+            <Image src="/iglu.svg" alt="" width={22} height={22} className="block" />
+          </span>
+          {/* Once the page's own title has scrolled away, the bar says where you are. */}
+          <span className="truncate text-[15px] font-bold leading-none tracking-tight">
+            {(titleScrolledAway && sectionTitle) || "Iglú"}
+          </span>
         </Link>
-        <div className="flex items-center gap-3">
-          {showAccountSwitcher && (
-            <button
-              type="button"
-              onClick={() => setAccountsOpen(true)}
-              aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/40"
-            >
-              <ArrowLeftRight className="h-3 w-3" />
-              <span className="max-w-[100px] truncate">{accountName || "Cuenta"}</span>
-            </button>
-          )}
+        <div className="flex shrink-0 items-center">
           <button
             type="button"
-            onClick={() => setSearchOpen(true)}
-            className="flex items-center justify-center rounded-lg border border-border/60 p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground cursor-pointer"
-            aria-label="Buscar"
+            onClick={toggleDiscrete}
+            className={mobileHeaderButtonClass}
+            aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
+            aria-pressed={discrete}
           >
-            <Search className="h-3.5 w-3.5" />
+            {discrete ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+          <button type="button" onClick={() => setSearchOpen(true)} className={mobileHeaderButtonClass} aria-label="Buscar">
+            <Search className="h-5 w-5" />
           </button>
         </div>
       </header>
@@ -443,7 +433,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
           <div className="flex items-center justify-center">
             <button
               onClick={() => setAddOpen(true)}
-              className="-mt-9 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_16px_34px_-14px_rgba(32,87,75,0.9)] cursor-pointer"
+              className="-mt-9 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/45 cursor-pointer"
               aria-label="Nuevo movimiento"
             >
               <Plus className="h-[23px] w-[23px] stroke-[2.5]" />
@@ -464,13 +454,40 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
       </nav>
 
       {/* Mobile menu: everything that isn't in the bottom bar, in one place. */}
-      <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) clearExportError(); }}>
+      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent variant="menu" showCloseButton={false} className="md:hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Menú</DialogTitle>
-            <DialogDescription>Otras pantallas, copia de seguridad y preferencias</DialogDescription>
+            <DialogDescription>Cuenta, otras pantallas y preferencias</DialogDescription>
           </DialogHeader>
           <DialogBody className="px-3 pt-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {/* Whose data this is, before anything else. */}
+            <div className="mb-2 border-b border-border/60 pb-2">
+              {showAccountSwitcher ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    setAccountsOpen(true);
+                  }}
+                  aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
+                  className={cn(menuRowClass, "min-h-14")}
+                >
+                  <AccountBadge name={accountName} className="h-10 w-10 bg-primary/15 text-base text-foreground" />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate">{accountName || "Seleccionar cuenta"}</span>
+                    <span className="block text-xs font-medium text-muted-foreground">Cambiar de cuenta</span>
+                  </span>
+                  <ArrowLeftRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              ) : (
+                <div className={cn(menuRowClass, "min-h-14 cursor-default hover:bg-transparent")}>
+                  <AccountBadge name={accountName} className="h-10 w-10 bg-primary/15 text-base text-foreground" />
+                  <span className="min-w-0 flex-1 truncate">{accountName || "Mi cuenta"}</span>
+                </div>
+              )}
+            </div>
+
             {hasInvestments && (
               <Link href="/summary" onClick={() => setMoreOpen(false)} className={menuRowClass}>
                 <BarChart3 className={menuIconClass} />
@@ -489,50 +506,21 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
 
-            <p className={menuGroupLabelClass}>Copia de seguridad</p>
-            <Link href="/import" onClick={() => setMoreOpen(false)} className={menuRowClass}>
-              <Upload className={menuIconClass} />
-              <span className="flex-1">Importar</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <button type="button" onClick={handleExport} disabled={exporting} className={cn(menuRowClass, "disabled:opacity-60")}>
-              <Download className={menuIconClass} />
-              {exporting ? "Exportando..." : "Exportar"}
-            </button>
-            {exportError && <p className="px-3 text-xs text-expense">{exportError}</p>}
-
             <p className={menuGroupLabelClass}>Preferencias</p>
             <div className={cn(menuRowClass, "cursor-default hover:bg-transparent")}>
               {discrete ? <EyeOff className={menuIconClass} /> : <Eye className={menuIconClass} />}
               <span id="menu-discrete-label" className="flex-1">Ocultar importes</span>
               <ToggleSwitch enabled={discrete} onToggle={toggleDiscrete} aria-labelledby="menu-discrete-label" />
             </div>
+            {/* One switch here; "follow the system" lives in Ajustes > Apariencia. */}
             <div className={cn(menuRowClass, "cursor-default hover:bg-transparent")}>
-              <Sun className={menuIconClass} />
-              <span className="flex-1">Tema</span>
-              <div role="group" aria-label="Tema" className="flex items-center gap-1 rounded-lg bg-muted/70 p-1">
-                {(
-                  [
-                    ["light", "Claro", Sun],
-                    ["dark", "Oscuro", Moon],
-                    ["system", "Sistema", Monitor],
-                  ] as const
-                ).map(([value, label, Icon]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setTheme(value)}
-                    aria-label={label}
-                    aria-pressed={theme === value}
-                    className={cn(
-                      "flex h-9 w-10 cursor-pointer items-center justify-center rounded-md transition-colors",
-                      theme === value ? "bg-card text-foreground shadow-sm dark:bg-white/10" : "text-muted-foreground"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                ))}
-              </div>
+              {resolvedTheme === "dark" ? <Moon className={menuIconClass} /> : <Sun className={menuIconClass} />}
+              <span id="menu-theme-label" className="flex-1">Tema oscuro</span>
+              <ToggleSwitch
+                enabled={resolvedTheme === "dark"}
+                onToggle={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                aria-labelledby="menu-theme-label"
+              />
             </div>
 
             <div className="mt-2 border-t border-border/60 pt-2">

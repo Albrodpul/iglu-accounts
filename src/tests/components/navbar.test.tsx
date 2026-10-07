@@ -105,3 +105,34 @@ describe("Navbar on desktop", () => {
     expect(mocks.setTheme).toHaveBeenCalledWith("light");
   });
 });
+
+describe("Navbar on phones", () => {
+  const mobileHeader = () => screen.getAllByRole("banner")[1];
+  const bottomNav = () => screen.getAllByRole("navigation")[1];
+
+  it("keeps hide-amounts and search one tap away in the header", async () => {
+    const user = userEvent.setup();
+    render(<Navbar accountName="Casa" accounts={accounts} currentAccountId="home" />);
+    expect(within(mobileHeader()).getByRole("button", { name: "Ocultar importes" })).toBeInTheDocument();
+    // The account moved to the menu.
+    expect(within(mobileHeader()).queryByRole("button", { name: /Cambiar de cuenta/ })).not.toBeInTheDocument();
+    await user.click(within(mobileHeader()).getByRole("button", { name: "Buscar" }));
+    expect(screen.getByTestId("search-dialog")).toBeInTheDocument();
+  });
+
+  it("opens the menu on the account, without the backup, with one theme switch", async () => {
+    const user = userEvent.setup();
+    render(<Navbar accountName="Casa" accounts={accounts} currentAccountId="home" hasInvestments />);
+    await user.click(within(bottomNav()).getByRole("button", { name: "Más" }));
+    const menu = screen.getByRole("dialog", { name: "Menú" });
+
+    expect(within(menu).getAllByRole("link").map((link) => link.textContent)).toEqual(["Resumen", "Movimientos fijos", "Ajustes"]);
+    expect(within(menu).queryByText("Exportar")).not.toBeInTheDocument();
+
+    await user.click(within(menu).getByRole("switch", { name: "Tema oscuro" }));
+    expect(mocks.setTheme).toHaveBeenCalledWith("dark");
+
+    await user.click(within(menu).getByRole("button", { name: /Cambiar de cuenta \(actual: Casa\)/ }));
+    expect(screen.getByTestId("account-switcher")).toBeInTheDocument();
+  });
+});

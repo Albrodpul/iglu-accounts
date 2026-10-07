@@ -28,10 +28,13 @@ test("móvil: un solo menú, a la altura de su contenido, con todo lo que no est
 
   await page.locator("nav.mobile-nav").getByRole("button", { name: "Más" }).click();
   const sheet = page.getByRole("dialog", { name: "Menú" });
-  for (const name of ["Movimientos fijos", "Ajustes", "Importar"]) {
+  for (const name of ["Movimientos fijos", "Ajustes"]) {
     await expect(sheet.getByRole("link", { name })).toBeVisible();
   }
+  // The backup moved to Ajustes: the menu is navigation and two switches.
+  await expect(sheet.getByRole("link", { name: "Importar" })).toHaveCount(0);
   await expect(sheet.getByRole("switch", { name: "Ocultar importes" })).toBeVisible();
+  await expect(sheet.getByRole("switch", { name: "Tema oscuro" })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
 
   const box = await sheet.boundingBox();

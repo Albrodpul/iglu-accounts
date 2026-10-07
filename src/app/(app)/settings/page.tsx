@@ -5,6 +5,7 @@ import { PasskeysSettings } from "@/components/settings/passkeys-settings";
 import { AccountsSettings } from "@/components/settings/accounts-settings";
 import { DisplayNameSettings } from "@/components/settings/display-name-settings";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
+import { BackupSettings } from "@/components/settings/backup-settings";
 import { SessionSettings } from "@/components/settings/session-settings";
 
 export default async function SettingsPage() {
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
       <ModulesSettings hasInvestments={hasInvestments} hasNotifications={hasNotifications} />
       <AppearanceSettings />
       <PasskeysSettings passkeys={passkeys} />
+      <BackupSettings />
       <SessionSettings />
     </div>
   );

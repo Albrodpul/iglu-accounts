@@ -472,7 +472,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
         <div
           role="toolbar"
           aria-label="Acciones para los movimientos seleccionados"
-          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.18)] md:inset-x-auto md:bottom-6 md:left-[calc(50%+8rem)] md:-translate-x-1/2 md:gap-2 md:rounded-2xl md:border md:px-2 md:pt-2 md:pb-2 md:shadow-xl"
+          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.18)] md:inset-x-auto md:bottom-6 md:left-[calc(50%+7rem)] md:-translate-x-1/2 md:gap-2 md:rounded-2xl md:border md:px-2 md:pt-2 md:pb-2 md:shadow-xl"
         >
           <button type="button" onClick={exitSelection} aria-label="Salir de la selección" className={cn(barButtonClass, "min-w-11 md:px-2")}>
             <X className="h-5 w-5 md:h-4 md:w-4" />

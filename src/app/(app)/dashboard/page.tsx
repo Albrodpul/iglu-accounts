@@ -11,7 +11,6 @@ import {
 } from "@/lib/expense-metrics";
 import { Amount } from "@/components/ui/amount";
 import { ExpenseList } from "@/components/expenses/expense-list";
-import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { PeriodCard } from "@/components/dashboard/period-card";
 import { MONTHS } from "@/lib/format";
 import { HeroDetails } from "@/components/dashboard/hero-details";
@@ -215,7 +214,6 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <AddExpenseFab categories={categories} hasInvestments={hasInvestments} />
     </div>
   );
 }

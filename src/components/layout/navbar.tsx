@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
-import { toLocalISODate } from "@/lib/dates";
 import {
   House,
   List,
@@ -27,9 +26,8 @@ import {
   Monitor,
   Download,
   Upload,
-  Database,
 } from "lucide-react";
-import { exportAccountData } from "@/actions/export";
+import { useBackupExport } from "@/hooks/use-backup-export";
 import { useIsOffline } from "@/hooks/use-browser-state";
 import { OPEN_ADD_MOVEMENT_EVENT } from "@/lib/add-movement";
 import { useDiscreteMode } from "@/contexts/discrete-mode";
@@ -54,11 +52,26 @@ const navItemsLeft = [
   { href: "/expenses", label: "Diario", icon: List },
 ];
 
-const navItemsRight = [
-  { href: "/summary", label: "Resumen", icon: BarChart3 },
+/** Desktop sidebar, second group: set up once, visited now and then. */
+const sidebarManageItems = [
   { href: "/recurring", label: "Movimientos fijos", icon: Repeat },
-  { href: "/settings", label: "Ajustes", icon: Settings },
+  // The backup import is reached from Ajustes, so it keeps that entry lit.
+  { href: "/settings", label: "Ajustes", icon: Settings, alsoActiveOn: "/import" },
 ];
+
+const sidebarIconButtonClass =
+  "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/65 hover:text-sidebar-foreground";
+
+const headerIconButtonClass =
+  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground";
+
+/** Past this scroll (px) the page's own title is off screen. */
+const TITLE_SCROLLED = 72;
+
+function subscribeScroll(onChange: () => void) {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+}
 
 const menuRowClass =
   "flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-[15px] font-semibold transition-colors hover:bg-muted/50";
@@ -105,6 +118,36 @@ function NavItem({ href, label, icon, isActive }: { href: string; label: string;
   );
 }
 
+function SidebarLink({ href, label, icon: Icon, isActive }: { href: string; label: string; icon: NavIcon; isActive: boolean }) {
+  return (
+    <Link
+      href={href}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+        isActive
+          ? "bg-sidebar-primary/20 text-sidebar-foreground"
+          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
+      )}
+    >
+      <Icon className={cn("h-4 w-4 shrink-0", isActive && "stroke-[2.4]")} />
+      {label}
+    </Link>
+  );
+}
+
+/** Initial of the account on a tinted square: the sidebar's "who is this" anchor. */
+function AccountBadge({ name }: { name?: string }) {
+  return (
+    <span
+      aria-hidden
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/20 text-sm font-bold uppercase text-sidebar-foreground"
+    >
+      {name?.trim().charAt(0) || "·"}
+    </span>
+  );
+}
+
 function NavActionItem({
   label,
   icon,
@@ -135,13 +178,12 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const { exporting, error: exportError, exportBackup, clearError: clearExportError } = useBackupExport();
   const [helpOpen, setHelpOpen] = useState(false);
-  const [dataOpen, setDataOpen] = useState(() => pathname.startsWith("/import"));
+  const titleScrolledAway = useSyncExternalStore(subscribeScroll, () => window.scrollY > TITLE_SCROLLED, () => false);
   const [isSigningOut, startSigningOutTransition] = useTransition();
   const { discrete, toggle: toggleDiscrete } = useDiscreteMode();
-  const { theme, setTheme } = useTheme();
+  const { theme, resolved: resolvedTheme, setTheme } = useTheme();
   const offline = useIsOffline();
 
   // PWA shortcut (?add=1) opens the add dialog. State is adjusted during render
@@ -162,13 +204,6 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
     window.addEventListener(OPEN_ADD_MOVEMENT_EVENT, open);
     return () => window.removeEventListener(OPEN_ADD_MOVEMENT_EVENT, open);
   }, []);
-
-  // Landing on /import expands the "Copia de seguridad" group.
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  if (prevPathname !== pathname) {
-    setPrevPathname(pathname);
-    if (pathname.startsWith("/import")) setDataOpen(true);
-  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -192,28 +227,16 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
 
 
   async function handleExport() {
-    setExporting(true);
-    setExportError(null);
-    const result = await exportAccountData();
-    setExporting(false);
-    if (result.error) {
-      setExportError(result.error);
-      return;
-    }
-    const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `iglu-backup-${toLocalISODate()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setMoreOpen(false);
+    if (await exportBackup()) setMoreOpen(false);
   }
 
   const navItemsLeftFinal = hasInvestments
     ? [...navItemsLeft, { href: "/investments", label: "Inversiones", icon: TrendingUp }]
     : navItemsLeft;
-  const allNavItemsFinal = [...navItemsLeftFinal, ...navItemsRight];
+  const sidebarMainItems = [...navItemsLeftFinal, { href: "/summary", label: "Resumen", icon: BarChart3 }];
+  const sectionTitle = pathname.startsWith("/import")
+    ? "Importar copia"
+    : [...sidebarMainItems, ...sidebarManageItems].find((item) => pathname.startsWith(item.href))?.label;
   // With investments, "Inversiones" earns the bottom-bar slot and "Resumen"
   // moves into the "Más" sheet; without it, "Resumen" keeps the slot.
   const mobileRightItems = hasInvestments
@@ -243,165 +266,117 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border/70 bg-sidebar md:flex">
-        {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-sidebar-border/50 px-5 py-[18px]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary/20 p-1.5">
-            <Image src="/iglu.svg" alt="Iglú" width={26} height={26} className="drop-shadow-sm" />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-extrabold tracking-tight text-sidebar-foreground leading-tight">
-              Iglú Management
-            </h1>
-            <p className="text-[11px] text-sidebar-foreground/65">Gastos personales</p>
-          </div>
+      <nav className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-sidebar-border/70 bg-sidebar md:flex">
+        <Link href="/dashboard" className="flex h-14 shrink-0 items-center gap-2.5 px-4">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/20 p-1">
+            <Image src="/iglu.svg" alt="" width={24} height={24} className="drop-shadow-sm" />
+          </span>
+          <span className="text-[15px] font-extrabold leading-tight tracking-tight text-sidebar-foreground">Iglú Management</span>
+        </Link>
+
+        <div className="px-3 pb-1 pt-2">
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4 stroke-[2.6]" />
+            Nuevo movimiento
+          </button>
         </div>
 
-        {/* Account switcher */}
-        {showAccountSwitcher && (
-          <div className="border-b border-sidebar-border/50 px-4 py-3">
+        <div className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
+          {sidebarMainItems.map((item) => (
+            <SidebarLink key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
+          ))}
+
+          <p className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/45">Gestión</p>
+          {sidebarManageItems.map(({ alsoActiveOn, ...item }) => (
+            <SidebarLink
+              key={item.href}
+              {...item}
+              isActive={pathname.startsWith(item.href) || Boolean(alsoActiveOn && pathname.startsWith(alsoActiveOn))}
+            />
+          ))}
+        </div>
+
+        {/* Whose data this is, and the ways out of it. */}
+        <div className="flex items-center gap-0.5 border-t border-sidebar-border/60 p-2">
+          {showAccountSwitcher ? (
             <button
               type="button"
               onClick={() => setAccountsOpen(true)}
               aria-label={`Cambiar de cuenta (actual: ${accountName ?? "ninguna"})`}
-              className="group flex w-full cursor-pointer items-center justify-between rounded-md px-1"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors hover:bg-sidebar-accent/65"
             >
-              <span className="truncate text-[13px] font-semibold text-sidebar-foreground/80">{accountName || "Seleccionar cuenta"}</span>
-              <ArrowLeftRight className="h-3 w-3 text-sidebar-foreground/35 transition-colors group-hover:text-sidebar-foreground/80" />
+              <AccountBadge name={accountName} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-sidebar-foreground">{accountName || "Seleccionar cuenta"}</span>
+                <span className="flex items-center gap-1 text-[11px] text-sidebar-foreground/60">
+                  <ArrowLeftRight className="h-3 w-3" />
+                  Cambiar
+                </span>
+              </span>
             </button>
-          </div>
-        )}
-
-        {/* Nav items */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-          {allNavItemsFinal.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold transition-all duration-200",
-                  isActive
-                    ? "bg-sidebar-primary/22 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(126,200,240,0.28)]"
-                    : "text-sidebar-foreground/82 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
-                )}
-              >
-                <Icon className={cn("h-4 w-4", isActive && "stroke-[2.4]")} />
-                {item.label}
-              </Link>
-            );
-          })}
-
-          {/* Datos collapsible */}
-          <button
-            type="button"
-            onClick={() => setDataOpen((v) => !v)}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold transition-all duration-200",
-              pathname.startsWith("/import")
-                ? "bg-sidebar-primary/22 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(126,200,240,0.28)]"
-                : "text-sidebar-foreground/82 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
-            )}
-          >
-            <Database className={cn("h-4 w-4", pathname.startsWith("/import") && "stroke-[2.4]")} />
-            Copia de seguridad
-            <ChevronRight className={cn("ml-auto h-3.5 w-3.5 transition-transform duration-200", dataOpen && "rotate-90")} />
-          </button>
-          {dataOpen && (
-            <div className="ml-3 space-y-0.5 border-l border-sidebar-border/50 pl-3">
-              <Link
-                href="/import"
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] font-semibold transition-all",
-                  pathname.startsWith("/import")
-                    ? "text-sidebar-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
-                )}
-              >
-                <Upload className="h-3.5 w-3.5" />
-                Importar
-              </Link>
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[14px] font-semibold text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent/65 hover:text-sidebar-foreground disabled:opacity-50 cursor-pointer"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {exporting ? "Exportando…" : "Exportar"}
-              </button>
-              {exportError && <p className="px-3 text-[11px] text-rose-400">{exportError}</p>}
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1.5">
+              <AccountBadge name={accountName} />
+              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-sidebar-foreground">{accountName || "Mi cuenta"}</span>
             </div>
           )}
-        </div>
-
-        {/* Bottom */}
-        <div className="border-t border-sidebar-border/60 px-3 py-3 space-y-0.5">
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
-          >
+          <button type="button" onClick={() => setHelpOpen(true)} aria-label="Ayuda" title="Ayuda" className={sidebarIconButtonClass}>
             <CircleHelp className="h-4 w-4" />
-            Ayuda
           </button>
           <form action={signOut}>
-            <button
-              type="submit"
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-semibold text-sidebar-foreground/78 transition-all hover:bg-sidebar-accent/60 hover:text-sidebar-foreground cursor-pointer"
-            >
+            <button type="submit" aria-label="Cerrar sesión" title="Cerrar sesión" className={sidebarIconButtonClass}>
               <LogOut className="h-4 w-4" />
-              Cerrar sesión
             </button>
           </form>
         </div>
       </nav>
 
       {/* Desktop header */}
-      <header className="desktop-header fixed top-0 left-64 right-0 z-30 hidden h-14 items-center justify-end border-b border-border/50 bg-card/95 backdrop-blur-sm px-6 md:flex gap-2">
+      <header className="desktop-header fixed top-0 left-56 right-0 z-30 hidden h-14 items-center gap-2 border-b border-border/50 bg-card/95 px-6 backdrop-blur-sm md:flex">
+        {/* Looks like the field it opens: search is the one thing typed here. */}
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 rounded-md border border-border/50 bg-muted/40 px-3 py-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground cursor-pointer"
+          className="flex h-9 w-64 cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground lg:w-80"
         >
-          <Search className="h-3.5 w-3.5" />
-          Buscar
-          <kbd className="ml-0.5 rounded border border-border bg-background px-1 py-px text-[10px] font-mono leading-none">⌘K</kbd>
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="truncate">Buscar concepto o importe</span>
         </button>
-        <button
-          type="button"
-          onClick={toggleDiscrete}
-          className="flex items-center justify-center rounded-md border border-border/50 p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer"
-          aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
-        >
-          {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-        <div className="flex items-center rounded-md border border-border/50 bg-muted/30 p-0.5">
+        {/* Once the page's own title has scrolled away, the bar says where you are. */}
+        {sectionTitle && (
+          <p
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-sm font-bold transition-[opacity,transform] duration-200 xl:block",
+              titleScrolledAway ? "opacity-100" : "translate-y-1 opacity-0"
+            )}
+          >
+            {sectionTitle}
+          </p>
+        )}
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setTheme("light")}
-            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "light" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            aria-label="Tema claro"
+            onClick={toggleDiscrete}
+            className={headerIconButtonClass}
+            aria-label={discrete ? "Mostrar importes" : "Ocultar importes"}
+            title={discrete ? "Mostrar importes" : "Ocultar importes"}
           >
-            <Sun className="h-3.5 w-3.5" />
+            {discrete ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
+          {/* One switch here; "follow the system" lives in Ajustes > Apariencia. */}
           <button
             type="button"
-            onClick={() => setTheme("dark")}
-            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "dark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            aria-label="Tema oscuro"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            className={headerIconButtonClass}
+            aria-label={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+            title={resolvedTheme === "dark" ? "Tema claro" : "Tema oscuro"}
           >
-            <Moon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setTheme("system")}
-            className={`rounded p-1.5 transition-colors cursor-pointer ${theme === "system" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            aria-label="Tema del sistema"
-          >
-            <Monitor className="h-3.5 w-3.5" />
+            {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         </div>
       </header>
@@ -439,7 +414,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
 
       {/* Offline banner */}
       {offline && (
-        <div className="offline-banner fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:left-64 md:top-14">
+        <div className="offline-banner fixed top-[49px] left-0 right-0 z-50 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white md:left-56 md:top-14">
           Sin conexión — datos en caché
         </div>
       )}
@@ -489,7 +464,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
       </nav>
 
       {/* Mobile menu: everything that isn't in the bottom bar, in one place. */}
-      <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) setExportError(null); }}>
+      <Dialog open={moreOpen} onOpenChange={(open) => { setMoreOpen(open); if (!open) clearExportError(); }}>
         <DialogContent variant="menu" showCloseButton={false} className="md:hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Menú</DialogTitle>
@@ -617,7 +592,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
             </div>
             <div className="border-t border-border/60 pt-3">
               <p className="text-xs text-muted-foreground">
-                Iglú Management · Gestión de gastos personales
+                Iglú Management · Gastos y finanzas del hogar
               </p>
             </div>
           </DialogBody>
@@ -634,7 +609,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
         currentAccountId={currentAccountId}
       />
 
-      {/* Mobile add dialog */}
+      {/* Add dialog: the bottom-bar button on phones, the sidebar one on desktop. */}
       <MovementDialog
         open={addOpen}
         onOpenChange={setAddOpen}

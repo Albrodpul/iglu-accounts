@@ -3,7 +3,6 @@ import { getCategories, getDebtCategoryId, getTransferCategoryId } from "@/actio
 import { hasInvestmentsEnabled } from "@/actions/accounts";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { CategoryManager } from "@/components/expenses/category-manager";
-import { AddExpenseFab } from "@/components/expenses/add-expense-fab";
 import { PeriodCard } from "@/components/dashboard/period-card";
 import { ExpenseListFiltered } from "@/components/expenses/expense-list-filtered";
 import { ExpenseListAll } from "@/components/expenses/expense-list-all";
@@ -100,7 +99,6 @@ export default async function ExpensesPage({ searchParams }: Props) {
           ) : null}
       </section>
 
-      <AddExpenseFab categories={categories} hasInvestments={hasInvestments} />
     </div>
   );
 }

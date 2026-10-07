@@ -77,10 +77,6 @@ vi.mock("@/components/expenses/expense-list", () => ({
   ExpenseList: () => <div data-testid="expense-list" />,
 }));
 
-vi.mock("@/components/expenses/add-expense-fab", () => ({
-  AddExpenseFab: () => <div data-testid="add-expense-fab" />,
-}));
-
 vi.mock("@/components/shared/collapsible-section", () => ({
   CollapsibleSection: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   heroPillClass: "",
@@ -237,7 +233,6 @@ describe("app pages", () => {
     render(element);
 
     expect(screen.getByText("Total acumulado")).toBeInTheDocument();
-    expect(screen.getByTestId("add-expense-fab")).toBeInTheDocument();
   });
 
   it("renders expenses page with month detail", async () => {

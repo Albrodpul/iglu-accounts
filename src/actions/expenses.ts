@@ -2,7 +2,8 @@
 
 import { getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/db/auth";
-import { expenseSchema } from "@/lib/validators/expense";
+import { expenseIdsSchema, expenseSchema } from "@/lib/validators/expense";
+import { isReservedCategoryName } from "@/lib/reserved-categories";
 import { parseSignedAmount } from "@/lib/amounts";
 import { buildEntryHints, type EntryHints } from "@/lib/entry-hints";
 import { revalidatePath } from "next/cache";
@@ -313,6 +314,71 @@ export async function updateExpense(id: string, formData: FormData) {
   revalidatePath("/expenses");
   revalidatePath("/summary");
   return { success: true };
+}
+
+/** Deletes several movements at once. A transfer goes with both of its legs. */
+export async function deleteExpenses(ids: string[]) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  const parsed = expenseIdsSchema.safeParse(ids);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const db = await getDb();
+  const found = await db.expenses.findByIds(parsed.data, user.id);
+  if (found.error) return { error: found.error };
+
+  const pairIds = [...new Set(found.rows.flatMap((row) => (row.transfer_pair_id ? [row.transfer_pair_id] : [])))];
+  const soloIds = found.rows.filter((row) => !row.transfer_pair_id).map((row) => row.id);
+
+  const solo = await db.expenses.deleteMany(soloIds, user.id);
+  const pairs = solo.error ? { deleted: 0, error: null } : await db.expenses.deleteMany(pairIds, user.id, "transfer_pair_id");
+  const deleted = solo.deleted + pairs.deleted;
+
+  // Even after a partial failure, whatever was deleted must stop showing.
+  if (deleted > 0) revalidateMovementPages();
+  const error = solo.error ?? pairs.error;
+  if (error) return { error };
+  return { success: true, deleted };
+}
+
+/**
+ * Moves several movements to another category. Incomes, debts and transfers
+ * are left alone: their category is what defines them.
+ */
+export async function setExpensesCategory(ids: string[], categoryId: string) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { error: "No hay cuenta seleccionada" };
+
+  const parsed = expenseIdsSchema.safeParse(ids);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const db = await getDb();
+  const categories: { id: string; name: string }[] = await db.categories.findAll(accountId);
+  const target = categories.find((category) => category.id === categoryId);
+  if (!target || isReservedCategoryName(target.name)) return { error: "Categoría no válida" };
+  const reserved = new Set(categories.filter((c) => isReservedCategoryName(c.name)).map((c) => c.id));
+
+  const found = await db.expenses.findByIds(parsed.data, user.id);
+  if (found.error) return { error: found.error };
+
+  const eligible = found.rows
+    .filter((row) => !row.transfer_pair_id && !(row.category_id && reserved.has(row.category_id)))
+    .map((row) => row.id);
+
+  const { updated, error } = await db.expenses.updateCategoryMany(eligible, user.id, target.id);
+  if (updated > 0) revalidateMovementPages();
+  if (error) return { error };
+  return { success: true, updated, skipped: parsed.data.length - updated };
+}
+
+function revalidateMovementPages() {
+  revalidatePath("/dashboard");
+  revalidatePath("/expenses");
+  revalidatePath("/summary");
 }
 
 export async function getAvailablePeriods() {

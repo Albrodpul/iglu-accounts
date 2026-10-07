@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, History, TrendingUp, MoreVertical, Percent, Loader2, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, History, TrendingUp, MoreVertical, Percent, Loader2, ChevronDown, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { ContributionForm, ContributionHistory, ProfitabilityForm, UnitsPriceFields } from "./fund-forms";
 import { formatCurrency, formatPercent } from "@/lib/format";
@@ -47,6 +47,16 @@ type Props = {
   types: InvestmentType[];
   funds: InvestmentFundWithType[];
 };
+
+type SortKey = "name" | "invested" | "value" | "return" | "weight";
+
+const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
+  { key: "name", label: "Posición", align: "left" },
+  { key: "invested", label: "Invertido", align: "right" },
+  { key: "value", label: "Valor", align: "right" },
+  { key: "return", label: "Rentabilidad", align: "right" },
+  { key: "weight", label: "Peso", align: "right" },
+];
 
 /** From `xl` up, type headers and fund rows share these columns so figures line up. */
 const TABLE_COLS = "xl:grid xl:grid-cols-[minmax(0,1fr)_7rem_7rem_11rem_3.5rem_2rem] xl:items-center xl:gap-x-4";
@@ -91,6 +101,7 @@ export function FundList({ types, funds }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showNegative, setShowNegative] = useState(true);
   const [initialAmount, setInitialAmount] = useState<number | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey; ascending: boolean } | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
 
 
@@ -268,11 +279,164 @@ export function FundList({ types, funds }: Props) {
   const portfolioValue = funds.reduce((sum, fund) => sum + positionValue(fund), 0);
   const colors = fundColors(funds);
 
+  // Grouped by type unless a column is sorted: then one flat list, so the
+  // order really is by that figure across the whole portfolio.
+  const sortValue: Record<SortKey, (fund: InvestmentFundWithType) => number | string> = {
+    name: (fund) => fund.name.toLocaleLowerCase("es"),
+    invested: (fund) => fund.invested_amount,
+    value: (fund) => fund.invested_amount + getDisplayReturn(fund),
+    return: (fund) => getDisplayReturn(fund),
+    weight: (fund) => positionValue(fund),
+  };
+  const groups: { key: string; label: string | null; funds: InvestmentFundWithType[] }[] = sort
+    ? [
+        {
+          key: "sorted",
+          label: null,
+          funds: [...funds].sort((a, b) => {
+            const [x, y] = [sortValue[sort.key](a), sortValue[sort.key](b)];
+            const order = typeof x === "string" ? x.localeCompare(y as string, "es") : (x as number) - (y as number);
+            return sort.ascending ? order : -order;
+          }),
+        },
+      ]
+    : Array.from(fundsByType.values())
+        .filter((group) => group.funds.length > 0)
+        .map(({ type, funds: typeFunds }) => ({ key: type.id, label: type.name, funds: typeFunds }));
+
+  /** Header click: sort by that column, flip the direction, then back to grouping by type. */
+  function cycleSort(key: SortKey) {
+    const startsAscending = key === "name";
+    setSort((current) =>
+      current?.key !== key
+        ? { key, ascending: startsAscending }
+        : current.ascending === startsAscending
+          ? { key, ascending: !startsAscending }
+          : null,
+    );
+  }
+
+  function renderFund(fund: InvestmentFundWithType) {
+    const displayReturn = getDisplayReturn(fund);
+    const displayValue = fund.invested_amount + displayReturn;
+    const code = fund.ticker || fund.isin;
+    const color = colors.get(fund.id);
+    const menu = (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label={`Acciones de ${fund.name}`}
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:h-8 xl:w-8"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="bottom" className="min-w-44">
+          <DropdownMenuItem className="py-3" onClick={() => openAddContribution(fund)}>
+            <Plus className="h-4 w-4" /> Añadir aportación
+          </DropdownMenuItem>
+          <DropdownMenuItem className="py-3" onClick={() => openHistory(fund)}>
+            <History className="h-4 w-4" /> Historial
+          </DropdownMenuItem>
+          <DropdownMenuItem className="py-3" onClick={() => openEditFund(fund)}>
+            <Pencil className="h-4 w-4" /> Editar fondo
+          </DropdownMenuItem>
+          <DropdownMenuItem className="py-3" onClick={() => openEditProfitability(fund)}>
+            <Percent className="h-4 w-4" /> Editar rentabilidad
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="py-3" variant="destructive" onClick={() => handleDeleteFund(fund)}>
+            <Trash2 className="h-4 w-4" /> Eliminar
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+
+    // Nothing in it (yet, or any more): one quiet line instead of a full card.
+    if (positionValue(fund) === 0) {
+      return (
+        <div key={fund.id} className={cn("flex items-center gap-2.5 px-3 text-muted-foreground", TABLE_COLS)}>
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-muted-foreground/50" />
+            <span className="truncate text-sm">{fund.name}</span>
+          </div>
+          <span className="shrink-0 text-xs xl:col-span-4 xl:text-right">Sin posición</span>
+          {menu}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={fund.id}
+        className={cn(
+          "flex items-start gap-2.5 rounded-xl border border-border/60 bg-card py-2.5 pl-3 pr-1.5 transition-colors xl:rounded-lg xl:border-transparent xl:bg-transparent xl:px-3 xl:py-1 xl:hover:bg-muted/35",
+          TABLE_COLS
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-start gap-2.5 xl:items-center">
+          {/* Same colour as this position's slice in the distribution chart. */}
+          <span
+            aria-hidden
+            className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full xl:mt-0"
+            style={{ backgroundColor: color }}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-medium text-foreground">{fund.name}</p>
+            {sort ? (
+                  <p className="hidden truncate text-[11px] text-muted-foreground xl:block">{fund.investment_type.name}</p>
+                ) : (
+                  code && <p className="hidden truncate font-mono text-[10px] text-muted-foreground/80 xl:block">{code}</p>
+                )}
+            {/* Narrow screens: the figures flow under the name and wrap if they must. */}
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 xl:hidden">
+              <span className="text-[15px] font-semibold tabular-nums">
+                <Amount value={displayValue} />
+              </span>
+              <ReturnText
+                amount={displayReturn}
+                pct={getReturnPct(fund.invested_amount, displayValue)}
+                className="text-xs font-medium"
+              />
+            </p>
+            <p className="text-xs text-muted-foreground xl:hidden">
+              Invertido <Amount value={fund.invested_amount} /> · {formatWeight(positionValue(fund), portfolioValue)} de la cartera
+            </p>
+          </div>
+        </div>
+        <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
+          <Amount value={fund.invested_amount} />
+        </span>
+        <span className="hidden text-right text-[15px] font-semibold tabular-nums xl:block">
+          <Amount value={displayValue} />
+        </span>
+        <ReturnText
+          amount={displayReturn}
+          pct={getReturnPct(fund.invested_amount, displayValue)}
+          className="hidden text-right text-sm font-medium xl:block"
+        />
+        <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
+          {formatWeight(positionValue(fund), portfolioValue)}
+        </span>
+        {menu}
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold md:text-xl">Posiciones</h2>
+          <div className="flex min-w-0 items-baseline gap-3">
+            <h2 className="text-lg font-semibold md:text-xl">Posiciones</h2>
+            {sort && (
+              <button
+                type="button"
+                onClick={() => setSort(null)}
+                className="hidden cursor-pointer text-xs font-medium text-primary hover:underline xl:block"
+              >
+                Volver a agrupar por tipo
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             {types.length > 0 && (
               <Button size="sm" onClick={openCreateFund}>
@@ -297,125 +461,38 @@ export function FundList({ types, funds }: Props) {
           <>
             {/* Wide screens read this as a table: one column per figure. */}
             <div className={cn("hidden border-b border-border/60 px-3 pb-2 text-xs font-semibold text-muted-foreground", TABLE_COLS)}>
-              <span>Posición</span>
-              <span className="text-right">Invertido</span>
-              <span className="text-right">Valor</span>
-              <span className="text-right">Rentabilidad</span>
-              <span className="text-right">Peso</span>
+              {SORT_COLUMNS.map((column) => {
+                const active = sort?.key === column.key;
+                const Arrow = active ? (sort.ascending ? ArrowUp : ArrowDown) : ArrowUpDown;
+                return (
+                  <button
+                    key={column.key}
+                    type="button"
+                    onClick={() => cycleSort(column.key)}
+                    aria-pressed={active}
+                    title={active ? "Cambiar el sentido o volver a agrupar por tipo" : `Ordenar por ${column.label.toLowerCase()}`}
+                    className={cn(
+                      "group/sort flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground",
+                      column.align === "right" && "justify-end",
+                      active && "text-foreground"
+                    )}
+                  >
+                    {column.label}
+                    <Arrow className={cn("h-3 w-3", !active && "opacity-0 group-hover/sort:opacity-60")} />
+                  </button>
+                );
+              })}
               <span />
             </div>
 
-            {Array.from(fundsByType.values())
-              .filter((group) => group.funds.length > 0)
-              .map(({ type, funds: typeFunds }) => {
+            {groups.map((group) => {
                 return (
-                  <section key={type.id} aria-label={type.name} className="space-y-1.5">
+                  <section key={group.key} aria-label={group.label ?? "Posiciones ordenadas"} className="space-y-1.5">
                     {/* A plain label: group totals were noise next to the per-position figures. */}
-                    <h3 className="truncate px-3 text-sm font-bold text-foreground">{type.name}</h3>
+                    {group.label && <h3 className="truncate px-3 text-sm font-bold text-foreground">{group.label}</h3>}
 
                     <div className="space-y-1.5 xl:space-y-0">
-                      {typeFunds.map((fund) => {
-                        const displayReturn = getDisplayReturn(fund);
-                        const displayValue = fund.invested_amount + displayReturn;
-                        const code = fund.ticker || fund.isin;
-                        const color = colors.get(fund.id);
-                        const menu = (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              aria-label={`Acciones de ${fund.name}`}
-                              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:h-8 xl:w-8"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" side="bottom" className="min-w-44">
-                              <DropdownMenuItem className="py-3" onClick={() => openAddContribution(fund)}>
-                                <Plus className="h-4 w-4" /> Añadir aportación
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="py-3" onClick={() => openHistory(fund)}>
-                                <History className="h-4 w-4" /> Historial
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="py-3" onClick={() => openEditFund(fund)}>
-                                <Pencil className="h-4 w-4" /> Editar fondo
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="py-3" onClick={() => openEditProfitability(fund)}>
-                                <Percent className="h-4 w-4" /> Editar rentabilidad
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="py-3" variant="destructive" onClick={() => handleDeleteFund(fund)}>
-                                <Trash2 className="h-4 w-4" /> Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        );
-
-                        // Nothing in it (yet, or any more): one quiet line instead of a full card.
-                        if (positionValue(fund) === 0) {
-                          return (
-                            <div key={fund.id} className={cn("flex items-center gap-2.5 px-3 text-muted-foreground", TABLE_COLS)}>
-                              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-muted-foreground/50" />
-                                <span className="truncate text-sm">{fund.name}</span>
-                              </div>
-                              <span className="shrink-0 text-xs xl:col-span-4 xl:text-right">Sin posición</span>
-                              {menu}
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div
-                            key={fund.id}
-                            className={cn(
-                              "flex items-start gap-2.5 rounded-xl border border-border/60 bg-card py-2.5 pl-3 pr-1.5 transition-colors xl:rounded-lg xl:border-transparent xl:bg-transparent xl:px-3 xl:py-1 xl:hover:bg-muted/35",
-                              TABLE_COLS
-                            )}
-                          >
-                            <div className="flex min-w-0 flex-1 items-start gap-2.5 xl:items-center">
-                              {/* Same colour as this position's slice in the distribution chart. */}
-                              <span
-                                aria-hidden
-                                className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full xl:mt-0"
-                                style={{ backgroundColor: color }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-[15px] font-medium text-foreground">{fund.name}</p>
-                                {code && (
-                                  <p className="hidden truncate font-mono text-[10px] text-muted-foreground/80 xl:block">{code}</p>
-                                )}
-                                {/* Narrow screens: the figures flow under the name and wrap if they must. */}
-                                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 xl:hidden">
-                                  <span className="text-[15px] font-semibold tabular-nums">
-                                    <Amount value={displayValue} />
-                                  </span>
-                                  <ReturnText
-                                    amount={displayReturn}
-                                    pct={getReturnPct(fund.invested_amount, displayValue)}
-                                    className="text-xs font-medium"
-                                  />
-                                </p>
-                                <p className="text-xs text-muted-foreground xl:hidden">
-                                  Invertido <Amount value={fund.invested_amount} /> · {formatWeight(positionValue(fund), portfolioValue)} de la cartera
-                                </p>
-                              </div>
-                            </div>
-                            <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
-                              <Amount value={fund.invested_amount} />
-                            </span>
-                            <span className="hidden text-right text-[15px] font-semibold tabular-nums xl:block">
-                              <Amount value={displayValue} />
-                            </span>
-                            <ReturnText
-                              amount={displayReturn}
-                              pct={getReturnPct(fund.invested_amount, displayValue)}
-                              className="hidden text-right text-sm font-medium xl:block"
-                            />
-                            <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">
-                              {formatWeight(positionValue(fund), portfolioValue)}
-                            </span>
-                            {menu}
-                          </div>
-                        );
-                      })}
+                      {group.funds.map(renderFund)}
                     </div>
                   </section>
                 );

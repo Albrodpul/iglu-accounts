@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PeriodCard } from "@/components/dashboard/period-card";
+import { HeroStat } from "@/components/dashboard/hero-stat";
 import type { Kpi } from "@/lib/expense-metrics";
 
 const kpis = (income: number, expenses: number, extras: Kpi[] = []): Kpi[] => [
@@ -39,5 +40,16 @@ describe("PeriodCard", () => {
     );
     expect(screen.getByText("Media/mes")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /40/ })).toHaveAttribute("href", "/expenses?category=debt");
+  });
+});
+
+describe("HeroStat", () => {
+  it("shows the share of the total next to the amount when given one", () => {
+    const Icon = () => null;
+    const { rerender } = render(<HeroStat icon={Icon} label="Inversiones" value={49476.28} share={80.2} />);
+    expect(screen.getByText(/80\s%/)).toBeInTheDocument();
+
+    rerender(<HeroStat icon={Icon} label="Inversiones" value={49476.28} />);
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 });

@@ -101,18 +101,21 @@ export default async function DashboardPage() {
   const hasAssets = assetBreakdown.length > 0;
   // The two halves of the total: what is at hand, and what is invested (or, without
   // the investments module, bank and cash when there is any cash).
+  const total = hasInvestments ? grandTotal : allTime.total;
+  // Each half also says what share of the total it is — only when that is a
+  // meaningful split (a positive total made of non-negative parts).
+  const shareOf = (value: number) => (total > 0 && value >= 0 ? (value / total) * 100 : undefined);
   const heroStats = hasInvestments
     ? [
-        { icon: Landmark, label: "Banco y efectivo", value: bankBalance + cashBalance },
-        { icon: TrendingUp, label: "Inversiones", value: totalInvestmentValue, href: "/investments" },
+        { icon: Landmark, label: "Banco y efectivo", value: bankBalance + cashBalance, share: shareOf(bankBalance + cashBalance) },
+        { icon: TrendingUp, label: "Inversiones", value: totalInvestmentValue, share: shareOf(totalInvestmentValue), href: "/investments" },
       ]
     : cashBalance !== 0
       ? [
-          { icon: Landmark, label: "Banco", value: allTime.bankTotal },
-          { icon: Banknote, label: "Efectivo", value: cashBalance },
+          { icon: Landmark, label: "Banco", value: allTime.bankTotal, share: shareOf(allTime.bankTotal) },
+          { icon: Banknote, label: "Efectivo", value: cashBalance, share: shareOf(cashBalance) },
         ]
       : [];
-  const total = hasInvestments ? grandTotal : allTime.total;
 
   return (
     <div className="space-y-6 md:space-y-8">

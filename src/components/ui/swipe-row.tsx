@@ -10,6 +10,8 @@ const ACTION_WIDTH = 76;
 const TRIGGER = 52;
 /** Ignore movements smaller than this so taps still register. */
 const TAP_SLOP = 8;
+/** Hold still this long (ms) for a long press. */
+const LONG_PRESS = 450;
 
 type Props = {
   /** Fired on a tap that isn't a swipe (e.g. open the editor). */
@@ -18,8 +20,11 @@ type Props = {
   onDelete?: () => void;
   /** Fired when the row is swiped right past the threshold. */
   onDuplicate?: () => void;
+  /** Fired when a finger rests on the row without moving (e.g. start selecting). */
+  onLongPress?: () => void;
   /** Play a one-off nudge that reveals both actions, to teach the gesture. */
   peek?: boolean;
+  /** Turns the swipes and the long press off; taps keep working. */
   disabled?: boolean;
   className?: string;
   children: React.ReactNode;
@@ -27,11 +32,11 @@ type Props = {
 
 /**
  * Touch-friendly list row: tap to act, swipe left to delete, swipe right to
- * duplicate. Pointer/mouse use is unaffected — only touch gestures are
+ * duplicate, hold to long-press. Pointer/mouse use is unaffected — only touch gestures are
  * intercepted, so desktop hover controls keep working. `onDelete` should still
  * confirm (or be undoable); the swipe only triggers intent.
  */
-export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled, className, children }: Props) {
+export function SwipeRow({ onTap, onDelete, onDuplicate, onLongPress, peek = false, disabled, className, children }: Props) {
   const [offset, setOffset] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const [peekDone, setPeekDone] = React.useState(false);
@@ -42,12 +47,35 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
     horizontal: false,
     moved: false,
     armed: false,
+    touching: false,
   });
+  const pressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelPress() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  }
+
+  React.useEffect(() => cancelPress, []);
 
   function onTouchStart(e: React.TouchEvent) {
-    if (disabled || e.touches.length !== 1) return;
+    cancelPress();
     const t = e.touches[0];
-    gesture.current = { x: t.clientX, y: t.clientY, active: true, horizontal: false, moved: false, armed: false };
+    if (!t) return;
+    const active = !disabled && e.touches.length === 1;
+    // Reset even when disabled: a stale `moved` would swallow the next tap.
+    gesture.current = { x: t.clientX, y: t.clientY, active, horizontal: false, moved: false, armed: false, touching: true };
+    if (!active || !onLongPress) return;
+    pressTimer.current = setTimeout(() => {
+      pressTimer.current = null;
+      const g = gesture.current;
+      if (!g.active || g.horizontal) return;
+      // The press is the whole gesture: no swipe after it, and no tap on release.
+      g.active = false;
+      g.moved = true;
+      haptic(20);
+      onLongPress();
+    }, LONG_PRESS);
   }
 
   function onTouchMove(e: React.TouchEvent) {
@@ -59,6 +87,7 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
 
     if (!g.horizontal) {
       if (Math.abs(dx) < TAP_SLOP && Math.abs(dy) < TAP_SLOP) return;
+      cancelPress();
       if (Math.abs(dx) > Math.abs(dy)) {
         g.horizontal = true;
         setDragging(true);
@@ -82,8 +111,10 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
   }
 
   function onTouchEnd() {
+    cancelPress();
     const g = gesture.current;
     g.active = false;
+    g.touching = false;
     setDragging(false);
     if (!g.horizontal) return;
     const released = offset;
@@ -131,6 +162,8 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
         onClickCapture={handleClickCapture}
+        // Holding a finger down would otherwise also open the browser's own menu.
+        onContextMenu={onLongPress ? (e) => { if (gesture.current.touching || gesture.current.moved) e.preventDefault(); } : undefined}
         onClick={onTap ? () => onTap() : undefined}
         onAnimationEnd={peeking ? () => setPeekDone(true) : undefined}
         style={{
@@ -139,6 +172,8 @@ export function SwipeRow({ onTap, onDelete, onDuplicate, peek = false, disabled,
         }}
         className={cn(
           "relative touch-pan-y",
+          // A long press must not start selecting the row's text on phones.
+          onLongPress && "[@media(pointer:coarse)]:select-none [@media(pointer:coarse)]:[-webkit-touch-callout:none]",
           // Square corners while displaced: rounded ones would let the action
           // colours underneath show through at the four corners.
           moved && "bg-card !rounded-none",

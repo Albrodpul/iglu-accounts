@@ -52,6 +52,7 @@ export function ExpenseListAll({
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
   const [sortAsc, setSortAsc] = useState(false);
+  const [selecting, setSelecting] = useState(false);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
@@ -182,6 +183,7 @@ export function ExpenseListAll({
         manageCategories={categories}
         loading={filterLoading}
         summary={currentOverview?.summary ?? null}
+        onSelect={() => setSelecting(true)}
       />
 
       {loading && expenses.length === 0 ? (
@@ -208,6 +210,8 @@ export function ExpenseListAll({
             debtCategoryId={debtCategoryId}
             transferCategoryId={transferCategoryId}
             onMutated={() => setReloadToken((t) => t + 1)}
+            selecting={selecting}
+            onSelectingChange={setSelecting}
           />
 
           </div>

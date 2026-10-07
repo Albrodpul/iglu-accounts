@@ -10,6 +10,7 @@ import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryPicker } from "@/components/expenses/category-picker";
+import { isReservedCategoryName } from "@/lib/reserved-categories";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -58,8 +59,7 @@ function detectExpenseType(expense: Expense | undefined, categories: Category[])
 
 /** Categories reserved for income/debt/transfer bookkeeping are not user-pickable. */
 function isSelectableCategory(cat: Category) {
-  const n = cat.name.toLowerCase();
-  return n !== "ingreso" && n !== "deuda" && n !== "traspaso";
+  return !isReservedCategoryName(cat.name);
 }
 
 function detectTransferDirection(expense: Expense | undefined): "bank_to_cash" | "cash_to_bank" {

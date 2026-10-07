@@ -19,6 +19,14 @@ export const expenseSchema = z.object({
   notes: z.string().trim().max(NOTES_MAX_LENGTH, `Máximo ${NOTES_MAX_LENGTH} caracteres`).optional().nullable(),
 });
 
+/** Most movements one bulk action may touch: far above what fits on screen. */
+export const BULK_MAX = 500;
+
+export const expenseIdsSchema = z
+  .array(z.uuid({ error: "Movimiento inválido" }))
+  .min(1, "No hay movimientos seleccionados")
+  .max(BULK_MAX, `Máximo ${BULK_MAX} movimientos a la vez`);
+
 export const recurringExpenseSchema = z.object({
   amount: z
     .number({ error: "El importe es obligatorio" })

@@ -31,6 +31,15 @@ function conceptOrAmountFilter(search: string): string | null {
   ].join(",");
 }
 
+/** Ids per request in an `in` filter: they travel in the URL, which has a size cap. */
+const IN_CHUNK = 100;
+
+function chunks<T>(items: T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += IN_CHUNK) out.push(items.slice(i, i + IN_CHUNK));
+  return out;
+}
+
 export function createExpensesRepo(client: SupabaseClient) {
   return {
     async findWithCategoryByMonth(accountId: string | null, month: number, year: number) {
@@ -317,6 +326,53 @@ export function createExpensesRepo(client: SupabaseClient) {
         .eq("id", id)
         .eq("user_id", userId);
       return { error: error?.message ?? null };
+    },
+
+    /** What a bulk action needs to know about each selected movement. */
+    async findByIds(ids: string[], userId: string) {
+      const rows: { id: string; category_id: string | null; transfer_pair_id: string | null }[] = [];
+      for (const part of chunks(ids)) {
+        const { data, error } = await client
+          .from("expenses")
+          .select("id, category_id, transfer_pair_id")
+          .eq("user_id", userId)
+          .in("id", part);
+        if (error) return { rows: [], error: error.message };
+        rows.push(...(data ?? []));
+      }
+      return { rows, error: null };
+    },
+
+    /** Returns how many rows really changed, so the UI never reports more than happened. */
+    async updateCategoryMany(ids: string[], userId: string, categoryId: string) {
+      let updated = 0;
+      for (const part of chunks(ids)) {
+        const { data, error } = await client
+          .from("expenses")
+          .update({ category_id: categoryId, updated_at: new Date().toISOString() })
+          .eq("user_id", userId)
+          .in("id", part)
+          .select("id");
+        if (error) return { updated, error: error.message };
+        updated += data?.length ?? 0;
+      }
+      return { updated, error: null };
+    },
+
+    /** Deletes by id or, with `column: "transfer_pair_id"`, both legs of each transfer. */
+    async deleteMany(values: string[], userId: string, column: "id" | "transfer_pair_id" = "id") {
+      let deleted = 0;
+      for (const part of chunks(values)) {
+        const { data, error } = await client
+          .from("expenses")
+          .delete()
+          .eq("user_id", userId)
+          .in(column, part)
+          .select("id");
+        if (error) return { deleted, error: error.message };
+        deleted += data?.length ?? 0;
+      }
+      return { deleted, error: null };
     },
 
     async deleteByTransferPair(pairId: string, userId: string) {

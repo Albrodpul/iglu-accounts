@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { deleteExpense } from "@/actions/expenses";
+import { toast } from "sonner";
+import { deleteExpense, deleteExpenses, setExpensesCategory } from "@/actions/expenses";
 import { formatDayHeader } from "@/lib/format";
 import { toLocalISODate } from "@/lib/dates";
 import { splitRecurringNotes } from "@/lib/recurring";
@@ -12,10 +13,14 @@ import { useMediaQuery } from "@/hooks/use-browser-state";
 import { Amount } from "@/components/ui/amount";
 import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { MovementDialog } from "./movement-dialog";
+import { CategoryTile } from "./category-picker";
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { isReservedCategoryName } from "@/lib/reserved-categories";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { openAddMovement } from "@/lib/add-movement";
-import { Pencil, Trash2, ArrowUp, ArrowUpDown, Copy, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X } from "lucide-react";
+import { Pencil, Trash2, ArrowUp, ArrowUpDown, Copy, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X, Check, CheckCheck, Loader2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Category, ExpenseWithCategory } from "@/types";
 
@@ -53,9 +58,20 @@ type Props = {
   gestureHint?: boolean;
   /** Floating shortcut back to the start of the list (today) after a long scroll. */
   backToStart?: boolean;
+  /**
+   * Selection mode, owned by the parent so its filters can start it too. Passing
+   * `onSelectingChange` is what makes the list selectable (long press on touch).
+   */
+  selecting?: boolean;
+  onSelectingChange?: (selecting: boolean) => void;
 };
 
-export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated, stickyDayHeaders = false, collapseFuture = false, gestureHint = false, backToStart = false }: Props) {
+const plural = (count: number) => `${count} ${count === 1 ? "movimiento" : "movimientos"}`;
+
+const barButtonClass =
+  "flex h-12 min-w-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent md:h-9 md:flex-row md:gap-1.5 md:px-3 md:text-xs";
+
+export function ExpenseList({ expenses, categories, sortable = true, externalSortAsc, showYear = false, hasInvestments = false, debtCategoryId = null, transferCategoryId = null, onMutated, stickyDayHeaders = false, collapseFuture = false, gestureHint = false, backToStart = false, selecting = false, onSelectingChange }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null);
   const [duplicatingExpense, setDuplicatingExpense] = useState<ExpenseWithCategory | null>(null);
   const [internalSortAsc, setInternalSortAsc] = useState(false);
@@ -68,6 +84,24 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
   const sortAsc = sortable ? internalSortAsc : (externalSortAsc ?? false);
   const { pendingIds, scheduleDelete } = useUndoableDelete();
   const router = useRouter();
+  // Keys (see `deleteKey`) of the selected rows: both legs of a transfer go together.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const selectable = Boolean(onSelectingChange);
+
+  // Escape leaves selection mode, unless it is busy closing a dialog on top.
+  useEffect(() => {
+    if (!selecting) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape" || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      setSelected(new Set());
+      onSelectingChange?.(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selecting, onSelectingChange]);
 
   const notifyMutated = onMutated ?? (() => router.refresh());
 
@@ -126,6 +160,74 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
     });
   }
 
+  // Only rows on screen count: nothing hidden gets changed or deleted.
+  const reachable = hasFutureSection && !futureOpen ? mainDates.flatMap((d) => grouped[d]) : visibleExpenses;
+  const selectedRows = selecting ? reachable.filter((e) => selected.has(deleteKey(e))) : [];
+  const allSelected = reachable.length > 0 && selectedRows.length === reachable.length;
+  const pickableCategories = categories.filter((c) => !isReservedCategoryName(c.name));
+
+  function exitSelection() {
+    setSelected(new Set());
+    setCategoryOpen(false);
+    onSelectingChange?.(false);
+  }
+
+  function toggleSelected(expense: ExpenseWithCategory) {
+    const key = deleteKey(expense);
+    setSelected((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }
+
+  function startSelecting(expense: ExpenseWithCategory) {
+    dismissGestureHint();
+    setSelected(new Set([deleteKey(expense)]));
+    onSelectingChange?.(true);
+  }
+
+  async function applyCategory(category: Category) {
+    if (applying) return;
+    setApplying(true);
+    const count = selectedRows.length;
+    const result = await setExpensesCategory(selectedRows.map((e) => e.id), category.id);
+    setApplying(false);
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    const skipped = count - result.updated;
+    const skippedNote =
+      skipped > 0
+        ? { description: `${plural(skipped)} sin cambios: ingresos, deudas y traspasos mantienen su categoría.` }
+        : undefined;
+    if (result.updated === 0) toast.error("No se ha cambiado ningún movimiento", skippedNote);
+    else toast.success(`${plural(result.updated)} en ${category.name}`, skippedNote);
+    exitSelection();
+    if (result.updated > 0) notifyMutated();
+  }
+
+  async function deleteSelected() {
+    const rows = selectedRows;
+    const outcome: { result?: Awaited<ReturnType<typeof deleteExpenses>> } = {};
+    const confirmed = await confirm({
+      title: `Eliminar ${plural(rows.length)}`,
+      description: "Se borrarán de forma definitiva. Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+      onConfirm: async () => {
+        outcome.result = await deleteExpenses(rows.map((e) => e.id));
+      },
+    });
+    const { result } = outcome;
+    if (!confirmed || !result) return;
+    if ("error" in result) toast.error(result.error);
+    else toast.success(`${plural(result.deleted)} ${result.deleted === 1 ? "eliminado" : "eliminados"}`);
+    exitSelection();
+    notifyMutated();
+  }
+
   function renderDay(date: string, dateIndex: number) {
     const dayExpenses = grouped[date];
     const dayTotal = netOf(dayExpenses);
@@ -155,10 +257,13 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
         <div className="space-y-1">
           {dayExpenses.map((expense) => {
             const noteParts = splitRecurringNotes(expense.notes);
+            const isSelected = selecting && selected.has(deleteKey(expense));
             return (
             <SwipeRow
               key={expense.id}
-              onTap={() => setEditingExpense(expense)}
+              onTap={() => (selecting ? toggleSelected(expense) : setEditingExpense(expense))}
+              onLongPress={selectable ? () => startSelecting(expense) : undefined}
+              disabled={selecting}
               onDelete={() => {
                 dismissGestureHint();
                 handleDelete(expense);
@@ -168,16 +273,36 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 setDuplicatingExpense(expense);
               }}
               peek={showHint && expense.id === firstRowId}
-              className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:py-1.5"
+              className={cn(
+                "group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:py-1.5",
+                isSelected && "border-primary/40 bg-primary/10 hover:border-primary/40 hover:bg-primary/10"
+              )}
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 md:h-9 md:w-9"
-                style={{
-                  backgroundColor: (expense.category?.color || "#64748b") + "15",
-                }}
-              >
-                {expense.category?.icon || "📦"}
-              </div>
+              {selecting ? (
+                // Takes the icon's place, so nothing shifts when selection starts. A click
+                // (or Space/Enter) bubbles to the row, which does the toggling.
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-label={`Seleccionar ${expense.concept || "movimiento"}`}
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors md:h-9 md:w-9",
+                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
+                  )}
+                >
+                  <Check className="h-5 w-5" strokeWidth={3} />
+                </button>
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 md:h-9 md:w-9"
+                  style={{
+                    backgroundColor: (expense.category?.color || "#64748b") + "15",
+                  }}
+                >
+                  {expense.category?.icon || "📦"}
+                </div>
+              )}
 
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-medium text-foreground break-words">
@@ -207,7 +332,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
 
               <div className="flex items-center gap-1 shrink-0">
                 {/* Hover actions sit before the amount, so amounts stay in one column with the day total. */}
-                <div className="hidden items-center md:flex md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                <div className={cn("hidden items-center md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100", !selecting && "md:flex")}>
                   <button
                     type="button"
                     aria-label={`Editar ${expense.concept || "movimiento"}`}
@@ -304,6 +429,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
           <Hand className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p className="flex-1">
             Toca un movimiento para editarlo. Deslízalo a la izquierda para borrarlo o a la derecha para duplicarlo.
+            {selectable && " Mantenlo pulsado para seleccionar varios."}
           </p>
           <button
             type="button"
@@ -340,6 +466,79 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
         </button>,
         document.body,
       )}
+
+      {selecting && createPortal(
+        // Covers the bottom nav on phones: while selecting, the next step is here.
+        <div
+          role="toolbar"
+          aria-label="Acciones para los movimientos seleccionados"
+          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.18)] md:inset-x-auto md:bottom-6 md:left-[calc(50%+8rem)] md:-translate-x-1/2 md:gap-2 md:rounded-2xl md:border md:px-2 md:pt-2 md:pb-2 md:shadow-xl"
+        >
+          <button type="button" onClick={exitSelection} aria-label="Salir de la selección" className={cn(barButtonClass, "min-w-11 md:px-2")}>
+            <X className="h-5 w-5 md:h-4 md:w-4" />
+          </button>
+          <p aria-live="polite" className="min-w-0 flex-1 px-1 text-sm leading-tight md:flex-none md:px-2">
+            <span className="block truncate font-semibold md:inline">
+              {selectedRows.length} {selectedRows.length === 1 ? "seleccionado" : "seleccionados"}
+            </span>
+            {selectedRows.length > 0 && (
+              <span className="block text-xs tabular-nums text-muted-foreground md:ml-2 md:inline">
+                <Amount value={netOf(selectedRows)} />
+              </span>
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => setSelected(allSelected ? new Set() : new Set(reachable.map(deleteKey)))}
+            className={barButtonClass}
+          >
+            <CheckCheck className="h-5 w-5 md:h-4 md:w-4" />
+            {allSelected ? "Ninguno" : "Todos"}
+          </button>
+          <button type="button" disabled={selectedRows.length === 0} onClick={() => setCategoryOpen(true)} className={barButtonClass}>
+            <Tag className="h-5 w-5 md:h-4 md:w-4" />
+            Categoría
+          </button>
+          <button
+            type="button"
+            disabled={selectedRows.length === 0}
+            onClick={deleteSelected}
+            className={cn(barButtonClass, "text-expense hover:text-expense")}
+          >
+            <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
+            Eliminar
+          </button>
+        </div>,
+        document.body,
+      )}
+
+      <Dialog open={categoryOpen} onOpenChange={(open) => { if (!applying) setCategoryOpen(open); }}>
+        <DialogContent variant="sheet" className="sm:max-w-md" initialFocus={false}>
+          <DialogHeader variant="bar">
+            <DialogTitle>Cambiar categoría</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              {applying && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+              {applying ? "Cambiando..." : `Elige la categoría para ${plural(selectedRows.length)}.`}
+            </p>
+            <div className={cn("grid grid-cols-3 gap-2 sm:grid-cols-4", applying && "pointer-events-none opacity-50")}>
+              {pickableCategories.map((cat) => (
+                <CategoryTile
+                  key={cat.id}
+                  name={cat.name}
+                  icon={cat.icon || "📦"}
+                  color={cat.color}
+                  selected={false}
+                  onClick={() => applyCategory(cat)}
+                />
+              ))}
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      {ConfirmDialog}
 
       {editingExpense && (
         <MovementDialog

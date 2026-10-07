@@ -173,9 +173,11 @@
   }
   .dark body::before {
     background-image:
-      radial-gradient(circle at 10% 8%, color-mix(in oklab, var(--primary) 8%, black) 0%, transparent 38%),
-      radial-gradient(circle at 88% 15%, color-mix(in oklab, #06b6d4 6%, black) 0%, transparent 32%),
-      radial-gradient(circle at 50% 90%, color-mix(in oklab, #6366f1 5%, black) 0%, transparent 40%),
+      /* Mixed with the page colour, not black: against the lighter dark
+         background, "glows" darker than the page read as stains. */
+      radial-gradient(circle at 10% 8%, color-mix(in oklab, var(--primary) 9%, var(--background)) 0%, transparent 38%),
+      radial-gradient(circle at 88% 15%, color-mix(in oklab, #06b6d4 6%, var(--background)) 0%, transparent 32%),
+      radial-gradient(circle at 50% 90%, color-mix(in oklab, #6366f1 6%, var(--background)) 0%, transparent 40%),
       linear-gradient(180deg, var(--background) 0%, var(--background) 100%);
   }
   html {

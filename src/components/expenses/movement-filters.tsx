@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, LayoutGrid, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, LayoutGrid, ListChecks, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Amount } from "@/components/ui/amount";
@@ -26,6 +26,8 @@ type Props = {
   loading?: boolean;
   /** Count and total of the matches; shown while a search or category filter is active. */
   summary?: FilterSummary | null;
+  /** Starts selecting several movements; shows the entry points when given. */
+  onSelect?: () => void;
 };
 
 const chipClass =
@@ -48,6 +50,7 @@ export function MovementFilters({
   manageCategories,
   loading = false,
   summary,
+  onSelect,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const selectedCategory = categories.find((c) => c.id === categoryId);
@@ -134,6 +137,17 @@ export function MovementFilters({
           <ArrowUpDown className="h-3.5 w-3.5" />
           {sortAsc ? "Más antiguo" : "Más reciente"}
         </button>
+        {onSelect && (
+          <button
+            type="button"
+            onClick={onSelect}
+            title="Seleccionar varios movimientos para cambiarles la categoría o eliminarlos"
+            className="hidden h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground sm:flex"
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            Seleccionar
+          </button>
+        )}
       </div>
 
       {/* Phones: what is narrowing or reordering the list, one tap to undo. */}
@@ -253,6 +267,19 @@ export function MovementFilters({
           </DialogBody>
 
           <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            {onSelect && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSheetOpen(false);
+                  onSelect();
+                }}
+                className="flex h-10 cursor-pointer items-center justify-center gap-2 text-sm font-medium text-primary"
+              >
+                <ListChecks className="h-4 w-4" />
+                Seleccionar varios movimientos
+              </button>
+            )}
             {manageCategories && <CategoryManager categories={manageCategories} trigger="link" />}
             <Button onClick={() => setSheetOpen(false)} className="h-12 w-full md:h-10">
               Listo

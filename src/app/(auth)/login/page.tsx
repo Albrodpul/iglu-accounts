@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocalStorageValue } from "@/hooks/use-browser-state";
+import { useLocalStorageValue, writeLocalStorage } from "@/hooks/use-browser-state";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const NAME_KEY = "iglu:user:name";
+/** Set once a fingerprint login succeeds here: from then on it is offered first. */
+const PASSKEY_USED_KEY = "iglu:passkey:used";
+const TAGLINE = "Gastos y finanzas del hogar";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -48,6 +51,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const attemptedAutofillRef = useRef(false);
   const isAnyLoading = loading || loadingPasskey;
+  // On a device that has logged in by fingerprint before, that is the one-tap
+  // way in: it goes first, and the password form becomes the alternative.
+  const passkeyFirst = useLocalStorageValue(PASSKEY_USED_KEY) === "1";
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -110,6 +116,11 @@ export default function LoginPage() {
         throw new Error(verifyPayload.error ?? "No se pudo completar el acceso con passkey");
       }
 
+      try {
+        writeLocalStorage(PASSKEY_USED_KEY, "1");
+      } catch {
+        // Storage unavailable (private mode): the button just keeps its usual place.
+      }
       window.location.href = verifyPayload.redirectTo ?? "/select-account";
     } catch (err) {
       if (!useAutofill) {
@@ -141,6 +152,36 @@ export default function LoginPage() {
     void tryAutofillPasskey();
   }, []);
 
+  const passwordButton = (variant: "default" | "outline") => (
+    <Button type="submit" variant={variant} size="lg" className="h-12 w-full rounded-lg text-base font-semibold" disabled={isAnyLoading}>
+      <AuthButtonContent loading={loading} loadingText="Entrando..." idleText="Entrar" />
+    </Button>
+  );
+  const passkeyButton = (variant: "default" | "outline") => (
+    <Button
+      type="button"
+      variant={variant}
+      size="lg"
+      className="h-12 w-full rounded-lg text-base font-semibold"
+      disabled={isAnyLoading}
+      onClick={() => handlePasskeyLogin(false)}
+    >
+      <AuthButtonContent
+        loading={loadingPasskey}
+        loadingText="Verificando huella..."
+        idleText="Entrar con huella"
+        idleIcon={<Fingerprint className="size-5" />}
+      />
+    </Button>
+  );
+  const divider = (label: string) => (
+    <div className="relative flex items-center py-1">
+      <div className="grow border-t border-border" />
+      <span className="mx-3 shrink-0 text-xs text-muted-foreground">{label}</span>
+      <div className="grow border-t border-border" />
+    </div>
+  );
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Panel decorativo - solo desktop */}
@@ -152,30 +193,26 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Iglú Management</h1>
-            <p className="mt-2 text-base text-white/70">
-              Gestión de gastos y finanzas personales
-            </p>
+            <p className="mt-2 text-base text-white/70">{TAGLINE}</p>
           </div>
         </div>
       </div>
 
       {/* Panel formulario. On phones: brand gradient behind, form as a sheet. */}
       <div className="login-brand-bg flex flex-col lg:items-center lg:justify-center lg:px-12 lg:py-12">
-        <div
-          className="relative px-6 pb-14 text-center text-white lg:hidden"
-          style={{ paddingTop: "calc(3rem + env(safe-area-inset-top))" }}
-        >
-          <div className="relative flex flex-col items-center gap-3">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 shadow-lg ring-1 ring-white/25 backdrop-blur-sm">
-              <Image src="/iglu.svg" alt="Iglú" width={52} height={52} priority />
+        {/* Short phones get a compact header, so both ways in fit without scrolling. */}
+        <div className="relative px-6 pb-14 pt-[calc(3rem+env(safe-area-inset-top))] text-center text-white lg:hidden [@media(max-height:740px)]:pb-9 [@media(max-height:740px)]:pt-[calc(1.25rem+env(safe-area-inset-top))]">
+          <div className="relative flex flex-col items-center gap-3 [@media(max-height:740px)]:flex-row [@media(max-height:740px)]:justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 shadow-lg ring-1 ring-white/25 backdrop-blur-sm [@media(max-height:740px)]:h-11 [@media(max-height:740px)]:w-11 [@media(max-height:740px)]:rounded-2xl">
+              <Image src="/iglu.svg" alt="Iglú" width={52} height={52} priority className="[@media(max-height:740px)]:h-7 [@media(max-height:740px)]:w-7" />
             </div>
-            <p className="text-2xl font-extrabold tracking-tight">Iglú Management</p>
-            <p className="text-sm text-white/70">Gastos y finanzas del hogar</p>
+            <p className="text-2xl font-extrabold tracking-tight [@media(max-height:740px)]:text-xl">Iglú Management</p>
+            <p className="text-sm text-white/70 [@media(max-height:740px)]:hidden">{TAGLINE}</p>
           </div>
         </div>
 
         <div className="flex-1 rounded-t-[2rem] bg-card px-6 pt-9 pb-[max(2.5rem,env(safe-area-inset-bottom))] shadow-[0_-12px_32px_-20px_rgba(14,40,68,0.5)] lg:w-full lg:max-w-sm lg:flex-none lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
-        <div className="mx-auto w-full max-w-sm space-y-7">
+        <div className="mx-auto w-full max-w-sm space-y-7 [@media(max-height:740px)]:space-y-5">
           <div className="text-center lg:text-left">
             <LoginGreeting />
           </div>
@@ -189,6 +226,12 @@ export default function LoginPage() {
             className="space-y-5"
             aria-busy={isAnyLoading}
           >
+            {passkeyFirst && (
+              <div className="space-y-3">
+                {passkeyButton("default")}
+                {divider("o con contraseña")}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
@@ -227,7 +270,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="rounded-lg bg-expense/10 p-3 text-sm text-expense">
+              <p role="alert" className="rounded-lg bg-expense/10 p-3 text-sm text-expense">
                 {error}
               </p>
             )}
@@ -237,37 +280,14 @@ export default function LoginPage() {
               </p>
             )}
 
-            <div className="space-y-3 pt-1">
-              <Button type="submit" size="lg" className="h-12 w-full rounded-lg text-base font-semibold" disabled={isAnyLoading}>
-                <AuthButtonContent
-                  loading={loading}
-                  loadingText="Entrando..."
-                  idleText="Entrar"
-                />
-              </Button>
-
-              <div className="relative flex items-center py-1">
-                <div className="grow border-t border-border" />
-                <span className="mx-3 shrink-0 text-xs text-muted-foreground">o</span>
-                <div className="grow border-t border-border" />
+            {!passkeyFirst && (
+              <div className="space-y-3 pt-1">
+                {passwordButton("default")}
+                {divider("o")}
+                {passkeyButton("outline")}
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="h-12 w-full rounded-lg text-base font-semibold"
-                disabled={isAnyLoading}
-                onClick={() => handlePasskeyLogin(false)}
-              >
-                <AuthButtonContent
-                  loading={loadingPasskey}
-                  loadingText="Verificando huella..."
-                  idleText="Entrar con huella"
-                  idleIcon={<Fingerprint className="size-5" />}
-                />
-              </Button>
-            </div>
+            )}
+            {passkeyFirst && <div className="pt-1">{passwordButton("outline")}</div>}
           </form>
         </div>
         </div>

@@ -24,6 +24,7 @@ export function ExpenseListFiltered({ periodLabel, expenses, categories, initial
   const [conceptFilter, setConceptFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [selecting, setSelecting] = useState(false);
 
   const searched = expenses.filter((e) => matchesSearch(e, conceptFilter));
   const filtered = categoryFilter ? searched.filter((e) => e.category_id === categoryFilter) : searched;
@@ -60,6 +61,7 @@ export function ExpenseListFiltered({ periodLabel, expenses, categories, initial
         manageCategories={categories}
         loading={isPending}
         summary={summarizeMovements(filtered, totalsOptions)}
+        onSelect={() => setSelecting(true)}
       />
 
       <div className={isPending ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
@@ -75,6 +77,8 @@ export function ExpenseListFiltered({ periodLabel, expenses, categories, initial
           hasInvestments={hasInvestments}
           debtCategoryId={debtCategoryId}
           transferCategoryId={transferCategoryId}
+          selecting={selecting}
+          onSelectingChange={setSelecting}
         />
       </div>
     </MovementsLayout>

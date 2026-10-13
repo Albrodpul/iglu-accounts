@@ -90,19 +90,19 @@ type Props = {
 type NavIcon = React.ComponentType<{ className?: string }>;
 
 const bottomNavItemClass =
-  "flex min-h-[50px] flex-col items-center justify-center gap-0.5 px-3 py-1.5 text-[11px] font-semibold transition-all";
+  "flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium transition-colors";
 
 function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon: NavIcon; isActive: boolean }) {
   return (
     <>
       <span
         className={cn(
-          // The coloured pill behind the icon is the shared sliding indicator.
-          "relative flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-300",
-          isActive ? "text-primary-foreground" : "text-current"
+          // The tinted pill behind the icon is the shared sliding indicator.
+          "relative flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300",
+          isActive ? "text-primary" : "text-current"
         )}
       >
-        <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.6]")} />
+        <Icon className={cn("h-5 w-5", isActive && "stroke-[2.4]")} />
       </span>
       {label}
     </>
@@ -111,7 +111,7 @@ function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon
 
 function NavItem({ href, label, icon, isActive }: { href: string; label: string; icon: NavIcon; isActive: boolean }) {
   return (
-    <Link href={href} className={cn(bottomNavItemClass, isActive ? "text-foreground" : "text-muted-foreground")}>
+    <Link href={href} aria-current={isActive ? "page" : undefined} className={cn(bottomNavItemClass, isActive ? "font-bold text-foreground" : "text-muted-foreground")}>
       <BottomNavContent label={label} icon={icon} isActive={isActive} />
     </Link>
   );
@@ -161,7 +161,7 @@ function NavActionItem({
   return (
     <button
       onClick={onClick}
-      className={cn(bottomNavItemClass, "cursor-pointer", isActive ? "text-foreground" : "text-muted-foreground")}
+      className={cn(bottomNavItemClass, "cursor-pointer", isActive ? "font-bold text-foreground" : "text-muted-foreground")}
     >
       <BottomNavContent label={label} icon={icon} isActive={isActive} />
     </button>
@@ -411,7 +411,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
 
       {/* Mobile bottom nav */}
       <nav
-        className="mobile-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.12)] md:hidden"
+        className="mobile-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.25)] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative grid grid-cols-5 px-2 pt-0.5">
@@ -424,7 +424,7 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
             )}
             style={{ transform: `translateX(${indicatorColumn * 100}%)` }}
           >
-            <span className="h-9 w-9 rounded-full bg-primary shadow-sm" />
+            <span className="h-8 w-14 rounded-full bg-primary/15" />
           </div>
           {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
@@ -433,10 +433,11 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
           <div className="flex items-center justify-center">
             <button
               onClick={() => setAddOpen(true)}
-              className="-mt-9 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/45 cursor-pointer"
+              // The card-coloured ring makes the button read as set into the bar, not floating over it.
+              className="-mt-8 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-card transition-transform active:scale-95"
               aria-label="Nuevo movimiento"
             >
-              <Plus className="h-[23px] w-[23px] stroke-[2.5]" />
+              <Plus className="h-6 w-6 stroke-[2.5]" />
             </button>
           </div>
 

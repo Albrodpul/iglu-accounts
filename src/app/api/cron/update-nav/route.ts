@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceDb } from "@/lib/db/service";
-import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue } from "@/lib/nav";
+import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue, priceFields } from "@/lib/nav";
 
 /** Called hourly by Supabase pg_cron (see supabase/cron/update-nav.sql); a few funds take seconds each. */
 export const maxDuration = 120;
@@ -58,10 +58,11 @@ export async function GET(request: Request) {
         ? fund.invested_amount
         : newCurrentValue;
 
+      const value = Math.round(effectiveValue * 100) / 100;
       const { error } = await db.investments.updateFund(fund.id, fund.account_id, {
-        current_value: Math.round(effectiveValue * 100) / 100,
+        current_value: value,
         updated_at: new Date().toISOString(),
-        ...(quote.date && { price_date: quote.date }),
+        ...priceFields(fund.current_value, value),
       });
 
       results.push({

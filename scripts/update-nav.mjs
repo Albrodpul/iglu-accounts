@@ -157,16 +157,22 @@ async function getPriceForTicker(ticker, session) {
         q.regularMarketPrice;
       date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
     } else {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+      // Intraday chart with extended hours: its last bar includes pre/post-market.
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
       const res = await fetch(url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) });
       if (!res.ok) return { price: null, date: null, reason: `http_${res.status}` };
       const data = await res.json();
-      const meta = data.chart?.result?.[0]?.meta;
+      const result = data.chart?.result?.[0];
+      const meta = result?.meta;
       if (!meta) return { price: null, date: null, reason: "no_data" };
-      state = "REGULAR";
+      const times = result.timestamp ?? [];
+      const closes = result.indicators?.quote?.[0]?.close ?? [];
+      let i = closes.length - 1;
+      while (i >= 0 && !(closes[i] > 0 && times[i])) i--;
+      state = "CHART";
       currency = meta.currency ?? "";
-      rawPrice = meta.regularMarketPrice;
-      date = new Date(meta.regularMarketTime * 1000).toISOString().split("T")[0];
+      rawPrice = i >= 0 ? closes[i] : meta.regularMarketPrice;
+      date = new Date((i >= 0 ? times[i] : meta.regularMarketTime) * 1000).toISOString().split("T")[0];
     }
 
     if (typeof rawPrice !== "number" || rawPrice <= 0) return { price: null, date: null, reason: "invalid_price" };
@@ -203,6 +209,7 @@ const { data: funds, error: fetchError } = await supabase
     ticker,
     show_negative_returns,
     invested_amount,
+    current_value,
     investment_contributions(amount, purchase_price, units)
   `)
   .or("isin.not.is.null,ticker.not.is.null");
@@ -256,9 +263,10 @@ const results = await Promise.all(
     const values = { current_value: rounded, updated_at: new Date().toISOString() };
     const update = (fields) =>
       supabase.from("investment_funds").update(fields).eq("id", fund.id).eq("account_id", fund.account_id);
-    let { error: updateError } = await update(
-      date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { ...values, price_date: date } : values,
-    );
+    // price_date = day (Spain) the price last changed, i.e. when a new one arrived.
+    const changed = rounded !== Number(fund.current_value);
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
+    let { error: updateError } = await update(changed ? { ...values, price_date: today } : values);
     // Before migration 0023 there is no price_date column: still save the price.
     if (updateError && updateError.message.includes("price_date")) {
       ({ error: updateError } = await update(values));

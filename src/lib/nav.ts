@@ -28,6 +28,30 @@ function dateFromUnix(seconds: unknown): string | null {
   return typeof seconds === "number" && seconds > 0 ? new Date(seconds * 1000).toISOString().slice(0, 10) : null;
 }
 
+/** Last non-empty bar of a Yahoo chart: the most recent trade it saw. */
+function lastTrade(result: { timestamp?: number[]; indicators?: { quote?: { close?: (number | null)[] }[] } }) {
+  const times = result.timestamp ?? [];
+  const closes = result.indicators?.quote?.[0]?.close ?? [];
+  for (let i = closes.length - 1; i >= 0; i--) {
+    const price = closes[i];
+    if (typeof price === "number" && price > 0 && times[i]) return { price, time: times[i] };
+  }
+  return null;
+}
+
+/** Today's date in Spain (YYYY-MM-DD), whatever the server's timezone. */
+export function spainDate(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(now);
+}
+
+/**
+ * `price_date` to store with a fresh value: today, if the value changed (a new
+ * price arrived), or nothing, so the day of the last real change stays.
+ */
+export function priceFields(previousValue: number, newValue: number, now = new Date()) {
+  return newValue !== Number(previousValue) ? { price_date: spainDate(now) } : {};
+}
+
 // Fetches the NAV for a given ISIN from fundinfo.com.
 export async function fetchNavByIsin(isin: string): Promise<PriceQuote | null> {
   try {
@@ -117,15 +141,19 @@ export async function fetchPriceByTicker(ticker: string): Promise<PriceQuote | n
       currency = q.currency ?? "";
       console.log(`[yahoo] ${ticker} marketState=${state} pre=${q.preMarketPrice} post=${q.postMarketPrice} → price=${rawPrice} currency=${currency}`);
     } else {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+      // Without a session, the intraday chart with extended hours still has the
+      // latest trade, pre/post-market included; the daily one stops at the last close.
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
       const res = await fetch(url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(10000), cache: "no-store" });
       if (!res.ok) return null;
       const data = await res.json();
-      const meta = data.chart?.result?.[0]?.meta;
+      const result = data.chart?.result?.[0];
+      const meta = result?.meta;
       if (!meta) return null;
-      rawPrice = meta.regularMarketPrice;
+      const latest = lastTrade(result);
+      rawPrice = latest?.price ?? meta.regularMarketPrice;
       currency = meta.currency ?? "";
-      date = dateFromUnix(meta.regularMarketTime);
+      date = dateFromUnix(latest?.time ?? meta.regularMarketTime);
       console.log(`[yahoo] ${ticker} fallback price=${rawPrice} currency=${currency}`);
     }
 

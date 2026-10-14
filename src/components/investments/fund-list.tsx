@@ -403,7 +403,9 @@ export function FundList({ types, funds }: Props) {
             <p className="text-xs text-muted-foreground xl:hidden">
               Invertido <Amount value={fund.invested_amount} /> · {formatWeight(positionValue(fund), portfolioValue)} de la cartera
             </p>
-            {fund.price_date && <PriceDate date={fund.price_date} className="block text-xs text-muted-foreground xl:hidden" />}
+            {fund.price_date && (
+              <PriceDate date={fund.price_date} className="block text-xs text-muted-foreground xl:hidden" />
+            )}
           </div>
         </div>
         <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">

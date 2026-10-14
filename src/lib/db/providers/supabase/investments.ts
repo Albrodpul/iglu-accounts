@@ -118,6 +118,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           ticker,
           invested_amount,
           show_negative_returns,
+          current_value,
           investment_contributions(id, amount, purchase_price, units)
         `)
         .eq("account_id", accountId)
@@ -130,6 +131,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
+        current_value: number;
         investment_contributions: Array<{
           id: string;
           amount: number;
@@ -151,6 +153,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           ticker,
           invested_amount,
           show_negative_returns,
+          current_value,
           investment_contributions(id, amount, purchase_price, units)
         `)
         .or("isin.not.is.null,ticker.not.is.null");
@@ -162,6 +165,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
+        current_value: number;
         investment_contributions: Array<{
           id: string;
           amount: number;

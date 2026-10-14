@@ -7,7 +7,7 @@ import {
   investmentFundUpdateSchema,
   investmentContributionSchema,
 } from "@/lib/validators/expense";
-import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue } from "@/lib/nav";
+import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue, priceFields } from "@/lib/nav";
 import { revalidatePath } from "next/cache";
 import { getSelectedAccountId } from "./accounts";
 
@@ -438,10 +438,11 @@ export async function refreshInvestmentNav(): Promise<{
       ? fund.invested_amount
       : newCurrentValue;
 
+    const value = Math.round(effectiveValue * 100) / 100;
     const { error } = await db.investments.updateFund(fund.id, accountId, {
-      current_value: Math.round(effectiveValue * 100) / 100,
+      current_value: value,
       updated_at: new Date().toISOString(),
-      ...(quote.date && { price_date: quote.date }),
+      ...priceFields(fund.current_value, value),
     });
 
     if (error) skipped++;

@@ -102,8 +102,9 @@ export type InvestmentFund = {
   invested_amount: number;
   current_value: number;
   /**
-   * Day (Spain) the price last changed: when a new price reached the app, not
-   * the day it values. Absent until migration 0023 and the next update.
+   * Day the price belongs to, as the source reports it: the NAV's valuation day
+   * for funds (published the next business day), the trade's day for tickers.
+   * Absent until migration 0023 and the next update.
    */
   price_date?: string | null;
   sort_order: number;

@@ -39,17 +39,9 @@ function lastTrade(result: { timestamp?: number[]; indicators?: { quote?: { clos
   return null;
 }
 
-/** Today's date in Spain (YYYY-MM-DD), whatever the server's timezone. */
-export function spainDate(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(now);
-}
-
-/**
- * `price_date` to store with a fresh value: today, if the value changed (a new
- * price arrived), or nothing, so the day of the last real change stays.
- */
-export function priceFields(previousValue: number, newValue: number, now = new Date()) {
-  return newValue !== Number(previousValue) ? { price_date: spainDate(now) } : {};
+/** `price_date` to store with a price: the day the source says it belongs to. */
+export function priceFields(quote: PriceQuote) {
+  return quote.date ? { price_date: quote.date } : {};
 }
 
 // Fetches the NAV for a given ISIN from fundinfo.com.

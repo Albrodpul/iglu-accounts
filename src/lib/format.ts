@@ -125,6 +125,17 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((toUtc(to) - toUtc(from)) / 86_400_000);
 }
 
+/**
+ * Day a fund's NAV is published: the next business day after the one it
+ * values (Friday's comes out on Monday), never later than `today`.
+ */
+export function navPublishedOn(valuationDate: string, today: string): string {
+  const [y, m, d] = valuationDate.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday … 6 = Saturday
+  const published = shiftISODate(valuationDate, weekday === 5 ? 3 : weekday === 6 ? 2 : 1);
+  return published < today ? published : today;
+}
+
 function shiftISODate(iso: string, days: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PriceDate } from "@/components/investments/price-date";
-import { daysBetween, formatShortDate } from "@/lib/format";
+import { daysBetween, formatShortDate, navPublishedOn } from "@/lib/format";
 import { priceFields } from "@/lib/nav";
 
 describe("formatShortDate", () => {
@@ -47,14 +47,40 @@ describe("PriceDate", () => {
 
 });
 
-describe("priceFields", () => {
-  const now = new Date("2026-10-14T23:30:00Z"); // already the 15th in Spain
+describe("PriceDate for fund NAVs", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 14, 15)); // Wednesday 14 Oct
+  });
+  afterEach(() => vi.useRealTimers());
 
-  it("dates a changed value with today's day in Spain", () => {
-    expect(priceFields(100, 101.5, now)).toEqual({ price_date: "2026-10-15" });
+  it("reads yesterday's NAV, published today, as updated today", () => {
+    render(<PriceDate date="2026-10-13" publishedNextDay />);
+    expect(screen.getByText("Actualizado hoy")).toBeInTheDocument();
   });
 
-  it("leaves the date alone when nothing new arrived", () => {
-    expect(priceFields(101.5, 101.5, now)).toEqual({});
+  it("dates a market price by its own day", () => {
+    render(<PriceDate date="2026-10-13" />);
+    expect(screen.getByText("Actualizado ayer")).toBeInTheDocument();
+  });
+
+  it("still flags a fund whose NAV stopped coming", () => {
+    render(<PriceDate date="2026-10-08" publishedNextDay />);
+    expect(screen.getByText("Actualizado el 9 oct")).toHaveAttribute("title", "Sin precio nuevo desde hace 5 días");
+  });
+});
+
+describe("navPublishedOn", () => {
+  it("is the next business day, never after today", () => {
+    expect(navPublishedOn("2026-10-13", "2026-10-20")).toBe("2026-10-14"); // Tue → Wed
+    expect(navPublishedOn("2026-10-09", "2026-10-20")).toBe("2026-10-12"); // Fri → Mon
+    expect(navPublishedOn("2026-10-13", "2026-10-13")).toBe("2026-10-13"); // out the same evening
+  });
+});
+
+describe("priceFields", () => {
+  it("stores the source's date, or nothing without one", () => {
+    expect(priceFields({ price: 1, date: "2026-10-13" })).toEqual({ price_date: "2026-10-13" });
+    expect(priceFields({ price: 1, date: null })).toEqual({});
   });
 });

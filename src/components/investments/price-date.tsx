@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { daysBetween, formatShortDate } from "@/lib/format";
+import { daysBetween, formatShortDate, navPublishedOn } from "@/lib/format";
 import { toLocalISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -11,16 +11,29 @@ export const STALE_PRICE_DAYS = 4;
 const noopSubscribe = () => () => {};
 
 /**
- * "Actualizado hoy" / "Actualizado el 8 oct": the day a new price reached the
- * app (stored as `price_date`). Client-only, since "hoy" depends on the
- * device's day, not the server's.
+ * "Actualizado hoy" / "Actualizado el 8 oct": the day the price came out. A
+ * fund's NAV values one day and is published the next business day, so
+ * Monday's NAV arriving on Tuesday reads "hoy" on Tuesday. Market prices
+ * (tickers) come out the day they trade. Client-only, since "hoy" depends on
+ * the device's day, not the server's.
  */
-export function PriceDate({ date, className }: { date: string; className?: string }) {
+export function PriceDate({
+  date,
+  publishedNextDay = false,
+  className,
+}: {
+  /** `price_date`: the day the price belongs to. */
+  date: string;
+  /** A fund's NAV (by ISIN), out the business day after the one it values. */
+  publishedNextDay?: boolean;
+  className?: string;
+}) {
   const today = useSyncExternalStore(noopSubscribe, () => toLocalISODate(), () => null);
   if (!today) return null;
 
-  const label = formatShortDate(date, today);
-  const age = daysBetween(date, today);
+  const day = publishedNextDay ? navPublishedOn(date, today) : date;
+  const label = formatShortDate(day, today);
+  const age = daysBetween(day, today);
   const stale = age >= STALE_PRICE_DAYS;
   return (
     <span

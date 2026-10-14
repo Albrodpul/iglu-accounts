@@ -442,7 +442,7 @@ export async function refreshInvestmentNav(): Promise<{
     const { error } = await db.investments.updateFund(fund.id, accountId, {
       current_value: value,
       updated_at: new Date().toISOString(),
-      ...priceFields(fund.current_value, value),
+      ...priceFields(quote),
     });
 
     if (error) skipped++;

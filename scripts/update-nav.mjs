@@ -151,11 +151,12 @@ async function getPriceForTicker(ticker, session) {
       if (!q) return { price: null, date: null, reason: "no_data" };
       state = q.marketState ?? "";
       currency = q.currency ?? "";
-      rawPrice =
-        state === "PRE"                                               && q.preMarketPrice  > 0 ? q.preMarketPrice  :
-        (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0 ? q.postMarketPrice :
-        q.regularMarketPrice;
-      date = new Date(q.regularMarketTime * 1000).toISOString().split("T")[0];
+      const usePre = state === "PRE" && q.preMarketPrice > 0;
+      const usePost = !usePre && (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0;
+      rawPrice = usePre ? q.preMarketPrice : usePost ? q.postMarketPrice : q.regularMarketPrice;
+      // The date of the price actually used: a pre-market quote is today's.
+      const time = (usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) || q.regularMarketTime;
+      date = new Date(time * 1000).toISOString().split("T")[0];
     } else {
       // Intraday chart with extended hours: its last bar includes pre/post-market.
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
@@ -209,7 +210,6 @@ const { data: funds, error: fetchError } = await supabase
     ticker,
     show_negative_returns,
     invested_amount,
-    current_value,
     investment_contributions(amount, purchase_price, units)
   `)
   .or("isin.not.is.null,ticker.not.is.null");
@@ -263,10 +263,9 @@ const results = await Promise.all(
     const values = { current_value: rounded, updated_at: new Date().toISOString() };
     const update = (fields) =>
       supabase.from("investment_funds").update(fields).eq("id", fund.id).eq("account_id", fund.account_id);
-    // price_date = day (Spain) the price last changed, i.e. when a new one arrived.
-    const changed = rounded !== Number(fund.current_value);
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
-    let { error: updateError } = await update(changed ? { ...values, price_date: today } : values);
+    // price_date = the day the source says this price belongs to.
+    const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+    let { error: updateError } = await update(validDate ? { ...values, price_date: validDate } : values);
     // Before migration 0023 there is no price_date column: still save the price.
     if (updateError && updateError.message.includes("price_date")) {
       ({ error: updateError } = await update(values));

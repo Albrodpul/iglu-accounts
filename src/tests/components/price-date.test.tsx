@@ -78,9 +78,43 @@ describe("navPublishedOn", () => {
   });
 });
 
+describe("PriceDate with the update time", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 14, 15));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("says the day and hour the price came out", () => {
+    render(<PriceDate date="2026-10-13" updatedAt={new Date(2026, 9, 14, 11, 0).toISOString()} publishedNextDay />);
+    expect(screen.getByText("Actualizado hoy a las 11:00")).toBeInTheDocument();
+  });
+
+  it("flags by that moment, not by the valuation day", () => {
+    render(<PriceDate date="2026-10-08" updatedAt={new Date(2026, 9, 9, 10, 0).toISOString()} publishedNextDay />);
+    expect(screen.getByText("Actualizado el 9 oct a las 10:00")).toHaveAttribute("title", "Sin precio nuevo desde hace 5 días");
+  });
+});
+
 describe("priceFields", () => {
-  it("stores the source's date, or nothing without one", () => {
-    expect(priceFields({ price: 1, date: "2026-10-13" })).toEqual({ price_date: "2026-10-13" });
-    expect(priceFields({ price: 1, date: null })).toEqual({});
+  const now = new Date("2026-10-14T09:00:00Z");
+
+  it("takes a market quote's own time", () => {
+    expect(priceFields({ price: 1, date: "2026-10-14", time: "2026-10-14T12:44:31.000Z" }, "2026-10-13", now)).toEqual({
+      price_date: "2026-10-14",
+      price_updated_at: "2026-10-14T12:44:31.000Z",
+    });
+  });
+
+  it("times a fund NAV when a new day first arrives, and only then", () => {
+    expect(priceFields({ price: 1, date: "2026-10-13" }, "2026-10-12", now)).toEqual({
+      price_date: "2026-10-13",
+      price_updated_at: "2026-10-14T09:00:00.000Z",
+    });
+    expect(priceFields({ price: 1, date: "2026-10-13" }, "2026-10-13", now)).toEqual({ price_date: "2026-10-13" });
+  });
+
+  it("stores nothing without a date or time", () => {
+    expect(priceFields({ price: 1, date: null }, "2026-10-13", now)).toEqual({});
   });
 });

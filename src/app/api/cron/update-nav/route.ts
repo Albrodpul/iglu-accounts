@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       const { error } = await db.investments.updateFund(fund.id, fund.account_id, {
         current_value: value,
         updated_at: new Date().toISOString(),
-        ...priceFields(quote),
+        ...priceFields(quote, fund.price_date),
       });
 
       results.push({

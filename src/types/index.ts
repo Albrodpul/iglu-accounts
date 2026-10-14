@@ -107,6 +107,11 @@ export type InvestmentFund = {
    * Absent until migration 0023 and the next update.
    */
   price_date?: string | null;
+  /**
+   * When the price came out: the quote's time for tickers, the moment a new
+   * day's NAV reached the app for funds. Absent until migration 0024.
+   */
+  price_updated_at?: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;

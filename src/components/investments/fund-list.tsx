@@ -386,7 +386,9 @@ export function FundList({ types, funds }: Props) {
               <p className="hidden truncate text-[11px] text-muted-foreground xl:block">
                 {sort ? fund.investment_type.name : code && <span className="font-mono text-[10px] text-muted-foreground/80">{code}</span>}
                 {(sort || code) && fund.price_date && " · "}
-                {fund.price_date && <PriceDate date={fund.price_date} publishedNextDay={!fund.ticker} />}
+                {fund.price_date && (
+                  <PriceDate date={fund.price_date} updatedAt={fund.price_updated_at} publishedNextDay={!fund.ticker} />
+                )}
               </p>
             )}
             {/* Narrow screens: the figures flow under the name and wrap if they must. */}
@@ -406,6 +408,7 @@ export function FundList({ types, funds }: Props) {
             {fund.price_date && (
               <PriceDate
                 date={fund.price_date}
+                updatedAt={fund.price_updated_at}
                 publishedNextDay={!fund.ticker}
                 className="block text-xs text-muted-foreground xl:hidden"
               />

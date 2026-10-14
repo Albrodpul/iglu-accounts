@@ -27,7 +27,11 @@ describe("fetchPriceByTicker without a Yahoo session", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPriceByTicker("MU")).resolves.toEqual({ price: 938.05, date: "2026-10-14" });
+    await expect(fetchPriceByTicker("MU")).resolves.toEqual({
+      price: 938.05,
+      date: "2026-10-14",
+      time: "2026-10-14T12:42:00.000Z",
+    });
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("includePrePost=true"))).toBe(true);
   });
 });

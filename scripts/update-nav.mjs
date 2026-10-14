@@ -137,7 +137,7 @@ async function getYahooSession() {
 
 async function getPriceForTicker(ticker, session) {
   try {
-    let rawPrice, currency, state, date;
+    let rawPrice, currency, state, date, time;
 
     if (session) {
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
@@ -155,8 +155,9 @@ async function getPriceForTicker(ticker, session) {
       const usePost = !usePre && (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0;
       rawPrice = usePre ? q.preMarketPrice : usePost ? q.postMarketPrice : q.regularMarketPrice;
       // The date of the price actually used: a pre-market quote is today's.
-      const time = (usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) || q.regularMarketTime;
-      date = new Date(time * 1000).toISOString().split("T")[0];
+      const marketTime = (usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) || q.regularMarketTime;
+      time = new Date(marketTime * 1000).toISOString();
+      date = time.split("T")[0];
     } else {
       // Intraday chart with extended hours: its last bar includes pre/post-market.
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
@@ -173,7 +174,8 @@ async function getPriceForTicker(ticker, session) {
       state = "CHART";
       currency = meta.currency ?? "";
       rawPrice = i >= 0 ? closes[i] : meta.regularMarketPrice;
-      date = new Date((i >= 0 ? times[i] : meta.regularMarketTime) * 1000).toISOString().split("T")[0];
+      time = new Date((i >= 0 ? times[i] : meta.regularMarketTime) * 1000).toISOString();
+      date = time.split("T")[0];
     }
 
     if (typeof rawPrice !== "number" || rawPrice <= 0) return { price: null, date: null, reason: "invalid_price" };
@@ -186,10 +188,10 @@ async function getPriceForTicker(ticker, session) {
       const rate = await getExchangeRateToEur(fromCurrency);
       if (rate === null) return { price: null, date: null, reason: `no_exchange_rate_${fromCurrency}` };
       console.log(`  [fx] ${fromCurrency}→EUR rate=${rate}  raw=${rawPrice}  eur=${(normalizedPrice * rate).toFixed(4)}`);
-      return { price: normalizedPrice * rate, date, reason: null };
+      return { price: normalizedPrice * rate, date, time, reason: null };
     }
 
-    return { price: rawPrice, date, reason: null };
+    return { price: rawPrice, date, time, reason: null };
   } catch (err) {
     return { price: null, date: null, reason: err.message };
   }
@@ -210,6 +212,7 @@ const { data: funds, error: fetchError } = await supabase
     ticker,
     show_negative_returns,
     invested_amount,
+    price_date,
     investment_contributions(amount, purchase_price, units)
   `)
   .or("isin.not.is.null,ticker.not.is.null");
@@ -237,7 +240,7 @@ const results = await Promise.all(
 
     console.log(`[${symbol}] Fetching price (${source})...`);
 
-    const { price, date, reason } = usesTicker
+    const { price, date, time, reason } = usesTicker
       ? await getPriceForTicker(fund.ticker, yahooSession)
       : await getNavForIsin(fund.isin);
 
@@ -263,11 +266,19 @@ const results = await Promise.all(
     const values = { current_value: rounded, updated_at: new Date().toISOString() };
     const update = (fields) =>
       supabase.from("investment_funds").update(fields).eq("id", fund.id).eq("account_id", fund.account_id);
-    // price_date = the day the source says this price belongs to.
+    // price_date = the source's day; price_updated_at = when the price came
+    // out: the quote's own time, or for a NAV, when a new day is first seen.
     const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-    let { error: updateError } = await update(validDate ? { ...values, price_date: validDate } : values);
-    // Before migration 0023 there is no price_date column: still save the price.
-    if (updateError && updateError.message.includes("price_date")) {
+    const priceMeta = time
+      ? { ...(validDate && { price_date: validDate }), price_updated_at: time }
+      : !validDate
+        ? {}
+        : validDate === fund.price_date
+          ? { price_date: validDate }
+          : { price_date: validDate, price_updated_at: new Date().toISOString() };
+    let { error: updateError } = await update({ ...values, ...priceMeta });
+    // Before migrations 0023/0024 these columns don't exist: still save the price.
+    if (updateError && /price_date|price_updated_at/.test(updateError.message)) {
       ({ error: updateError } = await update(values));
     }
 

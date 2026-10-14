@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "./fetch-all";
 
+/** Price metadata columns added by later migrations; writes retry without them if missing. */
+const OPTIONAL_PRICE_COLUMNS = ["price_date", "price_updated_at"];
+
 export function createInvestmentsRepo(client: SupabaseClient) {
   return {
     // ─── Types ───
@@ -118,7 +121,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           ticker,
           invested_amount,
           show_negative_returns,
-          current_value,
+          price_date,
           investment_contributions(id, amount, purchase_price, units)
         `)
         .eq("account_id", accountId)
@@ -131,7 +134,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
-        current_value: number;
+        price_date: string | null;
         investment_contributions: Array<{
           id: string;
           amount: number;
@@ -153,7 +156,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
           ticker,
           invested_amount,
           show_negative_returns,
-          current_value,
+          price_date,
           investment_contributions(id, amount, purchase_price, units)
         `)
         .or("isin.not.is.null,ticker.not.is.null");
@@ -165,7 +168,7 @@ export function createInvestmentsRepo(client: SupabaseClient) {
         ticker: string | null;
         invested_amount: number;
         show_negative_returns: boolean;
-        current_value: number;
+        price_date: string | null;
         investment_contributions: Array<{
           id: string;
           amount: number;
@@ -198,11 +201,11 @@ export function createInvestmentsRepo(client: SupabaseClient) {
       const run = (values: Record<string, unknown>) =>
         client.from("investment_funds").update(values).eq("id", id).eq("account_id", accountId);
       let { error } = await run(data);
-      // Before migration 0023 runs there is no price_date column: the price
+      // Before migrations 0023/0024 run these columns don't exist: the price
       // itself must still be saved.
-      if (error && "price_date" in data && error.message.includes("price_date")) {
+      if (error && OPTIONAL_PRICE_COLUMNS.some((column) => column in data && error!.message.includes(column))) {
         const rest = { ...data };
-        delete rest.price_date;
+        for (const column of OPTIONAL_PRICE_COLUMNS) delete rest[column];
         ({ error } = await run(rest));
       }
       return { error: error?.message ?? null };

@@ -18,14 +18,22 @@ const BROWSER_HEADERS = {
   "Accept": "application/json, text/plain, */*",
 };
 
-/** A price in EUR and the day it belongs to (YYYY-MM-DD), when the source says. */
-export type PriceQuote = { price: number; date: string | null };
+/**
+ * A price in EUR, the day it belongs to (YYYY-MM-DD) and, for market quotes,
+ * the exact time it traded (ISO). Fund NAVs come with a day only.
+ */
+export type PriceQuote = { price: number; date: string | null; time?: string | null };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Unix seconds (Yahoo market time) → YYYY-MM-DD, or null. */
 function dateFromUnix(seconds: unknown): string | null {
-  return typeof seconds === "number" && seconds > 0 ? new Date(seconds * 1000).toISOString().slice(0, 10) : null;
+  return timeFromUnix(seconds)?.slice(0, 10) ?? null;
+}
+
+/** Unix seconds → ISO timestamp, or null. */
+function timeFromUnix(seconds: unknown): string | null {
+  return typeof seconds === "number" && seconds > 0 ? new Date(seconds * 1000).toISOString() : null;
 }
 
 /** Last non-empty bar of a Yahoo chart: the most recent trade it saw. */
@@ -39,9 +47,17 @@ function lastTrade(result: { timestamp?: number[]; indicators?: { quote?: { clos
   return null;
 }
 
-/** `price_date` to store with a price: the day the source says it belongs to. */
-export function priceFields(quote: PriceQuote) {
-  return quote.date ? { price_date: quote.date } : {};
+/**
+ * Price metadata to store with a fresh value: the source's day and when the
+ * price came out. A quote carries its own time; a fund NAV doesn't, so its
+ * time is when a new day's NAV is first seen (`previousDate` = stored day).
+ */
+export function priceFields(quote: PriceQuote, previousDate: string | null | undefined, now = new Date()) {
+  if (quote.time) return { ...(quote.date && { price_date: quote.date }), price_updated_at: quote.time };
+  if (!quote.date) return {};
+  return quote.date === previousDate
+    ? { price_date: quote.date }
+    : { price_date: quote.date, price_updated_at: now.toISOString() };
 }
 
 // Fetches the NAV for a given ISIN from fundinfo.com.
@@ -108,7 +124,7 @@ export async function fetchPriceByTicker(ticker: string): Promise<PriceQuote | n
     const session = await getYahooSession();
     let rawPrice: number;
     let currency: string;
-    let date: string | null;
+    let marketTime: unknown;
 
     if (session) {
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
@@ -127,9 +143,7 @@ export async function fetchPriceByTicker(ticker: string): Promise<PriceQuote | n
       const usePre = state === "PRE" && q.preMarketPrice > 0;
       const usePost = !usePre && (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0;
       rawPrice = usePre ? q.preMarketPrice : usePost ? q.postMarketPrice : q.regularMarketPrice;
-      date =
-        dateFromUnix(usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) ??
-        dateFromUnix(q.regularMarketTime);
+      marketTime = (usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) || q.regularMarketTime;
       currency = q.currency ?? "";
       console.log(`[yahoo] ${ticker} marketState=${state} pre=${q.preMarketPrice} post=${q.postMarketPrice} → price=${rawPrice} currency=${currency}`);
     } else {
@@ -145,19 +159,21 @@ export async function fetchPriceByTicker(ticker: string): Promise<PriceQuote | n
       const latest = lastTrade(result);
       rawPrice = latest?.price ?? meta.regularMarketPrice;
       currency = meta.currency ?? "";
-      date = dateFromUnix(latest?.time ?? meta.regularMarketTime);
+      marketTime = latest?.time ?? meta.regularMarketTime;
       console.log(`[yahoo] ${ticker} fallback price=${rawPrice} currency=${currency}`);
     }
 
     if (typeof rawPrice !== "number" || rawPrice <= 0) return null;
-    if (!currency || currency === "EUR") return { price: rawPrice, date };
+    const date = dateFromUnix(marketTime);
+    const time = timeFromUnix(marketTime);
+    if (!currency || currency === "EUR") return { price: rawPrice, date, time };
 
     const normalizedPrice = (currency === "GBp" || currency === "GBX") ? rawPrice / 100 : rawPrice;
     const fromCurrency = (currency === "GBp" || currency === "GBX") ? "GBP" : currency;
     const rate = await fetchExchangeRateToEur(fromCurrency);
     if (rate === null) return null;
     console.log(`[yahoo] ${ticker} fx ${fromCurrency}→EUR rate=${rate} raw=${rawPrice} eur=${(normalizedPrice * rate).toFixed(4)}`);
-    return { price: normalizedPrice * rate, date };
+    return { price: normalizedPrice * rate, date, time };
   } catch (err) {
     console.warn(`[yahoo] ${ticker} failed: ${err instanceof Error ? err.message : String(err)}`);
     return null;

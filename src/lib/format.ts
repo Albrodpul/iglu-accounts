@@ -104,6 +104,32 @@ export function formatPercent(value: number, opts: { decimals?: number; signed?:
 }
 
 /** Day header of the movement lists: "lun, 28 sept" (optionally with the year). */
+/**
+ * A price's date, short: "hoy", "ayer", "8 oct" or, from another year, "8 oct 2025".
+ * Both arguments are YYYY-MM-DD.
+ */
+export function formatShortDate(date: string, today: string): string {
+  if (date === today) return "hoy";
+  if (date === shiftISODate(today, -1)) return "ayer";
+  const [y, m, d] = date.split("-").map(Number);
+  const label = new Date(y, m - 1, d).toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "");
+  return date.slice(0, 4) === today.slice(0, 4) ? label : `${label} ${y}`;
+}
+
+/** Whole days between two YYYY-MM-DD dates (later minus earlier). */
+export function daysBetween(from: string, to: string): number {
+  const toUtc = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((toUtc(to) - toUtc(from)) / 86_400_000);
+}
+
+function shiftISODate(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 export function formatDayHeader(date: string, withYear = false): string {
   return new Intl.DateTimeFormat("es-ES", {
     weekday: "short",

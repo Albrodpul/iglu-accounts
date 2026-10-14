@@ -18,8 +18,18 @@ const BROWSER_HEADERS = {
   "Accept": "application/json, text/plain, */*",
 };
 
+/** A price in EUR and the day it belongs to (YYYY-MM-DD), when the source says. */
+export type PriceQuote = { price: number; date: string | null };
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Unix seconds (Yahoo market time) → YYYY-MM-DD, or null. */
+function dateFromUnix(seconds: unknown): string | null {
+  return typeof seconds === "number" && seconds > 0 ? new Date(seconds * 1000).toISOString().slice(0, 10) : null;
+}
+
 // Fetches the NAV for a given ISIN from fundinfo.com.
-export async function fetchNavByIsin(isin: string): Promise<number | null> {
+export async function fetchNavByIsin(isin: string): Promise<PriceQuote | null> {
   try {
     const url = `https://www.fundinfo.com/es/ES-priv/LandingPage/Data?skip=0&query=${encodeURIComponent(isin)}&orderdirection=`;
     const res = await fetch(url, {
@@ -33,8 +43,10 @@ export async function fetchNavByIsin(isin: string): Promise<number | null> {
     const navField = data.Data?.[0]?.S?.OFDY901035 as string | undefined;
     if (!navField) return null;
 
-    const nav = parseFloat(navField.split("|")[0]);
-    return isNaN(nav) || nav <= 0 ? null : nav;
+    const [navText, dateText] = navField.split("|");
+    const nav = parseFloat(navText);
+    if (isNaN(nav) || nav <= 0) return null;
+    return { price: nav, date: dateText && ISO_DATE.test(dateText) ? dateText : null };
   } catch {
     return null;
   }
@@ -75,11 +87,12 @@ async function getYahooSession(): Promise<{ cookie: string; crumb: string } | nu
 // Fetches the current price for a stock ticker from Yahoo Finance, always in EUR.
 // Uses v7/finance/quote with session crumb to get marketState + pre/post-market prices.
 // Falls back to v8/finance/chart (regular market only) if session unavailable.
-export async function fetchPriceByTicker(ticker: string): Promise<number | null> {
+export async function fetchPriceByTicker(ticker: string): Promise<PriceQuote | null> {
   try {
     const session = await getYahooSession();
     let rawPrice: number;
     let currency: string;
+    let date: string | null;
 
     if (session) {
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&crumb=${encodeURIComponent(session.crumb)}&formatted=false&region=US`;
@@ -95,10 +108,12 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
       if (!q) return null;
 
       const state: string = q.marketState ?? "";
-      rawPrice =
-        state === "PRE"                                          && q.preMarketPrice  > 0 ? q.preMarketPrice  :
-        (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0 ? q.postMarketPrice :
-        q.regularMarketPrice;
+      const usePre = state === "PRE" && q.preMarketPrice > 0;
+      const usePost = !usePre && (state === "POST" || state === "PREPRE" || state === "CLOSED") && q.postMarketPrice > 0;
+      rawPrice = usePre ? q.preMarketPrice : usePost ? q.postMarketPrice : q.regularMarketPrice;
+      date =
+        dateFromUnix(usePre ? q.preMarketTime : usePost ? q.postMarketTime : q.regularMarketTime) ??
+        dateFromUnix(q.regularMarketTime);
       currency = q.currency ?? "";
       console.log(`[yahoo] ${ticker} marketState=${state} pre=${q.preMarketPrice} post=${q.postMarketPrice} → price=${rawPrice} currency=${currency}`);
     } else {
@@ -110,18 +125,19 @@ export async function fetchPriceByTicker(ticker: string): Promise<number | null>
       if (!meta) return null;
       rawPrice = meta.regularMarketPrice;
       currency = meta.currency ?? "";
+      date = dateFromUnix(meta.regularMarketTime);
       console.log(`[yahoo] ${ticker} fallback price=${rawPrice} currency=${currency}`);
     }
 
     if (typeof rawPrice !== "number" || rawPrice <= 0) return null;
-    if (!currency || currency === "EUR") return rawPrice;
+    if (!currency || currency === "EUR") return { price: rawPrice, date };
 
     const normalizedPrice = (currency === "GBp" || currency === "GBX") ? rawPrice / 100 : rawPrice;
     const fromCurrency = (currency === "GBp" || currency === "GBX") ? "GBP" : currency;
     const rate = await fetchExchangeRateToEur(fromCurrency);
     if (rate === null) return null;
     console.log(`[yahoo] ${ticker} fx ${fromCurrency}→EUR rate=${rate} raw=${rawPrice} eur=${(normalizedPrice * rate).toFixed(4)}`);
-    return normalizedPrice * rate;
+    return { price: normalizedPrice * rate, date };
   } catch (err) {
     console.warn(`[yahoo] ${ticker} failed: ${err instanceof Error ? err.message : String(err)}`);
     return null;

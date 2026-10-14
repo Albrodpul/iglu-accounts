@@ -1,11 +1,9 @@
 # Updates investment fund NAV-based returns via fundinfo.com JSON API.
-# Runs 7 times per day and on every push to main.
+# Runs on every push to main and on demand (Actions → Run workflow).
 #
-# Times are UTC: Spain is +1 h in winter (CET) and +2 h in summer (CEST).
-#
-# GitHub starts scheduled runs when it has capacity, not on the dot, and the
-# queue is longest at minute 0 of each hour: runs set for :00 were starting
-# 1-5 hours late. Hence the odd minutes, a little ahead of the time wanted.
+# The hourly schedule lives in Supabase pg_cron (supabase/cron/update-nav.sql),
+# which calls /api/cron/update-nav on time. GitHub's own schedule started runs
+# 1-5 hours late, so it was dropped.
 #
 # Required repository secrets (in "main" environment):
 #   SUPABASE_URL              — e.g. https://xxx.supabase.co
@@ -17,14 +15,6 @@ on:
   push:
     branches:
       - main
-  schedule:
-    - cron: "47 1 * * *"    # for ~02:00 UTC (03:00 / 04:00 Spain)
-    - cron: "47 4 * * *"    # for ~05:00 UTC (06:00 / 07:00 Spain)
-    - cron: "47 6 * * *"    # for ~07:00 UTC (08:00 / 09:00 Spain)
-    - cron: "47 8 * * *"    # for ~09:00 UTC (10:00 / 11:00 Spain)
-    - cron: "7 15 * * *"    # for ~15:15 UTC (16:15 / 17:15 Spain)
-    - cron: "47 16 * * *"   # for ~17:00 UTC (18:00 / 19:00 Spain)
-    - cron: "47 21 * * *"   # for ~22:00 UTC (23:00 / 00:00 Spain)
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
 jobs:

@@ -424,14 +424,14 @@ export async function refreshInvestmentNav(): Promise<{
   let skipped = 0;
 
   for (const fund of funds) {
-    const nav = fund.ticker
+    const quote = fund.ticker
       ? await fetchPriceByTicker(fund.ticker)
       : fund.isin
         ? await fetchNavByIsin(fund.isin)
         : null;
-    if (nav === null) { skipped++; continue; }
+    if (quote === null) { skipped++; continue; }
 
-    const newCurrentValue = calculateCurrentValue(fund.investment_contributions, nav);
+    const newCurrentValue = calculateCurrentValue(fund.investment_contributions, quote.price);
     if (newCurrentValue === null) { skipped++; continue; }
 
     const effectiveValue = (!fund.show_negative_returns && newCurrentValue < fund.invested_amount)
@@ -441,6 +441,7 @@ export async function refreshInvestmentNav(): Promise<{
     const { error } = await db.investments.updateFund(fund.id, accountId, {
       current_value: Math.round(effectiveValue * 100) / 100,
       updated_at: new Date().toISOString(),
+      ...(quote.date && { price_date: quote.date }),
     });
 
     if (error) skipped++;

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getServiceDb } from "@/lib/db/service";
 import { fetchNavByIsin, fetchPriceByTicker, calculateCurrentValue } from "@/lib/nav";
 
+/** Called hourly by Supabase pg_cron (see supabase/cron/update-nav.sql); a few funds take seconds each. */
+export const maxDuration = 120;
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -33,18 +36,13 @@ export async function GET(request: Request) {
       const symbol = fund.ticker ?? fund.isin ?? "unknown";
       const source = usesTicker ? "ticker" : "isin";
 
-      const nav = usesTicker
+      const quote = usesTicker
         ? await fetchPriceByTicker(fund.ticker!)
         : await fetchNavByIsin(fund.isin!);
+      const nav = quote?.price ?? null;
 
-      if (nav === null) {
+      if (quote === null || nav === null) {
         results.push({ id: fund.id, symbol, source, nav: null, updated: false, reason: "price_not_found" });
-        continue;
-      }
-
-      // Funds with show_negative_returns=false are managed manually — skip NAV update
-      if (!fund.show_negative_returns) {
-        results.push({ id: fund.id, symbol, source, nav, updated: false, reason: "manual_only" });
         continue;
       }
 
@@ -55,6 +53,7 @@ export async function GET(request: Request) {
         continue;
       }
 
+      // Same rule as the manual refresh: a fund that hides losses never shows below cost.
       const effectiveValue = newCurrentValue < fund.invested_amount && !fund.show_negative_returns
         ? fund.invested_amount
         : newCurrentValue;
@@ -62,6 +61,7 @@ export async function GET(request: Request) {
       const { error } = await db.investments.updateFund(fund.id, fund.account_id, {
         current_value: Math.round(effectiveValue * 100) / 100,
         updated_at: new Date().toISOString(),
+        ...(quote.date && { price_date: quote.date }),
       });
 
       results.push({

@@ -253,14 +253,16 @@ const results = await Promise.all(
 
     const rounded = Math.round(effectiveValue * 100) / 100;
 
-    const { error: updateError } = await supabase
-      .from("investment_funds")
-      .update({
-        current_value: rounded,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", fund.id)
-      .eq("account_id", fund.account_id);
+    const values = { current_value: rounded, updated_at: new Date().toISOString() };
+    const update = (fields) =>
+      supabase.from("investment_funds").update(fields).eq("id", fund.id).eq("account_id", fund.account_id);
+    let { error: updateError } = await update(
+      date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { ...values, price_date: date } : values,
+    );
+    // Before migration 0023 there is no price_date column: still save the price.
+    if (updateError && updateError.message.includes("price_date")) {
+      ({ error: updateError } = await update(values));
+    }
 
     if (updateError) {
       console.log(`[${symbol}] ✗ DB update failed: ${updateError.message}`);

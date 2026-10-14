@@ -191,11 +191,16 @@ export function createInvestmentsRepo(client: SupabaseClient) {
     },
 
     async updateFund(id: string, accountId: string, data: Record<string, unknown>) {
-      const { error } = await client
-        .from("investment_funds")
-        .update(data)
-        .eq("id", id)
-        .eq("account_id", accountId);
+      const run = (values: Record<string, unknown>) =>
+        client.from("investment_funds").update(values).eq("id", id).eq("account_id", accountId);
+      let { error } = await run(data);
+      // Before migration 0023 runs there is no price_date column: the price
+      // itself must still be saved.
+      if (error && "price_date" in data && error.message.includes("price_date")) {
+        const rest = { ...data };
+        delete rest.price_date;
+        ({ error } = await run(rest));
+      }
       return { error: error?.message ?? null };
     },
 

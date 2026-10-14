@@ -101,6 +101,8 @@ export type InvestmentFund = {
   show_negative_returns: boolean;
   invested_amount: number;
   current_value: number;
+  /** Date of the price behind `current_value` (absent until migration 0023 and the next update). */
+  price_date?: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;

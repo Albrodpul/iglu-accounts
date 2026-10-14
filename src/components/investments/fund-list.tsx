@@ -36,6 +36,7 @@ import { ContributionForm, ContributionHistory, ProfitabilityForm, UnitsPriceFie
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { fundColors, positionValue } from "@/lib/investments";
 import { cn } from "@/lib/utils";
+import { PriceDate } from "./price-date";
 import { toLocalISODate } from "@/lib/dates";
 import { Amount } from "@/components/ui/amount";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -381,11 +382,13 @@ export function FundList({ types, funds }: Props) {
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-medium text-foreground">{fund.name}</p>
-            {sort ? (
-                  <p className="hidden truncate text-[11px] text-muted-foreground xl:block">{fund.investment_type.name}</p>
-                ) : (
-                  code && <p className="hidden truncate font-mono text-[10px] text-muted-foreground/80 xl:block">{code}</p>
-                )}
+            {(sort || code || fund.price_date) && (
+              <p className="hidden truncate text-[11px] text-muted-foreground xl:block">
+                {sort ? fund.investment_type.name : code && <span className="font-mono text-[10px] text-muted-foreground/80">{code}</span>}
+                {(sort || code) && fund.price_date && " · "}
+                {fund.price_date && <PriceDate date={fund.price_date} />}
+              </p>
+            )}
             {/* Narrow screens: the figures flow under the name and wrap if they must. */}
             <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 xl:hidden">
               <span className="text-[15px] font-semibold tabular-nums">
@@ -400,6 +403,7 @@ export function FundList({ types, funds }: Props) {
             <p className="text-xs text-muted-foreground xl:hidden">
               Invertido <Amount value={fund.invested_amount} /> · {formatWeight(positionValue(fund), portfolioValue)} de la cartera
             </p>
+            {fund.price_date && <PriceDate date={fund.price_date} className="block text-xs text-muted-foreground xl:hidden" />}
           </div>
         </div>
         <span className="hidden text-right text-sm tabular-nums text-muted-foreground xl:block">

@@ -17,10 +17,12 @@ const toneStyles: Record<AmountTone, { sign: string | null; text: string; border
   neutral: { sign: null, text: "", border: "" },
 }
 
-type Props = Omit<React.ComponentProps<"input">, "type" | "value" | "defaultValue" | "onChange"> & {
+type Props = Omit<React.ComponentProps<"input">, "type" | "value" | "defaultValue" | "onChange" | "size"> & {
   defaultValue?: number | string
   currency?: string
   tone?: AmountTone
+  /** `lg`: the form's main field, set bigger than the rest. */
+  size?: "default" | "lg"
   /** Called with the amount (or `null` while it isn't a valid one) on every edit. */
   onValueChange?: (value: number | null) => void
 }
@@ -44,6 +46,7 @@ function AmountInput({
   className,
   currency = "€",
   tone = "neutral",
+  size = "default",
   name,
   defaultValue,
   min,
@@ -106,7 +109,8 @@ function AmountInput({
           <span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-y-0 left-3 flex items-center text-2xl font-bold md:text-xl",
+              "pointer-events-none absolute inset-y-0 left-3 flex items-center font-bold",
+              size === "lg" ? "text-3xl md:text-2xl" : "text-2xl md:text-xl",
               style.text
             )}
           >
@@ -128,9 +132,10 @@ function AmountInput({
             onBlur?.(e)
           }}
           className={cn(
-            "h-14 pl-3 pr-10 text-2xl font-bold tabular-nums transition-colors md:h-12 md:text-xl",
+            "pl-3 pr-10 font-bold tabular-nums transition-colors",
+            size === "lg" ? "h-16 text-3xl md:h-14 md:text-2xl" : "h-14 text-2xl md:h-12 md:text-xl",
             "[@media(pointer:coarse)]:pr-20",
-            style.sign && "pl-8",
+            style.sign && (size === "lg" ? "pl-9" : "pl-8"),
             style.text,
             style.border,
             className

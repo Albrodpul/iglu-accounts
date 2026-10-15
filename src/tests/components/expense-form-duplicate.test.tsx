@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Category, Expense } from "@/types";
@@ -137,7 +137,7 @@ describe("ExpenseForm quick entry", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Repsol" }));
 
     expect(screen.getByLabelText("Concepto")).toHaveValue("Repsol");
-    expect(screen.getByLabelText("Categoría")).toHaveTextContent("Gasolina"); // picker shows the category
+    expect(screen.getByRole("button", { name: /Gasolina/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("Importe")).toHaveFocus();
     // Income concepts only appear for income movements.
     expect(screen.queryByRole("button", { name: "Nómina" })).not.toBeInTheDocument();
@@ -228,8 +228,12 @@ describe("ExpenseForm duplicating a movement", () => {
     mocks.updateExpense.mockResolvedValue({ success: true });
     render(<ExpenseForm categories={categories} expense={{ ...source, notes: "auto:recurring:r1" }} />);
 
+    // Folded while empty: the tag is not a note.
+    expect(screen.queryByLabelText("Notas (opcional)")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Añadir nota" }));
     const notes = screen.getByLabelText("Notas (opcional)");
     expect(notes).toHaveValue("");
+    expect(screen.getByText(/Lo creó un movimiento fijo/)).toBeInTheDocument();
     await userEvent.type(notes, "Subió de precio");
     await userEvent.click(screen.getByRole("button", { name: "Actualizar" }));
 
@@ -244,5 +248,61 @@ describe("ExpenseForm duplicating a movement", () => {
     await userEvent.click(screen.getByRole("button", { name: "Duplicar" }));
 
     expect(onDuplicate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ExpenseForm layout", () => {
+  const many: Category[] = Array.from({ length: 10 }, (_, i) => ({
+    ...categories[0],
+    id: `c${i}`,
+    name: `Cat ${i}`,
+    sort_order: i,
+  }));
+
+  it("offers the most used categories as chips, the rest behind Más", async () => {
+    mocks.getEntryHints.mockResolvedValue({ concepts: [], categoryUsage: { c9: 5 } });
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={many} />);
+
+    const group = screen.getByRole("group", { name: "Categoría" });
+    // Most used first once the hints arrive.
+    await waitFor(() => expect(within(group).getAllByRole("button")[0]).toHaveTextContent("Cat 9"));
+    expect(within(group).getAllByRole("button", { pressed: false })).toHaveLength(7);
+    expect(within(group).getByRole("button", { name: /Más/ })).toBeInTheDocument();
+
+    await userEvent.click(within(group).getByRole("button", { name: /Cat 3/ }));
+    await userEvent.type(screen.getByLabelText("Importe"), "5");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.createExpense.mock.calls[0][0] as FormData).get("category_id")).toBe("c3");
+  });
+
+  it("folds the notes until asked, and still saves them", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={categories} />);
+    expect(screen.queryByLabelText("Notas (opcional)")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Añadir nota" }));
+    await userEvent.type(screen.getByLabelText("Notas (opcional)"), "Ticket en el cajón");
+    await userEvent.type(screen.getByLabelText("Importe"), "5");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.createExpense.mock.calls[0][0] as FormData).get("notes")).toBe("Ticket en el cajón");
+  });
+
+  it("“+ Otro” saves and leaves an empty form ready", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    const onSuccess = vi.fn();
+    render(<ExpenseForm categories={categories} onSuccess={onSuccess} />);
+
+    await userEvent.type(screen.getByLabelText("Importe"), "5");
+    await userEvent.type(screen.getByLabelText("Concepto"), "Pan");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar y crear otro" }));
+
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect(onSuccess).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByLabelText("Concepto")).toHaveValue(""));
   });
 });

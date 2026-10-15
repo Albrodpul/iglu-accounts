@@ -51,15 +51,15 @@ export function MovementDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         variant="sheet"
-        className="sm:max-w-2xl lg:max-w-3xl"
+        className="sm:max-w-2xl"
         initialFocus={startAtAmount ? amountRef : undefined}
       >
         <DialogHeader variant="bar">
           <DialogTitle>
             {expense ? "Editar movimiento" : prefill ? "Duplicar movimiento" : "Nuevo movimiento"}
           </DialogTitle>
-          <DialogDescription className="hidden sm:block">
-            Registra un gasto o ingreso en pocos segundos.
+          <DialogDescription className="sr-only">
+            Importe, fecha, concepto y categoría del movimiento.
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1 flex-col">

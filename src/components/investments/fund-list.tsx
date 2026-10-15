@@ -20,6 +20,7 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Pencil, Trash2, History, TrendingUp, MoreVertical, Percent, Loader2, ChevronDown, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
-import { ContributionForm, ContributionHistory, ProfitabilityForm, UnitsPriceFields } from "./fund-forms";
+import { ContributionForm, ContributionHistory, PriceSourceFields, ProfitabilityForm, QuickDateField, UnitsPriceFields } from "./fund-forms";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { fundColors, positionValue } from "@/lib/investments";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ export function FundList({ types, funds }: Props) {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showNegative, setShowNegative] = useState(true);
+  const [fundTypeId, setFundTypeId] = useState("");
   const [initialAmount, setInitialAmount] = useState<number | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; ascending: boolean } | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -121,12 +123,14 @@ export function FundList({ types, funds }: Props) {
     setEditingFund(null);
     setShowNegative(true);
     setInitialAmount(null);
+    setFundTypeId(types.length === 1 ? types[0].id : "");
     setFundOpen(true);
   }
 
   function openEditFund(fund: InvestmentFundWithType) {
     setEditingFund(fund);
     setShowNegative(fund.show_negative_returns);
+    setFundTypeId(fund.type_id);
     setFundOpen(true);
   }
 
@@ -151,6 +155,10 @@ export function FundList({ types, funds }: Props) {
   }
 
   async function handleFundSubmit(formData: FormData) {
+    if (!fundTypeId) {
+      toast.error("Elige el tipo de inversión");
+      return;
+    }
     setLoading(true);
     try {
       const result = editingFund
@@ -215,6 +223,11 @@ export function FundList({ types, funds }: Props) {
           toast.success("Aportación registrada");
           setContribOpen(false);
           setContribFund(null);
+          // Added from the history: show it there too.
+          if (historyOpen && historyFund) {
+            const data = await getContributions(historyFund.id);
+            setContributions(data);
+          }
         }
       }
     } catch {
@@ -541,20 +554,26 @@ export function FundList({ types, funds }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type_id">Tipo de inversión</Label>
-              <select
-                id="type_id"
-                name="type_id"
-                defaultValue={editingFund?.type_id ?? (types.length === 1 ? types[0].id : "")}
-                required
-                // 16px on phones: smaller text makes iOS zoom the page on focus.
-                className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-10 md:text-sm"
-              >
-                <option value="" disabled>Selecciona tipo</option>
+              <Label id="type_label">Tipo de inversión</Label>
+              <input type="hidden" name="type_id" value={fundTypeId} />
+              <div role="group" aria-labelledby="type_label" className="flex flex-wrap gap-1.5">
                 {types.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                  <button
+                    key={t.id}
+                    type="button"
+                    aria-pressed={t.id === fundTypeId}
+                    onClick={() => setFundTypeId(t.id)}
+                    className={cn(
+                      "flex h-9 max-w-full cursor-pointer items-center rounded-full border px-3 text-sm font-medium transition-colors",
+                      t.id === fundTypeId
+                        ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                        : "border-border/80 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    <span className="truncate">{t.name}</span>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             {!editingFund && (
@@ -569,12 +588,10 @@ export function FundList({ types, funds }: Props) {
                     defaultValue=""
                     onValueChange={setInitialAmount}
                     required
+                    size="lg"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contrib_date">Fecha</Label>
-                  <Input id="contrib_date" name="contribution_date" type="date" defaultValue={today} required />
-                </div>
+                <QuickDateField id="contrib_date" name="contribution_date" defaultValue={today} />
                 <UnitsPriceFields idPrefix="initial" amount={initialAmount} />
               </>
             )}
@@ -588,34 +605,8 @@ export function FundList({ types, funds }: Props) {
                 </span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <div className="space-y-4 border-t border-border/60 px-3 py-3">
-                <div className="space-y-2">
-                  <Label htmlFor="fund_isin">ISIN (fondos)</Label>
-                  <Input
-                    id="fund_isin"
-                    name="isin"
-                    defaultValue={editingFund?.isin ?? ""}
-                    placeholder="Ej: LU0080237943"
-                    maxLength={12}
-                    autoCapitalize="characters"
-                    className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fund_ticker">Ticker (acciones y ETF)</Label>
-                  <Input
-                    id="fund_ticker"
-                    name="ticker"
-                    defaultValue={editingFund?.ticker ?? ""}
-                    placeholder="Ej: ITX.MC, AAPL"
-                    maxLength={20}
-                    autoCapitalize="characters"
-                    className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Símbolo de Yahoo Finance. Si lo rellenas, se usa en lugar del ISIN.
-                  </p>
-                </div>
+              <div className="border-t border-border/60 px-3 py-3">
+                <PriceSourceFields defaultIsin={editingFund?.isin ?? ""} defaultTicker={editingFund?.ticker ?? ""} />
               </div>
             </details>
 
@@ -646,7 +637,8 @@ export function FundList({ types, funds }: Props) {
       <Dialog open={profitOpen} onOpenChange={(v) => { setProfitOpen(v); if (!v) setProfitFund(null); }}>
         <DialogContent variant="menu" className="sm:max-w-sm">
           <DialogHeader variant="bar">
-            <DialogTitle>Rentabilidad · {profitFund?.name}</DialogTitle>
+            <DialogTitle>Rentabilidad</DialogTitle>
+            <DialogDescription className="truncate">{profitFund?.name}</DialogDescription>
           </DialogHeader>
           {profitFund && (
             <ProfitabilityForm key={profitFund.id} fund={profitFund} loading={loading} onSubmit={handleProfitSubmit} />
@@ -658,7 +650,8 @@ export function FundList({ types, funds }: Props) {
       <Dialog open={contribOpen} onOpenChange={(v) => { setContribOpen(v); if (!v) { setContribFund(null); setEditingContrib(null); } }}>
         <DialogContent variant="sheet" className="sm:max-w-md">
           <DialogHeader variant="bar">
-            <DialogTitle>{editingContrib ? "Editar aportación" : "Nueva aportación"} · {contribFund?.name}</DialogTitle>
+            <DialogTitle>{editingContrib ? "Editar aportación" : "Nueva aportación"}</DialogTitle>
+            <DialogDescription className="truncate">{contribFund?.name}</DialogDescription>
           </DialogHeader>
           <ContributionForm
             key={editingContrib?.id ?? contribFund?.id ?? "contrib"}
@@ -675,16 +668,32 @@ export function FundList({ types, funds }: Props) {
       <Dialog open={historyOpen} onOpenChange={(v) => { setHistoryOpen(v); if (!v) setHistoryFund(null); }}>
         <DialogContent variant="sheet" className="sm:max-w-md">
           <DialogHeader variant="bar">
-            <DialogTitle>Historial · {historyFund?.name}</DialogTitle>
+            <DialogTitle>Historial</DialogTitle>
+            <DialogDescription className="truncate">{historyFund?.name}</DialogDescription>
           </DialogHeader>
-          <DialogBody className="pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[60vh]">
+          <DialogBody className="sm:max-h-[60vh]">
             <ContributionHistory
               contributions={contributions}
               loading={historyLoading}
               onEdit={(c) => historyFund && openEditContribution(c, historyFund)}
               onDelete={handleDeleteContribution}
+              value={historyFund ? historyFund.invested_amount + getDisplayReturn(historyFund) : undefined}
             />
           </DialogBody>
+          <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-full md:h-10"
+              onClick={() => {
+                if (!historyFund) return;
+                setEditingContrib(null);
+                openAddContribution(historyFund);
+              }}
+            >
+              <Plus className="h-4 w-4" /> Añadir aportación
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

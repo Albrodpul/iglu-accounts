@@ -405,6 +405,42 @@ export async function deleteContribution(id: string, fundId: string, amount: num
   return { success: true };
 }
 
+// ─── Price source check (fund form) ───
+
+const ISIN_FORMAT = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
+const TICKER_FORMAT = /^[A-Z0-9][A-Z0-9.\-=^]{0,19}$/;
+
+/**
+ * Asks the price source about an ISIN or ticker right away, so a typo shows up
+ * in the form instead of as a fund that silently never updates. The ticker
+ * wins when both are given, as in the hourly update.
+ */
+export async function checkPriceSource(params: { isin?: string; ticker?: string }): Promise<
+  | { found: true; source: "isin" | "ticker"; price: number; date: string | null }
+  | { found: false; source: "isin" | "ticker" | null; error: string }
+> {
+  const accountId = await getSelectedAccountId();
+  if (!accountId) return { found: false, source: null, error: "No hay cuenta seleccionada" };
+
+  const ticker = params.ticker?.trim().toUpperCase() || "";
+  const isin = params.isin?.trim().toUpperCase() || "";
+  if (ticker) {
+    if (!TICKER_FORMAT.test(ticker)) return { found: false, source: "ticker", error: "Ese ticker no tiene un formato válido" };
+    const quote = await fetchPriceByTicker(ticker);
+    return quote
+      ? { found: true, source: "ticker", price: quote.price, date: quote.date }
+      : { found: false, source: "ticker", error: "Yahoo Finance no encuentra ese ticker" };
+  }
+  if (isin) {
+    if (!ISIN_FORMAT.test(isin)) return { found: false, source: "isin", error: "Un ISIN son 12 caracteres: 2 letras, 9 letras o cifras y 1 cifra" };
+    const quote = await fetchNavByIsin(isin);
+    return quote
+      ? { found: true, source: "isin", price: quote.price, date: quote.date }
+      : { found: false, source: "isin", error: "fundinfo no encuentra ese ISIN" };
+  }
+  return { found: false, source: null, error: "Escribe un ISIN o un ticker" };
+}
+
 // ─── Manual NAV refresh (same logic as cron, scoped to current account) ───
 
 export async function refreshInvestmentNav(): Promise<{

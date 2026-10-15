@@ -23,6 +23,11 @@ type Props = {
   /** Field name for the hidden input submitted with the form. */
   name?: string;
   id?: string;
+  /**
+   * Show this many categories (most used first) as one-tap chips right in the
+   * form, with the full grid behind "Más". Without it, a single trigger button.
+   */
+  inline?: number;
 };
 
 /** One cell of a category grid: tinted icon over the name. */
@@ -64,7 +69,7 @@ export function CategoryTile({
  * Category selector: a trigger showing the current pick, backed by a sheet with
  * an icon grid. Replaces a native `<select>`, which cannot render the icons.
  */
-export function CategoryPicker({ categories, usage, value, onChange, name = "category_id", id = "category_id" }: Props) {
+export function CategoryPicker({ categories, usage, value, onChange, name = "category_id", id = "category_id", inline }: Props) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
 
@@ -82,10 +87,48 @@ export function CategoryPicker({ categories, usage, value, onChange, name = "cat
     if (!next) setFilter("");
   }
 
+  // Chips: the most used, with the current pick always among them.
+  const chips = inline
+    ? selected && !ordered.slice(0, inline).some((c) => c.id === selected.id)
+      ? [selected, ...ordered.filter((c) => c.id !== selected.id).slice(0, inline - 1)]
+      : ordered.slice(0, inline)
+    : [];
+
   return (
     <>
       <input type="hidden" name={name} value={value} />
 
+      {inline ? (
+        <div id={id} className="flex flex-wrap gap-1.5">
+          {chips.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              aria-pressed={cat.id === value}
+              onClick={() => onChange(cat.id)}
+              className={cn(
+                "flex h-9 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
+                cat.id === value
+                  ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                  : "border-border/80 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <span aria-hidden>{cat.icon || "📦"}</span>
+              <span className="truncate">{cat.name}</span>
+            </button>
+          ))}
+          {categories.length > chips.length && (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-dashed border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              Más
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ) : (
       <button
         id={id}
         type="button"
@@ -109,6 +152,7 @@ export function CategoryPicker({ categories, usage, value, onChange, name = "cat
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent variant="sheet" className="sm:max-w-md" initialFocus={false}>

@@ -19,7 +19,8 @@ import { cn } from "@/lib/utils";
 import { daysAgo, toLocalISODate } from "@/lib/dates";
 import { haptic } from "@/lib/haptics";
 import type { ConceptHint, EntryHints } from "@/lib/entry-hints";
-import { Banknote, Copy, Landmark, Loader2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Banknote, Copy, Landmark, Loader2, Plus, Repeat, Trash2 } from "lucide-react";
 import { NOTES_MAX_LENGTH } from "@/lib/validators/expense";
 import { joinRecurringNotes, splitRecurringNotes } from "@/lib/recurring";
 import type { Category, Expense } from "@/types";
@@ -82,6 +83,9 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
   const storedNotes = splitRecurringNotes(source?.notes);
   const recurringTag = expense ? storedNotes.marker : null;
   const [notes, setNotes] = useState(storedNotes.text);
+  // Most movements have no note: the box stays folded until asked for.
+  const [notesOpen, setNotesOpen] = useState(Boolean(storedNotes.text));
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const [concept, setConcept] = useState(source?.concept || "");
   const [date, setDate] = useState(() => expense?.expense_date || toLocalISODate());
   const [hints, setHints] = useState<EntryHints | null>(null);
@@ -201,6 +205,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           setCategoryId("");
           setSuggestedCat(null);
           setNotes("");
+          setNotesOpen(false);
           setConcept("");
           setDate(toLocalISODate());
           categoryManual.current = false;
@@ -265,7 +270,21 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
       }}
       className={cn("flex min-h-0 flex-1 flex-col", loading && "pointer-events-none")}
     >
+      {/* Desktop: two columns (amount | date, concept | category); phones: one. */}
       <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain px-5 py-4 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+      {recurringTag && (
+        <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground md:col-span-2">
+          <Repeat className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            Lo creó un movimiento fijo. Cambiarlo aquí no afecta a los próximos meses:{" "}
+            <Link href="/recurring" className="font-medium text-primary hover:underline">
+              editar los fijos
+            </Link>
+            .
+          </span>
+        </p>
+      )}
+
       <SegmentedControl
         aria-label="Tipo de movimiento"
         className="md:col-span-2"
@@ -273,19 +292,6 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
         onChange={setType}
         options={typeOptions}
       />
-
-      {showPaymentMethod && (
-        <SegmentedControl
-          aria-label="Método de pago"
-          className="md:col-span-2"
-          value={paymentMethod}
-          onChange={setPaymentMethod}
-          options={[
-            { value: "bank", label: "Banco", icon: Landmark },
-            { value: "cash", label: "Efectivo", icon: Banknote },
-          ]}
-        />
-      )}
 
       {isTransfer && (
         <SegmentedControl
@@ -300,57 +306,69 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
         />
       )}
 
-      <div className="space-y-4 md:col-span-2">
-        <div className="space-y-2">
-          <Label htmlFor="amount">Importe</Label>
-          <AmountInput
-            id="amount"
-            name="amount"
-            step="any"
-            min="0.000000001"
-            defaultValue={source ? Math.abs(source.amount) : ""}
-            required
-            ref={amountRef}
-            tone={amountTone}
+      <div className="space-y-2">
+        <Label htmlFor="amount">Importe</Label>
+        <AmountInput
+          id="amount"
+          name="amount"
+          step="any"
+          min="0.000000001"
+          defaultValue={source ? Math.abs(source.amount) : ""}
+          required
+          ref={amountRef}
+          tone={amountTone}
+          size="lg"
+        />
+        {showPaymentMethod && (
+          <SegmentedControl
+            aria-label="Método de pago"
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+            options={[
+              { value: "bank", label: "Banco", icon: Landmark },
+              { value: "cash", label: "Efectivo", icon: Banknote },
+            ]}
           />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="expense_date">Fecha</Label>
-            <div className="flex gap-1.5" role="group" aria-label="Fecha rápida">
-              {[
-                { label: "Hoy", value: today },
-                { label: "Ayer", value: yesterday },
-              ].map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  aria-pressed={date === chip.value}
-                  onClick={() => setDate(chip.value)}
-                  className={cn(
-                    "h-8 rounded-full border px-3 text-xs font-medium transition-colors",
-                    date === chip.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <Input
-            id="expense_date"
-            name="expense_date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
-        </div>
+        )}
       </div>
 
-      <div className="space-y-2 md:col-span-2">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="expense_date">Fecha</Label>
+          <div className="flex gap-1.5" role="group" aria-label="Fecha rápida">
+            {[
+              { label: "Hoy", value: today },
+              { label: "Ayer", value: yesterday },
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                aria-pressed={date === chip.value}
+                onClick={() => setDate(chip.value)}
+                className={cn(
+                  "h-8 rounded-full border px-3 text-xs font-medium transition-colors",
+                  date === chip.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:bg-muted/50"
+                )}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Input
+          id="expense_date"
+          name="expense_date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+          className="h-12 md:h-10"
+        />
+      </div>
+
+      <div className={cn("space-y-2", !showCategory && "md:col-span-2")}>
         <Label htmlFor="concept">Concepto</Label>
         <Input
           id="concept"
@@ -393,21 +411,24 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
       </div>
 
       {showCategory && (
-        <div className="space-y-2 md:col-span-2">
+        <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-1">
-            <Label htmlFor="category_id">Categoría</Label>
+            <Label id="category-label">Categoría</Label>
             <QuickCategoryButton />
           </div>
-          <CategoryPicker
-            categories={selectableCategories}
-            usage={hints?.categoryUsage}
-            value={categoryId}
-            onChange={(id) => {
-              categoryManual.current = true;
-              setSuggestedCat(null);
-              setCategoryId(id);
-            }}
-          />
+          <div aria-labelledby="category-label" role="group">
+            <CategoryPicker
+              categories={selectableCategories}
+              usage={hints?.categoryUsage}
+              value={categoryId}
+              inline={7}
+              onChange={(id) => {
+                categoryManual.current = true;
+                setSuggestedCat(null);
+                setCategoryId(id);
+              }}
+            />
+          </div>
           {suggestedCat && (
             <p className="text-[11px] text-primary">Sugerido: {suggestedCat}</p>
           )}
@@ -415,29 +436,45 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
       )}
 
       <div className="space-y-2 md:col-span-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="notes">Notas (opcional)</Label>
-          {notes.length > NOTES_MAX_LENGTH * 0.8 && (
-            <span
-              className={cn(
-                "text-[11px] tabular-nums",
-                notes.length >= NOTES_MAX_LENGTH ? "text-expense" : "text-muted-foreground"
+        {notesOpen ? (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="notes">Notas (opcional)</Label>
+              {notes.length > NOTES_MAX_LENGTH * 0.8 && (
+                <span
+                  className={cn(
+                    "text-[11px] tabular-nums",
+                    notes.length >= NOTES_MAX_LENGTH ? "text-expense" : "text-muted-foreground"
+                  )}
+                >
+                  {notes.length}/{NOTES_MAX_LENGTH}
+                </span>
               )}
-            >
-              {notes.length}/{NOTES_MAX_LENGTH}
-            </span>
-          )}
-        </div>
-        <Textarea
-          id="notes"
-          name="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={NOTES_MAX_LENGTH - (recurringTag ? recurringTag.length + 1 : 0)}
-          placeholder="Detalles adicionales..."
-          rows={2}
-          className="max-h-60 min-h-20"
-        />
+            </div>
+            <Textarea
+              id="notes"
+              ref={notesRef}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={NOTES_MAX_LENGTH - (recurringTag ? recurringTag.length + 1 : 0)}
+              placeholder="Detalles adicionales..."
+              rows={2}
+              className="max-h-60 min-h-20"
+            />
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setNotesOpen(true);
+              requestAnimationFrame(() => notesRef.current?.focus());
+            }}
+            className="flex h-9 cursor-pointer items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
+            <Plus className="h-4 w-4" />
+            Añadir nota
+          </button>
+        )}
       </div>
 
       {error && (
@@ -445,7 +482,13 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
       )}
       </div>
 
-      <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:flex-row md:pb-4">
+      <div
+        className={cn(
+          "flex shrink-0 gap-2 border-t border-border/70 bg-card px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:flex-row md:pb-4",
+          // Editing stacks its actions on phones; a new movement keeps one row.
+          expense ? "flex-col-reverse" : "flex-row-reverse"
+        )}
+      >
         {expense ? (
           <>
             <Button type="submit" className="h-12 w-full md:order-2 md:h-10 md:flex-1" disabled={loading}>
@@ -484,11 +527,11 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           </>
         ) : (
           <>
-            {/* First in the DOM so Enter submits it; `flex-col-reverse` puts it at
-                the bottom on phones, like "Actualizar" when editing. */}
+            {/* First in the DOM so Enter submits it; `flex-row-reverse` puts it on
+                the right, under the thumb, with "+ Otro" narrow beside it. */}
             <Button
               type="submit"
-              className="h-12 w-full md:order-2 md:h-10 md:flex-1"
+              className="h-12 min-w-0 flex-1 md:order-2 md:h-10"
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -497,12 +540,14 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
             <Button
               type="submit"
               variant="outline"
-              className="h-12 w-full md:order-1 md:h-10 md:flex-1"
+              aria-label="Guardar y crear otro"
+              title="Guardar y crear otro"
+              className="h-12 shrink-0 px-4 md:order-1 md:h-10"
               disabled={loading}
               onClick={() => { keepOpenRef.current = true; }}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Guardando..." : "Guardar y crear otro"}
+              <Plus className="h-4 w-4" />
+              Otro
             </Button>
           </>
         )}

@@ -52,13 +52,28 @@ describe("AccountSwitcher", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("stays open and says why when the switch is refused", async () => {
+  it("says why when the switch is refused, and reloads nothing", async () => {
     mocks.switchAccount.mockResolvedValue({ error: "No tienes acceso a esa cuenta" });
-    const onOpenChange = setup();
+    setup();
     await userEvent.click(screen.getByRole("button", { name: /Personal/ }));
 
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("No tienes acceso a esa cuenta"));
     expect(mocks.refresh).not.toHaveBeenCalled();
-    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+  });
+
+  it("veils the page while the other account loads, so old figures don't pass for current", async () => {
+    let finish!: (value: { success: true }) => void;
+    mocks.switchAccount.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const onOpenChange = setup();
+    await userEvent.click(screen.getByRole("button", { name: /Personal/ }));
+
+    // The sheet gets out of the way at once; the veil names where we're going.
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(await screen.findByRole("status")).toHaveTextContent("Cambiando a Personal…");
+
+    finish({ success: true });
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    expect(mocks.refresh).toHaveBeenCalled();
   });
 });

@@ -46,6 +46,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          # Runners ship a cached 22.x that can lag behind security releases.
+          check-latest: true
           cache: "npm"
 
       - name: Install dependencies

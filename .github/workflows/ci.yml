@@ -33,6 +33,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          # Runners ship a cached 22.x that can lag behind security releases.
+          check-latest: true
           cache: "npm"
 
       - name: Install dependencies
@@ -59,6 +61,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          # Runners ship a cached 22.x that can lag behind security releases.
+          check-latest: true
 
       # Reads package-lock.json; no install needed. Fails on moderate or worse
       # in what actually ships: the dependencies of the running app.

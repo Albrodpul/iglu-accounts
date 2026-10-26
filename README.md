@@ -4,6 +4,10 @@ A mobile-first Progressive Web App to track a household's money: daily income an
 
 **Stack:** Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Supabase (Postgres, Auth, RLS) · Tailwind CSS 4 · Zod 4 · Vitest · Playwright · Vercel
 
+![Iglú overview with demo data: net worth, yearly balance, monthly net and investment allocation](.github/assets/preview.png)
+
+*Illustrative preview with made-up figures; no real account data.*
+
 ## Features
 
 **Daily movements**

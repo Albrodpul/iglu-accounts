@@ -679,6 +679,12 @@ export function FundList({ types, funds }: Props) {
               onEdit={(c) => historyFund && openEditContribution(c, historyFund)}
               onDelete={handleDeleteContribution}
               value={historyFund ? historyFund.invested_amount + getDisplayReturn(historyFund) : undefined}
+              // A fund that hides losses may be stored at cost: not a price to value contributions by.
+              marketValue={
+                historyFund && (historyFund.show_negative_returns || historyFund.current_value > historyFund.invested_amount)
+                  ? historyFund.current_value
+                  : undefined
+              }
             />
           </DialogBody>
           <div className="flex shrink-0 flex-col gap-2 border-t border-border/70 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">

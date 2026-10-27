@@ -156,3 +156,28 @@ describe("InvestmentTypeManager", () => {
     await waitFor(() => expect(screen.getByLabelText("Nombre del nuevo tipo")).toHaveValue(""));
   });
 });
+
+describe("ContributionHistory per contribution", () => {
+  it("shows what each contribution has gained, from today's price", () => {
+    // 100 + 40 units; worth 1.680 → 12 per unit.
+    render(
+      <ContributionHistory
+        contributions={[contribution({}), contribution({ id: "c2", amount: 500, purchase_price: 12.5 })]}
+        loading={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        value={1680}
+        marketValue={1680}
+      />,
+    );
+    expect(screen.getByTitle(/Hoy vale 1\.200/)).toHaveTextContent("+200 €+20,0 %");
+    expect(screen.getByTitle(/Hoy vale 480/)).toHaveTextContent("-20 €-4,0 %");
+  });
+
+  it("doesn't guess when the position's value isn't a market value", () => {
+    render(
+      <ContributionHistory contributions={[contribution({})]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} value={1000} />,
+    );
+    expect(screen.queryByTitle(/Hoy vale/)).not.toBeInTheDocument();
+  });
+});

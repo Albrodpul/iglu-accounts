@@ -14,6 +14,7 @@ import { SwipeRow } from "@/components/ui/swipe-row";
 import { formatCurrency, formatDate, formatDecimal, formatPercent } from "@/lib/format";
 import { daysAgo, toLocalISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { contributionReturns } from "@/lib/investments";
 import type { InvestmentContribution, InvestmentFundWithType } from "@/types";
 
 const footerClass =
@@ -395,6 +396,7 @@ export function ContributionHistory({
   onEdit,
   onDelete,
   value,
+  marketValue,
 }: {
   contributions: InvestmentContribution[];
   loading: boolean;
@@ -402,6 +404,11 @@ export function ContributionHistory({
   onDelete: (contribution: InvestmentContribution) => void;
   /** The position's value now, as shown in the list: adds value and return to the summary. */
   value?: number;
+  /**
+   * The position's real market value, to value each contribution. Left out
+   * when it isn't one (a hidden loss shown at cost).
+   */
+  marketValue?: number;
 }) {
   const privacy = usePrivacy();
   if (loading) {
@@ -428,6 +435,7 @@ export function ContributionHistory({
   const { secret } = privacy;
   const totalUnits = units.every((u) => u !== null) ? units.reduce<number>((sum, u) => sum + (u ?? 0), 0) : null;
   const gain = value === undefined ? null : Math.round((value - total) * 100) / 100;
+  const returns = marketValue === undefined ? null : contributionReturns(contributions, marketValue);
   const gainPct = gain === null || total === 0 ? null : (gain / total) * 100;
 
   return (
@@ -474,6 +482,7 @@ export function ContributionHistory({
       <ul className="space-y-1">
         {contributions.map((c) => {
           const bought = unitsOf(c);
+          const own = returns?.get(c.id);
           return (
             <li key={c.id}>
               <SwipeRow
@@ -492,6 +501,21 @@ export function ContributionHistory({
                   </p>
                   {c.notes && <p className="truncate text-xs text-muted-foreground/80">{c.notes}</p>}
                 </div>
+                {own && (
+                  // Each contribution on its own: what it is worth today and what it gained.
+                  <div
+                    className={cn(
+                      "ml-auto shrink-0 text-right tabular-nums",
+                      own.gain > 0 ? "text-income" : own.gain < 0 ? "text-expense" : "text-muted-foreground"
+                    )}
+                    title={`Hoy vale ${privacy.money(own.value)}`}
+                  >
+                    <p className="text-sm font-semibold">
+                      <Amount value={own.gain} prefix={own.gain > 0 ? "+" : ""} />
+                    </p>
+                    <p className="text-xs font-medium">{formatPercent(own.pct, { signed: true })}</p>
+                  </div>
+                )}
                 <div className="hidden shrink-0 items-center md:flex md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                   <button
                     type="button"

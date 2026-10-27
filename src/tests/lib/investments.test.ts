@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatPercent, formatWhen } from "@/lib/format";
-import { fundColors, groupPieSlices, lastPriceUpdate, OTHERS_COLOR, positionValue } from "@/lib/investments";
+import { contributionReturns, fundColors, groupPieSlices, lastPriceUpdate, OTHERS_COLOR, positionValue } from "@/lib/investments";
 import { pieColor } from "@/lib/chart-colors";
 
 // Intl puts a non-breaking space before "%".
@@ -65,5 +65,32 @@ describe("price update time", () => {
     expect(formatWhen(new Date(2026, 9, 1, 23, 0), now)).toBe("ayer a las 23:00");
     expect(formatWhen(new Date(2026, 8, 28, 10, 0), now)).toBe("el 28 sept a las 10:00");
     expect(formatWhen(new Date(2025, 11, 31, 9, 5), now)).toBe("el 31 dic 2025 a las 09:05");
+  });
+});
+
+describe("contributionReturns", () => {
+  const c = (id: string, amount: number, units: number | null, purchase_price: number | null = null) => ({
+    id,
+    amount,
+    units,
+    purchase_price,
+  });
+
+  it("values each contribution at today's price, so the parts add up to the position", () => {
+    // 100 units at 10 and 50 units at 12 → 150 units; the position is worth 1.800 → 12 per unit.
+    const returns = contributionReturns([c("a", 1000, 100), c("b", 600, null, 12)], 1800);
+    expect(returns.get("a")).toEqual({ value: 1200, gain: 200, pct: 20 });
+    expect(returns.get("b")).toEqual({ value: 600, gain: 0, pct: 0 });
+  });
+
+  it("leaves out what has no units or price, and keeps it at cost in the maths", () => {
+    // 100 € at cost + 100 units: of a 1.300 € position, 1.200 € is the units → 12 each.
+    const returns = contributionReturns([c("a", 1000, 100), c("cash", 100, null)], 1300);
+    expect(returns.get("a")?.value).toBe(1200);
+    expect(returns.has("cash")).toBe(false);
+  });
+
+  it("gives nothing when there is no price to work from", () => {
+    expect(contributionReturns([c("cash", 100, null)], 100).size).toBe(0);
   });
 });

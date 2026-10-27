@@ -48,3 +48,44 @@ export function fundColors(funds: (Position & { id: string })[]): Map<string, st
     ...others.map((item) => [item.id, OTHERS_COLOR] as const),
   ]);
 }
+
+type PricedContribution = { id: string; amount: number; units: number | null; purchase_price: number | null };
+
+/** Units a contribution bought: the recorded ones, or the amount over the price paid. */
+function boughtUnits(c: PricedContribution): number | null {
+  if (c.units && c.units > 0) return c.units;
+  if (c.purchase_price && c.purchase_price > 0) return c.amount / c.purchase_price;
+  return null;
+}
+
+/**
+ * What each contribution is worth now and what it has gained, by contribution
+ * id. The price per unit comes from the position's value the same way the
+ * price update builds it (priced units × price + the rest at cost), so the
+ * parts add up to the whole. Contributions without units or price have no
+ * entry: there is nothing to value them by.
+ */
+export function contributionReturns(
+  contributions: PricedContribution[],
+  positionValue: number,
+): Map<string, { value: number; gain: number; pct: number }> {
+  const result = new Map<string, { value: number; gain: number; pct: number }>();
+  let pricedUnits = 0;
+  let atCost = 0;
+  for (const c of contributions) {
+    const units = boughtUnits(c);
+    if (units === null) atCost += c.amount;
+    else pricedUnits += units;
+  }
+  const price = pricedUnits > 0 ? (positionValue - atCost) / pricedUnits : 0;
+  if (!(price > 0)) return result;
+
+  for (const c of contributions) {
+    const units = boughtUnits(c);
+    if (units === null || c.amount <= 0) continue;
+    const value = Math.round(units * price * 100) / 100;
+    const gain = Math.round((value - c.amount) * 100) / 100;
+    result.set(c.id, { value, gain, pct: (gain / c.amount) * 100 });
+  }
+  return result;
+}

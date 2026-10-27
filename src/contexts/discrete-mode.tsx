@@ -8,8 +8,10 @@ type DiscreteModeContextType = {
   toggle: () => void;
 };
 
+// The provider wraps every page that shows money; this default only applies
+// outside it (tests, isolated renders), where figures should read as figures.
 const DiscreteModeContext = createContext<DiscreteModeContextType>({
-  discrete: true,
+  discrete: false,
   toggle: () => {},
 });
 
@@ -25,7 +27,12 @@ export function DiscreteModeProvider({
   const toggle = useCallback(async () => {
     const next = !discrete;
     setDiscrete(next);
-    await setDiscreteMode(next);
+    try {
+      await setDiscreteMode(next);
+    } catch {
+      // Not saved: back to what the server has, so a reload holds no surprise.
+      setDiscrete(!next);
+    }
   }, [discrete]);
 
   return (

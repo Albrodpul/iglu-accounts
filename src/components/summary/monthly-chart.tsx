@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { formatCurrency } from "@/lib/format";
-import { Amount } from "@/components/ui/amount";
+import { Amount, usePrivacy } from "@/components/ui/amount";
 import { useMediaQuery } from "@/hooks/use-browser-state";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { cn } from "@/lib/utils";
@@ -109,6 +108,7 @@ function MonthRows({ data, year, showDebts }: Props) {
 export function MonthlyChart({ data, year, showDebts = false }: Props) {
   const isMobile = useMediaQuery("(max-width: 639px)");
   const c = useThemeColors();
+  const { money, secret } = usePrivacy();
 
   if (isMobile) return <MonthRows data={data} year={year} showDebts={showDebts} />;
 
@@ -124,7 +124,7 @@ export function MonthlyChart({ data, year, showDebts = false }: Props) {
     },
     labelStyle: { fontWeight: 700, color: c.foreground, marginBottom: 2 },
     cursor: { fill: c.muted, opacity: 0.6 },
-    formatter: (value: unknown) => formatCurrency(Number(value)),
+    formatter: (value: unknown) => money(Number(value)),
   };
   const tick = { fill: c["muted-foreground"], fontSize: 11 };
   const legendProps = { iconType: "circle" as const, wrapperStyle: { fontSize: 12, paddingTop: 8 } };
@@ -136,7 +136,7 @@ export function MonthlyChart({ data, year, showDebts = false }: Props) {
         <BarChart data={data} barGap={1} barCategoryGap="15%">
           <CartesianGrid strokeDasharray="3 3" stroke={c.border} vertical={false} />
           <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={false} interval={0} />
-          <YAxis tick={tick} tickLine={false} axisLine={false} width={45} tickFormatter={axisFormatter} />
+          <YAxis tick={tick} tickLine={false} axisLine={false} width={45} tickFormatter={(value: number) => secret(axisFormatter(value))} />
           <Tooltip {...tooltipProps} />
           <Legend {...legendProps} />
           <Bar dataKey="gastos" name="Gastos" fill={c.expense} radius={[6, 6, 0, 0]}>{cells}</Bar>

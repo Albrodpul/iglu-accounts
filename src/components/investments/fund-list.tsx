@@ -34,12 +34,12 @@ import {
 import { Plus, Pencil, Trash2, History, TrendingUp, MoreVertical, Percent, Loader2, ChevronDown, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { ContributionForm, ContributionHistory, PriceSourceFields, ProfitabilityForm, QuickDateField, UnitsPriceFields } from "./fund-forms";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
 import { fundColors, positionValue } from "@/lib/investments";
 import { cn } from "@/lib/utils";
 import { PriceDate } from "./price-date";
 import { toLocalISODate } from "@/lib/dates";
-import { Amount } from "@/components/ui/amount";
+import { Amount, usePrivacy } from "@/components/ui/amount";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { SAVE_FAILED_MESSAGE } from "@/lib/errors";
@@ -106,6 +106,7 @@ export function FundList({ types, funds }: Props) {
   const [initialAmount, setInitialAmount] = useState<number | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; ascending: boolean } | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
+  const { money } = usePrivacy();
 
 
 
@@ -261,7 +262,7 @@ export function FundList({ types, funds }: Props) {
   async function handleDeleteContribution(contrib: InvestmentContribution) {
     await confirm({
       title: "Eliminar aportación",
-      description: `¿Eliminar aportación de ${formatCurrency(contrib.amount)}?`,
+      description: `¿Eliminar aportación de ${money(contrib.amount)}?`,
       confirmLabel: "Eliminar",
       variant: "destructive",
       onConfirm: async () => {

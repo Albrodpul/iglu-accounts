@@ -4,6 +4,24 @@ import { useDiscreteMode } from "@/contexts/discrete-mode";
 import { formatCurrency, hasCents } from "@/lib/format";
 import { useRollingNumber } from "@/hooks/use-rolling-number";
 
+/** What a hidden figure shows: same width whatever the amount, so not even its size leaks. */
+export const HIDDEN = "•••";
+
+/**
+ * For figures that can't be an <Amount> (chart tooltips and axes, plain
+ * strings): `money` formats a value or hides it; `secret` hides any text
+ * (units, prices) that would give an amount away.
+ */
+export function usePrivacy() {
+  const { discrete } = useDiscreteMode();
+  return {
+    discrete,
+    money: (value: number, format: (value: number) => string = formatCurrency) =>
+      discrete ? `${value < 0 ? "-" : ""}${HIDDEN} €` : format(value),
+    secret: (text: string) => (discrete ? HIDDEN : text),
+  };
+}
+
 type Props = {
   value: number;
   className?: string;
@@ -37,8 +55,21 @@ export function Amount({ value, className, prefix, suffix, compact, animate = fa
 
   const formatted = compact ? formatCompact(shown) : formatCurrency(shown);
 
+  // Hidden means not in the page at all: a blur still showed the digits'
+  // shape and count, and screen readers and copy-paste read the real number.
+  if (discrete) {
+    return (
+      <span className={className} aria-label="Importe oculto" title="Importe oculto">
+        {prefix}
+        {value < 0 && "-"}
+        {compact ? HIDDEN : `${HIDDEN} €`}
+        {suffix}
+      </span>
+    );
+  }
+
   return (
-    <span className={className} style={discrete ? { filter: "blur(8px)", userSelect: "none" } : undefined}>
+    <span className={className}>
       {prefix}{formatted}{suffix}
     </span>
   );

@@ -6,7 +6,7 @@ import { checkPriceSource } from "@/actions/investments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Amount } from "@/components/ui/amount";
+import { Amount, usePrivacy } from "@/components/ui/amount";
 import { AmountInput } from "@/components/ui/amount-input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -403,6 +403,7 @@ export function ContributionHistory({
   /** The position's value now, as shown in the list: adds value and return to the summary. */
   value?: number;
 }) {
+  const privacy = usePrivacy();
   if (loading) {
     return (
       <div className="space-y-3 py-1" aria-hidden>
@@ -423,6 +424,8 @@ export function ContributionHistory({
 
   const total = contributions.reduce((sum, c) => sum + c.amount, 0);
   const units = contributions.map(unitsOf);
+  // Units times a public price is the amount: hidden along with it.
+  const { secret } = privacy;
   const totalUnits = units.every((u) => u !== null) ? units.reduce<number>((sum, u) => sum + (u ?? 0), 0) : null;
   const gain = value === undefined ? null : Math.round((value - total) * 100) / 100;
   const gainPct = gain === null || total === 0 ? null : (gain / total) * 100;
@@ -464,7 +467,7 @@ export function ContributionHistory({
         </dl>
         <p className="mt-2 text-xs text-muted-foreground">
           {contributions.length} {contributions.length === 1 ? "aportación" : "aportaciones"}
-          {totalUnits !== null && ` · ${formatDecimal(totalUnits)} participaciones`}
+          {totalUnits !== null && ` · ${secret(formatDecimal(totalUnits))} participaciones`}
         </p>
       </div>
 
@@ -484,7 +487,7 @@ export function ContributionHistory({
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(c.contribution_date)}
-                    {bought !== null && ` · ${formatDecimal(bought)} participaciones`}
+                    {bought !== null && ` · ${secret(formatDecimal(bought))} participaciones`}
                     {c.purchase_price ? ` a ${formatDecimal(c.purchase_price)} €` : ""}
                   </p>
                   {c.notes && <p className="truncate text-xs text-muted-foreground/80">{c.notes}</p>}

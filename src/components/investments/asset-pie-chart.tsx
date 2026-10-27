@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { pieColor } from "@/lib/chart-colors";
 import { formatPercent } from "@/lib/format";
+import { usePrivacy } from "@/components/ui/amount";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" }).format(v);
@@ -11,6 +12,7 @@ type Entry = { label: string; value: number };
 
 /** `size` fixes the diameter; without it the chart is small on phones and larger from `md` up. */
 export function AssetPieChart({ items, size }: { items: Entry[]; size?: number }) {
+  const { money } = usePrivacy();
   const data = items.filter((i) => i.value > 0);
   if (data.length === 0) return null;
 
@@ -19,7 +21,7 @@ export function AssetPieChart({ items, size }: { items: Entry[]; size?: number }
   const tooltipProps = {
     formatter: (value: unknown, _name: unknown, entry: unknown) => {
       const v = Number(value);
-      return [`${fmt(v)} (${formatPercent((v / total) * 100)})`, (entry as { payload: Entry }).payload.label];
+      return [`${money(v, fmt)} (${formatPercent((v / total) * 100)})`, (entry as { payload: Entry }).payload.label];
     },
     contentStyle: {
       borderRadius: "10px",

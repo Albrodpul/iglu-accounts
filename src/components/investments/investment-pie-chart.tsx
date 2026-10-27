@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { usePrivacy } from "@/components/ui/amount";
 import { pieColor } from "@/lib/chart-colors";
 import { formatPercent } from "@/lib/format";
 import { groupPieSlices, OTHERS_COLOR, positionValue } from "@/lib/investments";
@@ -47,13 +48,14 @@ function PieTooltip({
   payload?: Array<{ payload: ChartItem }>;
   total: number;
 }) {
+  const { money } = usePrivacy();
   if (!active || !payload?.length) return null;
   const item = payload[0].payload;
   const pct = formatPercent((item.value / total) * 100);
   return (
     <div style={{ borderRadius: 12, borderColor: "rgba(148,163,184,0.3)", backgroundColor: "rgba(15,23,42,0.92)", color: "#f1f5f9", fontSize: 13, padding: "10px 14px", minWidth: 180 }}>
       <p style={{ fontWeight: 600, marginBottom: item.breakdown ? 6 : 0 }}>{item.name}</p>
-      <p style={{ color: "#94a3b8" }}>{fmt(item.value)} · {pct}</p>
+      <p style={{ color: "#94a3b8" }}>{money(item.value, fmt)} · {pct}</p>
       {item.breakdown && (
         <div style={{ marginTop: 8, borderTop: "1px solid rgba(148,163,184,0.2)", paddingTop: 8 }}>
           {item.breakdown.map((b, i) => (

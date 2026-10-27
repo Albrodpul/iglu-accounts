@@ -12,7 +12,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { MONTHS, formatCurrency, formatPercent } from "@/lib/format";
+import { MONTHS, formatPercent } from "@/lib/format";
+import { Amount } from "@/components/ui/amount";
 import { recordMonthlyReturnSnapshot } from "@/actions/investments";
 
 const MONTHS_SHORT = MONTHS.map((m) => m.substring(0, 3));
@@ -173,7 +174,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
             Invertido
           </p>
           <p className="mt-1 text-base font-bold tabular-nums md:text-lg">
-            {formatCurrency(Number(latest.total_invested))}
+            <Amount value={Number(latest.total_invested)} />
           </p>
         </div>
         <div className="glass-panel p-3 md:p-4">
@@ -181,7 +182,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
             Valor actual
           </p>
           <p className="mt-1 text-base font-bold tabular-nums md:text-lg">
-            {formatCurrency(Number(latest.current_value))}
+            <Amount value={Number(latest.current_value)} />
           </p>
         </div>
         <div className="glass-panel p-3 md:p-4">
@@ -189,7 +190,7 @@ export function InvestmentReturnsTab({ returns }: Props) {
             Rentabilidad
           </p>
           <p className={`mt-1 text-base font-bold tabular-nums md:text-lg ${pctClass(latestReturn)}`}>
-            {formatCurrency(latestReturn)}
+            <Amount value={latestReturn} />
             <span className="ml-1 text-sm font-semibold">{fmtPct(latestPct)}</span>
           </p>
         </div>

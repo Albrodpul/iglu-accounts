@@ -10,6 +10,7 @@ import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryPicker } from "@/components/expenses/category-picker";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { isReservedCategoryName } from "@/lib/reserved-categories";
 import { QuickCategoryButton } from "@/components/expenses/quick-category";
 import { toast } from "sonner";
@@ -87,6 +88,8 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
   const [notesOpen, setNotesOpen] = useState(Boolean(storedNotes.text));
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const [concept, setConcept] = useState(source?.concept || "");
+  // Only an edit keeps it: a duplicate is a new movement, and new ones count.
+  const [excluded, setExcluded] = useState(Boolean(expense?.excluded));
   const [date, setDate] = useState(() => expense?.expense_date || toLocalISODate());
   const [hints, setHints] = useState<EntryHints | null>(null);
   const [categoryId, setCategoryId] = useState(() => {
@@ -135,6 +138,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
     try {
       setError(null);
       formData.set("notes", joinRecurringNotes(recurringTag, notes));
+      formData.set("excluded", String(excluded));
 
       let result;
 
@@ -206,6 +210,7 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           setSuggestedCat(null);
           setNotes("");
           setNotesOpen(false);
+          setExcluded(false);
           setConcept("");
           setDate(toLocalISODate());
           categoryManual.current = false;
@@ -476,6 +481,16 @@ export function ExpenseForm({ categories, expense, onSuccess, onDelete, onDuplic
           </button>
         )}
       </div>
+
+      {!isTransfer && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-3 py-2.5 md:col-span-2">
+          <div className="min-w-0">
+            <p id="excluded-label" className="text-sm font-medium">No contar en los totales</p>
+            <p className="text-xs text-muted-foreground">Sigue en el diario, pero no suma en totales, resúmenes ni saldos.</p>
+          </div>
+          <ToggleSwitch enabled={excluded} onToggle={() => setExcluded((v) => !v)} aria-labelledby="excluded-label" />
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg bg-expense/10 p-2 text-sm text-expense md:col-span-2">{error}</p>

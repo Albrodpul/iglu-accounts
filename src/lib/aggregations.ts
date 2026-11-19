@@ -1,10 +1,13 @@
 import { monthIndexOf } from "./dates";
+import { countsInTotals } from "./excluded";
 
 /** Minimal shape needed to aggregate movements. */
 export type AggregatableMovement = {
   category_id: string;
   amount: number;
   expense_date: string;
+  /** Marked "no contar": skipped by every aggregation here. */
+  excluded?: boolean | null;
 };
 
 type SpecialCategories = {
@@ -21,6 +24,7 @@ export function sumByCategoryAndMonth(
 ): Map<string, number[]> {
   const byCategory = new Map<string, number[]>();
   for (const m of movements) {
+    if (!countsInTotals(m)) continue;
     let months = byCategory.get(m.category_id);
     if (!months) {
       months = new Array<number>(12).fill(0);
@@ -54,6 +58,7 @@ export function summarizeMonths(
     deudas: 0,
   }));
   for (const m of movements) {
+    if (!countsInTotals(m)) continue;
     if (transferCategoryId && m.category_id === transferCategoryId) continue;
     const bucket = months[monthIndexOf(m.expense_date)];
     const isDebt = !!debtCategoryId && m.category_id === debtCategoryId;
@@ -68,7 +73,7 @@ export function summarizeMonths(
 export function spentByCategory(movements: AggregatableMovement[]): Map<string, number> {
   const totals = new Map<string, number>();
   for (const m of movements) {
-    if (m.amount >= 0) continue;
+    if (m.amount >= 0 || !countsInTotals(m)) continue;
     totals.set(m.category_id, (totals.get(m.category_id) ?? 0) - m.amount);
   }
   return totals;
@@ -77,7 +82,7 @@ export function spentByCategory(movements: AggregatableMovement[]): Map<string, 
 /** Net sum of all movements in one category. */
 export function sumCategory(movements: AggregatableMovement[], categoryId: string): number {
   let total = 0;
-  for (const m of movements) if (m.category_id === categoryId) total += m.amount;
+  for (const m of movements) if (m.category_id === categoryId && countsInTotals(m)) total += m.amount;
   return total;
 }
 

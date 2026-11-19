@@ -12,7 +12,7 @@ vi.mock("@/actions/accounts", () => ({ getSelectedAccountId: mocks.getSelectedAc
 vi.mock("@/actions/categories", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import { deleteExpenses, setExpensesCategory } from "@/actions/expenses";
+import { deleteExpenses, setExpensesCategory, setExpensesExcluded } from "@/actions/expenses";
 
 const ACCOUNT_ID = "11111111-1111-4111-8111-111111111111";
 const FOOD = "22222222-2222-4222-8222-222222222222";
@@ -97,5 +97,29 @@ describe("setExpensesCategory", () => {
     expect(query.update).toHaveBeenCalledWith(expect.objectContaining({ category_id: HOME }));
     expect(query.in).toHaveBeenLastCalledWith("id", [E1]);
     expect(result).toMatchObject({ success: true });
+  });
+});
+
+describe("setExpensesExcluded", () => {
+  it("marks plain movements by id and transfers as a whole, scoped to the user", async () => {
+    const query = setup([
+      { id: E1, category_id: FOOD, transfer_pair_id: null },
+      { id: E2, category_id: null, transfer_pair_id: PAIR },
+    ]);
+
+    const result = await setExpensesExcluded([E1, E2], true);
+
+    expect(result).toMatchObject({ success: true });
+    expect(query.update).toHaveBeenCalledWith(expect.objectContaining({ excluded: true }));
+    expect(query.in).toHaveBeenCalledWith("id", [E1]);
+    expect(query.in).toHaveBeenCalledWith("transfer_pair_id", [PAIR]);
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/summary");
+  });
+
+  it("rejects ids that are not uuids", async () => {
+    const query = setup([]);
+    expect(await setExpensesExcluded(["nope"], true)).toEqual({ error: "Movimiento inválido" });
+    expect(query.update).not.toHaveBeenCalled();
   });
 });

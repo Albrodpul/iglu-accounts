@@ -37,6 +37,8 @@ export type Expense = {
   transfer_pair_id: string | null;
   is_recurring: boolean;
   notes: string | null;
+  /** Shown in the journal but left out of totals, summaries and balances. */
+  excluded?: boolean;
   created_at: string;
   updated_at: string;
 };

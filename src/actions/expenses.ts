@@ -159,6 +159,7 @@ export async function createExpense(formData: FormData) {
   const db = await getDb();
   const { error } = await db.expenses.create({
     ...parsed.data,
+    excluded: formData.get("excluded") === "true",
     payment_method: paymentMethod,
     user_id: user.id,
     ...(accountId ? { account_id: accountId } : { account_id: null }),
@@ -304,6 +305,7 @@ export async function updateExpense(id: string, formData: FormData) {
   const db = await getDb();
   const { error } = await db.expenses.update(id, user.id, {
     ...parsed.data,
+    excluded: formData.get("excluded") === "true",
     payment_method: paymentMethod,
     updated_at: new Date().toISOString(),
   });
@@ -314,6 +316,35 @@ export async function updateExpense(id: string, formData: FormData) {
   revalidatePath("/expenses");
   revalidatePath("/summary");
   return { success: true };
+}
+
+/**
+ * Marks several movements as not counting (or counting again) in totals,
+ * summaries and balances. They stay in the journal. A transfer changes as a
+ * whole, so its two legs never disagree.
+ */
+export async function setExpensesExcluded(ids: string[], excluded: boolean) {
+  const user = await getAuthUser();
+  if (!user) redirect("/login");
+
+  const parsed = expenseIdsSchema.safeParse(ids);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const db = await getDb();
+  const found = await db.expenses.findByIds(parsed.data, user.id);
+  if (found.error) return { error: found.error };
+
+  const pairIds = [...new Set(found.rows.flatMap((row) => (row.transfer_pair_id ? [row.transfer_pair_id] : [])))];
+  const soloIds = found.rows.filter((row) => !row.transfer_pair_id).map((row) => row.id);
+
+  const solo = await db.expenses.setExcludedMany(soloIds, user.id, excluded);
+  const pairs = solo.error ? { updated: 0, error: null } : await db.expenses.setExcludedMany(pairIds, user.id, excluded, "transfer_pair_id");
+  const updated = solo.updated + pairs.updated;
+
+  if (updated > 0) revalidateMovementPages();
+  const error = solo.error ?? pairs.error;
+  if (error) return { error };
+  return { success: true, updated };
 }
 
 /** Deletes several movements at once. A transfer goes with both of its legs. */

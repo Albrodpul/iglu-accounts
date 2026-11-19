@@ -1,6 +1,9 @@
+import { countsInTotals } from "./excluded";
+
 type ExpenseLike = {
   amount: number;
   category_id: string;
+  excluded?: boolean | null;
 };
 
 export type FinancialTotals = {
@@ -29,6 +32,7 @@ export function calculateFinancialTotals(
   transferCategoryId?: string | null,
 ): FinancialTotals {
   const isTransfer = (e: ExpenseLike) => transferCategoryId && e.category_id === transferCategoryId;
+  expenses = expenses.filter(countsInTotals);
 
   const totalExpenses = expenses
     .filter((e) => e.amount < 0 && !isTransfer(e))

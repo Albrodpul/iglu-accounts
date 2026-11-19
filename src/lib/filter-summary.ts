@@ -1,3 +1,5 @@
+import { countsInTotals } from "./excluded";
+
 export type FilterSummary = { count: number; total: number };
 
 /**
@@ -8,13 +10,14 @@ export type FilterSummary = { count: number; total: number };
  * that category, where leaving them out would always show zero.
  */
 export function summarizeMovements(
-  rows: { amount: number; category_id: string | null }[],
+  rows: { amount: number; category_id: string | null; excluded?: boolean | null }[],
   opts: { categoryId?: string | null; debtCategoryId?: string | null; transferCategoryId?: string | null },
 ): FilterSummary {
   const excluded = [opts.debtCategoryId, opts.transferCategoryId].filter(
     (id): id is string => Boolean(id) && id !== opts.categoryId,
   );
   const total = rows
+    .filter(countsInTotals)
     .filter((row) => !row.category_id || !excluded.includes(row.category_id))
     .reduce((sum, row) => sum + row.amount, 0);
   return { count: rows.length, total: Math.round(total * 100) / 100 };
@@ -27,7 +30,7 @@ export type CategoryTotal = { categoryId: string; count: number; total: number }
  * `summarizeMovements`, so the rows add up to the total shown next to them.
  */
 export function breakdownByCategory(
-  rows: { amount: number; category_id: string | null }[],
+  rows: { amount: number; category_id: string | null; excluded?: boolean | null }[],
   opts: { categoryId?: string | null; debtCategoryId?: string | null; transferCategoryId?: string | null },
 ): CategoryTotal[] {
   const excluded = [opts.debtCategoryId, opts.transferCategoryId].filter(
@@ -35,7 +38,7 @@ export function breakdownByCategory(
   );
   const byCategory = new Map<string, CategoryTotal>();
   for (const row of rows) {
-    if (!row.category_id || excluded.includes(row.category_id)) continue;
+    if (!row.category_id || excluded.includes(row.category_id) || !countsInTotals(row)) continue;
     const entry = byCategory.get(row.category_id) ?? { categoryId: row.category_id, count: 0, total: 0 };
     entry.count += 1;
     entry.total += row.amount;

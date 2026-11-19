@@ -306,3 +306,46 @@ describe("ExpenseForm layout", () => {
     await waitFor(() => expect(screen.getByLabelText("Concepto")).toHaveValue(""));
   });
 });
+
+describe("ExpenseForm 'no contar'", () => {
+  it("sends the switch, and keeps it when editing a movement that doesn't count", async () => {
+    mocks.updateExpense.mockResolvedValue({ success: true });
+    render(
+      <ExpenseForm
+        categories={categories}
+        expense={{
+          id: "e1",
+          user_id: "u",
+          category_id: "cat-food",
+          account_id: "acc-1",
+          amount: -20,
+          concept: "Devuelto",
+          expense_date: "2026-11-03",
+          payment_method: "bank",
+          transfer_pair_id: null,
+          is_recurring: false,
+          notes: null,
+          excluded: true,
+          created_at: "2026-11-03T10:00:00Z",
+          updated_at: "2026-11-03T10:00:00Z",
+        }}
+      />,
+    );
+
+    const toggle = screen.getByRole("switch", { name: "No contar en los totales" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+    await waitFor(() => expect(mocks.updateExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.updateExpense.mock.calls[0][1] as FormData).get("excluded")).toBe("true");
+  });
+
+  it("starts counting for a new movement", async () => {
+    mocks.checkDuplicate.mockResolvedValue({ duplicate: false });
+    render(<ExpenseForm categories={categories} />);
+    expect(screen.getByRole("switch", { name: "No contar en los totales" })).toHaveAttribute("aria-checked", "false");
+    await userEvent.type(screen.getByLabelText("Importe"), "5");
+    await userEvent.click(screen.getByRole("button", { name: "Añadir gasto" }));
+    await waitFor(() => expect(mocks.createExpense).toHaveBeenCalledTimes(1));
+    expect((mocks.createExpense.mock.calls[0][0] as FormData).get("excluded")).toBe("false");
+  });
+});

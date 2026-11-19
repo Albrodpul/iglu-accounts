@@ -3,6 +3,7 @@ import { parseAmountQuery } from "@/lib/amount-search";
 import { fetchAllRows } from "./fetch-all";
 
 type ExpenseInsert = {
+  excluded?: boolean;
   user_id: string;
   account_id?: string | null;
   category_id?: string | null;
@@ -102,6 +103,7 @@ export function createExpensesRepo(client: SupabaseClient) {
         let q = client
           .from("expenses")
           .select("expense_date, amount, category_id, payment_method")
+          .eq("excluded", false)
           .order("id")
           .range(from, to);
         if (accountId) q = q.eq("account_id", accountId);
@@ -116,6 +118,7 @@ export function createExpensesRepo(client: SupabaseClient) {
         let q = client
           .from("expenses")
           .select("amount, category_id")
+          .eq("excluded", false)
           .gte("expense_date", start)
           .lt("expense_date", end)
           .order("id")
@@ -228,7 +231,7 @@ export function createExpensesRepo(client: SupabaseClient) {
       const { data, error } = await fetchAllRows((from, to) =>
         client
           .from("expenses")
-          .select("id, category_id, amount, concept, expense_date, notes, payment_method, transfer_pair_id")
+          .select("id, category_id, amount, concept, expense_date, notes, payment_method, transfer_pair_id, excluded")
           .eq("account_id", accountId)
           .order("expense_date", { ascending: true })
           .order("id")
@@ -274,8 +277,10 @@ export function createExpensesRepo(client: SupabaseClient) {
 
     /** Amounts of every movement matching the list filters (not just one page). */
     async findAmountsFiltered(accountId: string | null, opts: { search?: string }) {
-      const { data, error } = await fetchAllRows<{ amount: number; category_id: string | null }>((from, to) => {
-        let q = client.from("expenses").select("amount, category_id").order("id").range(from, to);
+      // Rows marked "no contar" come too: the count matches the list, and the
+      // total leaves them out (see summarizeMovements).
+      const { data, error } = await fetchAllRows<{ amount: number; category_id: string | null; excluded: boolean }>((from, to) => {
+        let q = client.from("expenses").select("amount, category_id, excluded").order("id").range(from, to);
         if (accountId) q = q.eq("account_id", accountId);
         if (opts.search) {
           const amountFilter = conceptOrAmountFilter(opts.search);
@@ -352,6 +357,22 @@ export function createExpensesRepo(client: SupabaseClient) {
           .update({ category_id: categoryId, updated_at: new Date().toISOString() })
           .eq("user_id", userId)
           .in("id", part)
+          .select("id");
+        if (error) return { updated, error: error.message };
+        updated += data?.length ?? 0;
+      }
+      return { updated, error: null };
+    },
+
+    /** Marks movements (by id or, with `column: "transfer_pair_id"`, whole transfers) as counting or not. */
+    async setExcludedMany(values: string[], userId: string, excluded: boolean, column: "id" | "transfer_pair_id" = "id") {
+      let updated = 0;
+      for (const part of chunks(values)) {
+        const { data, error } = await client
+          .from("expenses")
+          .update({ excluded, updated_at: new Date().toISOString() })
+          .eq("user_id", userId)
+          .in(column, part)
           .select("id");
         if (error) return { updated, error: error.message };
         updated += data?.length ?? 0;

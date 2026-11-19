@@ -91,6 +91,8 @@ export async function importBackup(formData: FormData): Promise<ImportBackupResu
       expense_date: e.expense_date,
       notes: e.notes,
       payment_method: e.payment_method ?? "bank",
+      // Older backups don't have the flag: those movements count, as they did.
+      excluded: e.excluded === true,
     }))
     .filter((e) => e.category_id !== null);
 

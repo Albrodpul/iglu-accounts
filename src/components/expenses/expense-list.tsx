@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { deleteExpense, deleteExpenses, setExpensesCategory } from "@/actions/expenses";
+import { deleteExpense, deleteExpenses, setExpensesCategory, setExpensesExcluded } from "@/actions/expenses";
+import { countsInTotals } from "@/lib/excluded";
 import { formatDayHeader } from "@/lib/format";
 import { toLocalISODate } from "@/lib/dates";
 import { splitRecurringNotes } from "@/lib/recurring";
@@ -20,7 +21,7 @@ import { isReservedCategoryName } from "@/lib/reserved-categories";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { openAddMovement } from "@/lib/add-movement";
-import { Pencil, Trash2, ArrowUp, ArrowUpDown, Copy, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X, Check, CheckCheck, Loader2, Tag } from "lucide-react";
+import { Pencil, Trash2, ArrowUp, ArrowUpDown, Copy, ReceiptText, CalendarClock, ChevronDown, Hand, Repeat, StickyNote, X, Check, CheckCheck, Loader2, Tag, CircleSlash, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Category, ExpenseWithCategory } from "@/types";
 
@@ -142,9 +143,13 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
   const futureExpenses = hasFutureSection ? futureDates.flatMap((d) => grouped[d]) : [];
   const firstRowId = grouped[mainDates[0]]?.[0]?.id;
 
-  /** Day total as shown in headers: debts and transfers aren't income or spending. */
+  /**
+   * Day total as shown in headers: debts and transfers aren't income or
+   * spending, and movements marked "no contar" don't add up anywhere.
+   */
   const netOf = (items: ExpenseWithCategory[]) =>
     items
+      .filter(countsInTotals)
       .filter((e) => !debtCategoryId || e.category_id !== debtCategoryId)
       .filter((e) => !transferCategoryId || e.category_id !== transferCategoryId)
       .reduce((sum, e) => sum + e.amount, 0);
@@ -164,6 +169,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
   const reachable = hasFutureSection && !futureOpen ? mainDates.flatMap((d) => grouped[d]) : visibleExpenses;
   const selectedRows = selecting ? reachable.filter((e) => selected.has(deleteKey(e))) : [];
   const allSelected = reachable.length > 0 && selectedRows.length === reachable.length;
+  const allExcluded = selectedRows.length > 0 && selectedRows.every((e) => !countsInTotals(e));
   const pickableCategories = categories.filter((c) => !isReservedCategoryName(c.name));
 
   function exitSelection() {
@@ -206,6 +212,34 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
     else toast.success(`${plural(result.updated)} en ${category.name}`, skippedNote);
     exitSelection();
     if (result.updated > 0) notifyMutated();
+  }
+
+  /** Marks movements as counting in totals or not; they stay in the list either way. */
+  async function setExcluded(rows: ExpenseWithCategory[], excluded: boolean) {
+    if (applying || rows.length === 0) return;
+    setApplying(true);
+    try {
+      const result = await setExpensesExcluded(rows.map((e) => e.id), excluded);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        excluded
+          ? rows.length === 1
+            ? "Ya no cuenta en los totales"
+            : `${plural(rows.length)} fuera de los totales`
+          : rows.length === 1
+            ? "Vuelve a contar en los totales"
+            : `${plural(rows.length)} vuelven a contar`,
+      );
+      if (selecting) exitSelection();
+      notifyMutated();
+    } catch {
+      toast.error("No se pudo cambiar. Inténtalo de nuevo.");
+    } finally {
+      setApplying(false);
+    }
   }
 
   async function deleteSelected() {
@@ -258,6 +292,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
           {dayExpenses.map((expense) => {
             const noteParts = splitRecurringNotes(expense.notes);
             const isSelected = selecting && selected.has(deleteKey(expense));
+            const excluded = !countsInTotals(expense);
             return (
             <SwipeRow
               key={expense.id}
@@ -275,7 +310,9 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
               peek={showHint && expense.id === firstRowId}
               className={cn(
                 "group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2.5 transition-colors hover:border-border/70 hover:bg-muted/35 md:py-1.5",
-                isSelected && "border-primary/40 bg-primary/10 hover:border-primary/40 hover:bg-primary/10"
+                isSelected && "border-primary/40 bg-primary/10 hover:border-primary/40 hover:bg-primary/10",
+                // Still listed, visibly set apart: it adds to no total.
+                excluded && !isSelected && "opacity-60"
               )}
             >
               {selecting ? (
@@ -310,6 +347,13 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {expense.category?.name}
+                  {excluded && (
+                    <CircleSlash
+                      role="img"
+                      aria-label="No cuenta en los totales"
+                      className="ml-1.5 inline h-3.5 w-3.5 align-[-2px] text-muted-foreground/80"
+                    />
+                  )}
                   {noteParts.marker && (
                     <Repeat
                       role="img"
@@ -353,6 +397,15 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                   </button>
                   <button
                     type="button"
+                    aria-label={`${excluded ? "Contar" : "No contar"} ${expense.concept || "movimiento"} en los totales`}
+                    title={excluded ? "Volver a contar en los totales" : "No contar en los totales"}
+                    className="cursor-pointer rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={(e) => { e.stopPropagation(); setExcluded([expense], !excluded); }}
+                  >
+                    {excluded ? <Calculator className="h-3.5 w-3.5" /> : <CircleSlash className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
+                    type="button"
                     aria-label={`Eliminar ${expense.concept || "movimiento"}`}
                     title="Eliminar"
                     className="cursor-pointer rounded p-1.5 text-muted-foreground transition-colors hover:text-expense"
@@ -362,7 +415,7 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
                   </button>
                 </div>
                 <span
-                  className={`text-[15px] font-semibold tabular-nums ${
+                  className={`text-[15px] font-semibold tabular-nums ${excluded ? "line-through decoration-1 " : ""}${
                     transferCategoryId && expense.category_id === transferCategoryId
                       ? "text-transfer"
                       : debtCategoryId && expense.category_id === debtCategoryId
@@ -498,6 +551,16 @@ export function ExpenseList({ expenses, categories, sortable = true, externalSor
           <button type="button" disabled={selectedRows.length === 0} onClick={() => setCategoryOpen(true)} className={barButtonClass}>
             <Tag className="h-5 w-5 md:h-4 md:w-4" />
             Categoría
+          </button>
+          {/* All already left out → count them again; otherwise leave them out. */}
+          <button
+            type="button"
+            disabled={selectedRows.length === 0 || applying}
+            onClick={() => setExcluded(selectedRows, !allExcluded)}
+            className={barButtonClass}
+          >
+            {allExcluded ? <Calculator className="h-5 w-5 md:h-4 md:w-4" /> : <CircleSlash className="h-5 w-5 md:h-4 md:w-4" />}
+            {allExcluded ? "Contar" : "No contar"}
           </button>
           <button
             type="button"

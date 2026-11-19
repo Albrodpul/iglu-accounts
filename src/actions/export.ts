@@ -29,6 +29,7 @@ export type BackupData = {
     notes: string | null;
     payment_method: string;
     transfer_pair_id: string | null;
+    excluded?: boolean;
   }>;
   recurring_expenses: Array<{
     id: string;
@@ -139,6 +140,7 @@ export async function exportAccountData(): Promise<{ data?: BackupData; error?: 
       notes: e.notes ?? null,
       payment_method: e.payment_method ?? "bank",
       transfer_pair_id: e.transfer_pair_id ?? null,
+      excluded: Boolean(e.excluded),
     })),
     recurring_expenses: recurring.map((r) => ({
       id: r.id,

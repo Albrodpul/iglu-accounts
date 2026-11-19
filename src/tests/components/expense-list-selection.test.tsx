@@ -7,6 +7,7 @@ import type { Category, ExpenseWithCategory } from "@/types";
 const mocks = vi.hoisted(() => ({
   deleteExpenses: vi.fn(),
   setExpensesCategory: vi.fn(),
+  setExpensesExcluded: vi.fn(),
   toast: Object.assign(vi.fn(), { dismiss: vi.fn(), error: vi.fn(), success: vi.fn() }),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/actions/expenses", () => ({
   deleteExpense: vi.fn(),
   deleteExpenses: mocks.deleteExpenses,
   setExpensesCategory: mocks.setExpensesCategory,
+  setExpensesExcluded: mocks.setExpensesExcluded,
   createExpense: vi.fn(),
   updateExpense: vi.fn(),
   createTransfer: vi.fn(),
@@ -217,5 +219,36 @@ describe("ExpenseList selection mode", () => {
     await user.click(screen.getByRole("button", { name: "Salir de la selección" }));
     expect(screen.getByTestId("mode")).toHaveTextContent("off");
     expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+});
+
+describe("ExpenseList movements that don't count", () => {
+  const withHidden = [
+    movement({ id: "pan", concept: "Pan", amount: -10 }),
+    movement({ id: "devuelto", concept: "Devuelto", amount: -500, excluded: true }),
+  ];
+
+  it("keeps them in the list, marked, and out of the day total", () => {
+    render(<ExpenseList expenses={withHidden} categories={categories} transferCategoryId={transfer.id} />);
+    expect(screen.getByText("Devuelto")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "No cuenta en los totales" })).toBeInTheDocument();
+    // The day header sums only "Pan".
+    const header = screen.getAllByText(/-10 €|−10 €/)[0];
+    expect(header).toBeInTheDocument();
+    expect(screen.queryByText(/-510/)).not.toBeInTheDocument();
+  });
+
+  it("leaves several out at once from the selection bar, and counts them again", async () => {
+    mocks.setExpensesExcluded.mockResolvedValue({ success: true, updated: 2 });
+    const user = userEvent.setup();
+    render(<Harness initial />);
+
+    await user.click(screen.getByText("Pan"));
+    await user.click(screen.getByText("Luz"));
+    await user.click(within(screen.getByRole("toolbar")).getByRole("button", { name: "No contar" }));
+
+    expect(mocks.setExpensesExcluded).toHaveBeenCalledWith(["pan", "luz"], true);
+    expect(mocks.toast.success).toHaveBeenCalledWith("2 movimientos fuera de los totales");
+    expect(screen.getByTestId("mode")).toHaveTextContent("off");
   });
 });

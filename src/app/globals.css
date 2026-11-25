@@ -56,23 +56,25 @@
     radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.22), transparent 48%),
     radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.16), transparent 46%),
     linear-gradient(145deg, #163a5f 0%, #1c5380 70%, #246a9e 100%);
-  --background: #f0f6fb;
-  --foreground: #1a2332;
-  --card: #ffffff;
-  --card-foreground: #1a2332;
-  --popover: #ffffff;
-  --popover-foreground: #1a2332;
+  /* Warm neutrals (cream, sand, stone) around the brand blue: a softer,
+     paper-like light mode instead of cool blue-grey. */
+  --background: #f6f1ea;
+  --foreground: #27231f;
+  --card: #fffcf8;
+  --card-foreground: #27231f;
+  --popover: #fffcf8;
+  --popover-foreground: #27231f;
   --primary: #2d7eb5;
   --primary-foreground: #FFFFFF;
-  --secondary: #e8f1f8;
-  --secondary-foreground: #1e293b;
-  --muted: #e4eef6;
-  --muted-foreground: #5a6a7a;
-  --accent: #d6e8f5;
-  --accent-foreground: #1e4a6e;
+  --secondary: #f0e9df;
+  --secondary-foreground: #2f2924;
+  --muted: #eee6db;
+  --muted-foreground: #70665c;
+  --accent: #e9e0d3;
+  --accent-foreground: #3b3129;
   --destructive: #EF4444;
-  --border: #c9dae8;
-  --input: #c9dae8;
+  --border: #e0d5c6;
+  --input: #d9cdbc;
   --ring: #2d7eb5;
   --income: #0e9f6e;
   --expense: #e5484d;
@@ -166,10 +168,11 @@
     inset: 0;
     z-index: -1;
     background-image:
-      radial-gradient(circle at 10% 8%, color-mix(in oklab, var(--primary) 14%, white) 0%, transparent 38%),
-      radial-gradient(circle at 88% 15%, color-mix(in oklab, #06b6d4 12%, white) 0%, transparent 32%),
-      radial-gradient(circle at 50% 90%, color-mix(in oklab, #6366f1 8%, white) 0%, transparent 40%),
-      linear-gradient(180deg, color-mix(in oklab, var(--background) 94%, white) 0%, var(--background) 100%);
+      /* Warm glows on the cream page: a hint of the brand blue, sunlight and peach. */
+      radial-gradient(circle at 10% 8%, color-mix(in oklab, var(--primary) 7%, var(--background)) 0%, transparent 38%),
+      radial-gradient(circle at 88% 15%, color-mix(in oklab, #f59e0b 9%, var(--background)) 0%, transparent 34%),
+      radial-gradient(circle at 50% 90%, color-mix(in oklab, #fb923c 6%, var(--background)) 0%, transparent 40%),
+      linear-gradient(180deg, color-mix(in oklab, var(--background) 70%, var(--card)) 0%, var(--background) 100%);
   }
   .dark body::before {
     background-image:

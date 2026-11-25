@@ -90,19 +90,13 @@ type Props = {
 type NavIcon = React.ComponentType<{ className?: string }>;
 
 const bottomNavItemClass =
-  "flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium transition-colors";
+  "relative flex min-w-0 flex-col items-center gap-0.5 text-[11px] font-semibold tracking-tight transition-colors";
 
 function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon: NavIcon; isActive: boolean }) {
   return (
     <>
-      <span
-        className={cn(
-          // The tinted pill behind the icon is the shared sliding indicator.
-          "relative flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300",
-          isActive ? "text-primary" : "text-current"
-        )}
-      >
-        <Icon className={cn("h-5 w-5", isActive && "stroke-[2.4]")} />
+      <span className={cn("flex h-7 w-11 items-center justify-center rounded-full transition-colors", isActive && "bg-primary/15")}>
+        <Icon className="size-5" />
       </span>
       {label}
     </>
@@ -111,7 +105,7 @@ function BottomNavContent({ label, icon: Icon, isActive }: { label: string; icon
 
 function NavItem({ href, label, icon, isActive }: { href: string; label: string; icon: NavIcon; isActive: boolean }) {
   return (
-    <Link href={href} aria-current={isActive ? "page" : undefined} className={cn(bottomNavItemClass, isActive ? "font-bold text-foreground" : "text-muted-foreground")}>
+    <Link href={href} aria-current={isActive ? "page" : undefined} className={cn(bottomNavItemClass, isActive ? "text-primary" : "text-muted-foreground")}>
       <BottomNavContent label={label} icon={icon} isActive={isActive} />
     </Link>
   );
@@ -161,7 +155,7 @@ function NavActionItem({
   return (
     <button
       onClick={onClick}
-      className={cn(bottomNavItemClass, "cursor-pointer", isActive ? "font-bold text-foreground" : "text-muted-foreground")}
+      className={cn(bottomNavItemClass, "cursor-pointer", isActive ? "text-primary" : "text-muted-foreground")}
     >
       <BottomNavContent label={label} icon={icon} isActive={isActive} />
     </button>
@@ -243,19 +237,6 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
     ...(hasInvestments ? ["/summary"] : []),
   ];
 
-  // Column (of 5; the FAB owns column 2) holding the active bottom-nav item.
-  const leftActive = navItemsLeft.findIndex((item) => pathname.startsWith(item.href));
-  const activeColumn =
-    leftActive >= 0
-      ? leftActive
-      : mobileRightItems.some((item) => pathname.startsWith(item.href))
-        ? 3
-        : moreSheetRoutes.some((route) => pathname.startsWith(route))
-          ? 4
-          : null;
-  // Remember the last column so the pill fades in place instead of sliding from 0.
-  const [indicatorColumn, setIndicatorColumn] = useState(activeColumn ?? 0);
-  if (activeColumn !== null && activeColumn !== indicatorColumn) setIndicatorColumn(activeColumn);
 
   return (
     <>
@@ -409,35 +390,26 @@ export function Navbar({ accountName, accounts = [], currentAccountId = null, ca
         </div>
       )}
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav: a floating rounded bar with «Nuevo» in the centre (same
+          design as the bottom bar of the herrero app). */}
       <nav
-        className="mobile-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.25)] md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="mobile-nav fixed inset-x-3 z-50 rounded-3xl border bg-card/95 shadow-[0_8px_30px_-6px_rgba(0,0,0,0.3)] backdrop-blur-md md:hidden"
+        style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="relative grid grid-cols-5 px-2 pt-0.5">
-          {/* One pill shared by all items: it slides to the active column. */}
-          <div
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute left-2 top-2 flex w-[calc((100%-1rem)/5)] justify-center transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              activeColumn === null && "opacity-0"
-            )}
-            style={{ transform: `translateX(${indicatorColumn * 100}%)` }}
-          >
-            <span className="h-8 w-14 rounded-full bg-primary/15" />
-          </div>
+        <div className="grid h-16 grid-cols-5 items-center px-1">
           {navItemsLeft.map((item) => (
             <NavItem key={item.href} {...item} isActive={pathname.startsWith(item.href)} />
           ))}
 
-          <div className="flex items-center justify-center">
+          <div className="flex justify-center">
             <button
               onClick={() => setAddOpen(true)}
-              // The card-coloured ring makes the button read as set into the bar, not floating over it.
-              className="-mt-8 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-card transition-transform active:scale-95"
+              // A slight top-to-bottom gradient and a light inner edge give it volume; a tight
+              // neutral shadow lifts it off the bar without the blurry coloured glow.
+              className="-mt-8 flex size-14 cursor-pointer items-center justify-center rounded-full bg-linear-to-b from-primary to-[color-mix(in_oklab,var(--primary)_78%,black)] text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_6px_14px_-4px_rgba(15,23,42,0.45),0_2px_4px_rgba(15,23,42,0.2)] transition-[transform,box-shadow] duration-150 active:scale-95 active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_6px_-2px_rgba(15,23,42,0.4)]"
               aria-label="Nuevo movimiento"
             >
-              <Plus className="h-6 w-6 stroke-[2.5]" />
+              <Plus className="size-6 stroke-[2.5]" />
             </button>
           </div>
 

@@ -214,7 +214,7 @@
     @apply border-border bg-card;
   }
   .dark .mobile-nav {
-    @apply border-border bg-card shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.4)];
+    @apply border-border bg-card/95;
   }
 
   /* Full-bleed brand panel (auth screens): gradient only, no card chrome. */
